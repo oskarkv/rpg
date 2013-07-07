@@ -1,7 +1,8 @@
 (ns game.networking.implementations.kryonet
   (:import (com.esotericsoftware.kryonet Server Client Listener Connection)
            (java.net InetAddress))
-  (:require [game.networking.core :as net]))
+  (:require [game.networking.core :as net]
+            [game.core :as core]))
 
 (defn from-edn [edn]
   (pr-str edn))
@@ -23,11 +24,12 @@
 
 (defmacro defnetworkingsystem [name args & start-body]
   `(deftype ~name ~args
-     net/NetworkingSystem
+     core/Lifecycle
      (~'start [~'this]
        ~@start-body)
      (~'stop [~'this]
        (.stop ~(first args)))
+     core/Updatable
      (~'update [~'this]
        ; Maybe having a positive timeout is better.
        (.update ~(first args) 0))))
