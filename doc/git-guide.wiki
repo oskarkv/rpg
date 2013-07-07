@@ -1,0 +1,93 @@
+== How To Git Like A Pro ==
+
+=== Konfigurera git ===
+
+Git konfigureras med en {{{.gitconfig}}}-fil som ska ligga i din hemmapp. Ett bra exempel att utgå från:
+
+{{{
+[user]
+    name  = Christoffer Ekeroth
+    email = ekeroth.christoffer@gmail.com
+[color]  
+    branch      = auto
+    diff        = auto
+    interactive = auto
+    status      = auto
+[core]
+    editor = vim
+[push]
+    default = tracking
+}}}
+
+Tips:
+
+ * Sätt editor-variabeln till {{{sub --wait}}} för att editera commitmeddelanden med Sublime.
+ * Variabler kan även sättas med det här kommandot: {{{git config --global user.name "Christoffer Ekeroth"}}}
+ * Ta en titt på [[http://gitready.com/intermediate/2009/02/06/helpful-command-aliases.html|git-alias]] för att slippa skriva långa kommandon
+
+== Feature branches ==
+
+När man börjar jobba på en ticket skapar man med fördel en "feature branch", vilket är en privat branch dit man committar ändringar som hör till ticketen. Motivationen för feature branches är:
+
+ * Master är alltid (någorlunda) stabil eftersom den aldrig innehåller halvfärdigt arbete.
+ * Man undviker onödiga merges eftersom den lokala branchen man jobbar i inte divergerar från den publika.
+
+För att enklare hålla reda på vilka branchens som hör ihop med vilka tickets bör man döpa branchen efter ticketens namn, med dess id som prefix.
+
+Först ser vi till att vår lokala master är uppdaterad:
+{{{
+git checkout master
+git pull
+}}}
+
+Givet att vi har en ticket som heter "Servern brinner upp under använding" med id FOO-42 skapar vi sen en feature branch:
+
+{{{
+git checkout -b foo-42-servern-brinner-upp
+}}}
+
+=== Commits ===
+Varje commit ska helst bestå av en mängd ändringar som är logiskt relaterade till varandra. De ska även vara "atomära", d.v.s. orelaterade ändringar ska inte klumpas ihop i samma commit.
+
+Fördelen med atomära commits är att det blir enklare att följa vad som hänt i en branch, samt att det går lätt att plocka över commits från en branch till en annan med {{{git cherry-pick}}}.
+
+Den andra delen av en bra commit är ett bra commitmeddelande. Tim Pope har skrivit några "best practices" för commitmeddelanden, som man bör följa: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
+
+Tips: 
+
+ * Använd {{{git add -p}}} för att gå igenom alla icke-committade ändringar och lägga in dem i commiten en i taget.
+ * Committa med {{{git commit -v}}} för att se en sammanfattning av dina ändringar medan du skriver commitmeddelandet.
+ * Använd inte commits för att spara "work in progress"! Git har ett separat verktyg, {{{git stash}}}, som används för att spara ändringar utan att committa dem.
+
+=== Pusha brancher ===
+
+För att pusha en branch:
+
+{{{
+git push -u origin foo-42-servern-brinner-upp
+}}}
+
+Det här skapar en branch på servern som den lokala servern kommer följa. Glömmer du bort att köra det föregående kommandot kan man definiera en upstream efteråt:
+
+{{{
+git branch --set-upstream foo-42-servern-brinner-upp origin/foo-42-servern-brinner-upp
+}}}
+
+=== Merga brancher / Pull Requests ===
+
+När man är klar med en feature är det en bra idé att merga in master i sin feature branch, utifall att det skett några ändringar i master. Anledningen till att man inte mergar in feature branch:en direkt i mastern är att det blir snyggare om man löser konflikter i sin feature branch.
+
+För att merga in master, se till att mastern är uppdaterad. Checka sedan ut feature branchen och kör:
+
+{{{
+git merge master
+}}}
+
+//(Här ska man göra en pull request men jag orkar inte skriva om det nu!)//
+
+När eventuella mergekonflikter är lösta kan feature branchen mergas in i master.
+
+{{{
+git checkout master
+git merge
+}}}
