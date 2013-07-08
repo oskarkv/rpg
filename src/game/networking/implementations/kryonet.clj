@@ -19,8 +19,9 @@
   (ping [this]
     (.getReturnTripTime this))
   (get-address [this]
-    (.getHostString (.getRemoteAddressTCP this))))
-
+    (.getHostString (.getRemoteAddressTCP this)))
+  (get-connection-id [this]
+    (.getID this)))
 
 (defmacro defnetworkingsystem [name args & start-body]
   `(deftype ~name ~args
