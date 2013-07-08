@@ -27,3 +27,5 @@ profiles.clj
 
 # Test data
 /data
+
+vimedit.bat
