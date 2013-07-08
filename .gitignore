@@ -24,3 +24,6 @@ pom.xml.asc
 # Developers' own profiles
 /dev
 profiles.clj
+
+# Test data
+/data
