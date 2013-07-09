@@ -11,7 +11,7 @@
   (get-connection-id [this]))
 
 (defn construct-server [port]
-  (let [queue (atom clojure.lang.PersistentQueue/EMPTY)
+  (let [queue (atom [])
         game-id-counter (atom 0)
         net-id->game-id (atom {})
         game-id->conn (atom {})
