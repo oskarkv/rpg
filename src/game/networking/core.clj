@@ -28,7 +28,7 @@
         disc-fn (fn [conn]
                   (let [game-id (get-connection-id conn)]
                     (enqueue (list game-id (msg-types->ints :disconnect)))))
-        server (impl/construct-server port conn-fn recv-fn disc-fn)
+        net-sys (impl/construct-server port conn-fn recv-fn disc-fn)
         send-fn (fn [game-id edn]
                   (send-reliably (@game-id->conn game-id) edn))]
-    {:server server :queue queue :send-fn send-fn}))
+    {:net-sys net-sys :queue queue :send-fn send-fn}))
