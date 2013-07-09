@@ -38,12 +38,12 @@
 (defnetworkingsystem KryonetServer [server port]
   ; .bind must be called in a thread other than the update thread, but
   ; update needs to be called at the same time; blocks until bound.
-  (def sf (future (.bind server port))))
+  (future (.bind server port)))
 
 (defnetworkingsystem KryonetClient [client address port]
   ; .connect must be called in a thread other than the update thread, but
   ; update needs to be called at the same time; blocks until connected.
-  (def cf (future (.connect client 3000 (InetAddress/getByName address) port))))
+  (future (.connect client 3000 (InetAddress/getByName address) port)))
 
 (defn construct-system [base-object creation-fn args conn-fn recv-fn disc-fn]
     (let [listener (proxy [Listener] []
