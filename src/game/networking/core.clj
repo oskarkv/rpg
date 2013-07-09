@@ -1,14 +1,8 @@
 (ns game.networking.core
-  (:require [game.networking.implementations.kryonet :as impl]))
+  (:require [game.networking.implementations.kryonet :as impl]
+            [game.networking.protocols :as protocols]))
 
 (def msg-types->ints (zipmap [:disconnect] (range)))
-
-(defprotocol NetworkingConnection
-  (send-reliably [this edn])
-  (send-unreliably [this edn])
-  (ping [this])
-  (get-address [this])
-  (get-connection-id [this]))
 
 (defn construct-server [port]
   (let [queue (atom [])
@@ -16,19 +10,19 @@
         net-id->game-id (atom {})
         game-id->conn (atom {})
         enqueue (fn [item] (swap! queue conj item))
-        get-game-id (fn [conn] (@net-id->game-id (get-connection-id conn)))
+        get-game-id (fn [conn] (@net-id->game-id (protocols/get-connection-id conn)))
         conn-fn (fn [conn]
                   (let [game-id (swap! game-id-counter inc)
-                        net-id (get-connection-id conn)]
+                        net-id (protocols/get-connection-id conn)]
                     (swap! net-id->game-id assoc net-id game-id)
                     (swap! game-id->conn assoc game-id conn)))
         recv-fn (fn [conn obj]
                   (let [game-id (get-game-id conn)]
                     (enqueue (conj obj game-id))))
         disc-fn (fn [conn]
-                  (let [game-id (get-connection-id conn)]
+                  (let [game-id (protocols/get-connection-id conn)]
                     (enqueue (list game-id (msg-types->ints :disconnect)))))
         net-sys (impl/construct-server port conn-fn recv-fn disc-fn)
         send-fn (fn [game-id edn]
-                  (send-reliably (@game-id->conn game-id) edn))]
+                  (protocols/send-reliably (@game-id->conn game-id) edn))]
     {:net-sys net-sys :queue queue :send-fn send-fn}))

@@ -1,7 +1,7 @@
 (ns game.networking.implementations.kryonet
   (:import (com.esotericsoftware.kryonet Server Client Listener Connection)
            (java.net InetAddress))
-  (:require [game.networking.core :as net]
+  (:require [game.networking.protocols :as net]
             [game.core :as core]))
 
 (defn from-edn [edn]
