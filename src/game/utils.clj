@@ -5,12 +5,15 @@
   ; window, when running from Vim.
   `(future (try ~@body (catch Exception ~'e (.printStackTrace ~'e *err*)))))
 
+(defn- private-symbol [sym]
+  (with-meta sym (assoc (meta sym) :private true)))
+
 (defmacro def-
   "Defines a private var."
   [name val]
-  (list `def (with-meta name (assoc (meta name) :private true)) val))
+  (list `def (private-symbol name) val))
 
 (defmacro defmacro-
   "Same as defmacro but yields a private definition"
   [name & decls]
-  (list* `defmacro (with-meta name (assoc (meta name) :private true)) decls))
+  (list* `defmacro (private-symbol name) decls))
