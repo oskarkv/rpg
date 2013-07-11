@@ -53,7 +53,8 @@
                    (connected [conn]
                      (conn-fn conn))
                    (received [conn obj]
-                     (recv-fn conn (to-edn obj)))
+                     (if (string? obj)
+                       (recv-fn conn (to-edn obj))))
                    (disconnected [conn]
                      (disc-fn conn)))
         system (apply creation-fn base-object args)]
