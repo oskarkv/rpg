@@ -1,7 +1,7 @@
 (ns game.server.core
   (:require [game.networking.core :as net]
-            [game.core :as core]
-            [game.utils :as utils]))
+            [game.core :as core])
+  (:use game.utils))
 
 (def ^:const port 12345)
 
@@ -24,7 +24,7 @@
   (start [this]
     (let [{net-sys :net-sys} net-map]
       (core/start net-sys)
-      (utils/error-printing-future (main-loop net-map game-state stop?))
+      (error-printing-future (main-loop net-map game-state stop?))
       this))
   (stop [this]
     (reset! stop? true)

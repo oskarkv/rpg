@@ -2,8 +2,8 @@
   (:import (com.esotericsoftware.kryonet Server Client Listener Connection)
            (java.net InetAddress))
   (:require [game.networking.protocols :as net]
-            [game.core :as core]
-            [game.utils :as utils]))
+            [game.core :as core])
+  (:use game.utils))
 
 (defn from-edn [edn]
   (pr-str edn))
@@ -40,12 +40,12 @@
 (defnetworkingsystem KryonetServer [server port]
   ; .bind must be called in a thread other than the update thread, but
   ; update needs to be called at the same time; blocks until bound.
-  (utils/error-printing-future (.bind server port)))
+  (error-printing-future (.bind server port)))
 
 (defnetworkingsystem KryonetClient [client address port]
   ; .connect must be called in a thread other than the update thread, but
   ; update needs to be called at the same time; blocks until connected.
-  (utils/error-printing-future
+  (error-printing-future
     (.connect client 3000 (InetAddress/getByName address) port)))
 
 (defn construct-system [base-object creation-fn args conn-fn recv-fn disc-fn]
