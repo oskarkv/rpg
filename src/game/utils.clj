@@ -40,3 +40,16 @@
   "Same as defmacro but yields a private definition"
   [name & decls]
   (list* `defmacro (private-symbol name) decls))
+
+(defmacro deftype- [name & decls]
+  (let [constructor (symbol (str "->" name))]
+    `(do (deftype ~name ~@decls)
+         ; The metadata map will be evaluated by def,
+         ; so we have to quote the arglists which can
+         ; contain arbitrary symbols.
+         (let [meta# (meta #'~constructor)
+               args# (:arglists meta#)
+               meta# (assoc meta# :arglists `'~args#)
+               sym# (with-meta '~constructor
+                               (assoc meta# :private true))]
+           (eval `(def ~sym# ~~constructor))))))
