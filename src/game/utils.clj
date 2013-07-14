@@ -1,5 +1,17 @@
 (ns game.utils)
 
+(defmacro assert-args [& pairs]
+  `(do (when-not ~(first pairs)
+         (throw (IllegalArgumentException.
+                  (str (first ~'&form)
+                       " requires "
+                       ~(second pairs)
+                       " in " ~'*ns*
+                       ":" (:line (meta ~'&form))))))
+       ~(let [more (nnext pairs)]
+          (when more
+            (list* `assert-args more)))))
+
 (defmacro error-printing-future [& body]
   ; *err* makes the stack trace print in Vim instead of in the lein repl cmd
   ; window, when running from Vim.
