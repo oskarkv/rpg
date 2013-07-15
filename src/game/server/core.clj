@@ -3,8 +3,6 @@
             [game.core :as core])
   (:use game.utils))
 
-(def ^:const port 12345)
-
 (defn process-msg [msg]
   nil)
 
