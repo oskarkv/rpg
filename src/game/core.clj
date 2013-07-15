@@ -1,6 +1,6 @@
 (ns game.core)
 
-(def ^:const port 12345)
+(def port 12345)
 
 (def connect-msg :connect)
 (def disconnect-msg :disconnect)
