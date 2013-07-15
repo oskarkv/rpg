@@ -31,15 +31,13 @@
 (defn- private-symbol [sym]
   (with-meta sym (assoc (meta sym) :private true)))
 
-(defmacro def-
-  "Defines a private var."
-  [name val]
-  (list `def (private-symbol name) val))
+; We don't want defprivatedef to be public.
+(defn- defprivatedef [name deffer]
+  (eval `(defmacro ~name ~'[inner-name & rest]
+           (list* ~deffer (private-symbol ~'inner-name) ~'rest))))
 
-(defmacro defmacro-
-  "Same as defmacro but yields a private definition"
-  [name & decls]
-  (list* `defmacro (private-symbol name) decls))
+(defprivatedef 'def- '`def)
+(defprivatedef 'defmacro- '`defmacro)
 
 (defmacro deftype- [name & decls]
   (let [constructor (symbol (str "->" name))]
