@@ -43,7 +43,7 @@
 (defn init-server [port]
   (let [game-state {}
         stop? (atom false)
-        {:keys [net-sys get-msg send-msg]} (net/construct-server
+        {:keys [net-sys get-msg send-msg]} (net/construct-net-sys
                                              port
                                              core/connect-msg
                                              core/disconnect-msg)

@@ -4,7 +4,7 @@
             [game.networking.protocols :as protocols]
             [game.core :as core]))
 
-(defn construct-server [port connect-msg disconnect-msg]
+(defn construct-net-sys [port connect-msg disconnect-msg]
   (let [queue (LinkedList.)
         id->conn (atom {})
         enqueue (fn [conn item]
