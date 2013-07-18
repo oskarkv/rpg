@@ -1,5 +1,5 @@
 (ns game.data-store.implementations.filesystem-store
-  (:require [game.data-store.core :as data-store]
+  (:require [game.data-store.protocols :as data-store]
             [game.core :as core]))
 
 (deftype FilesystemStore [dir]

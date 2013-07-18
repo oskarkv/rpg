@@ -1,4 +1,4 @@
-(ns game.data-store.core
+(ns game.data-store.protocols
   (:refer-clojure :exclude [load]))
 
 (defprotocol DataStore
