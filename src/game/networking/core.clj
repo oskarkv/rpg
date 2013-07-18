@@ -12,11 +12,11 @@
                                :msg item}))
         conn-fn (fn [conn]
                   (swap! id->conn assoc (protocols/get-connection-id conn) conn)
-                  (enqueue conn (core/type->int connect-msg)))
+                  (enqueue conn (core/type->int-in-msg connect-msg)))
         recv-fn (fn [conn obj]
                   (enqueue conn obj))
         disc-fn (fn [conn]
-                  (enqueue conn (core/type->int disconnect-msg)))
+                  (enqueue conn (core/type->int-in-msg disconnect-msg)))
         net-sys (impl/construct-server port conn-fn recv-fn disc-fn)
         get-msg (fn [] (.poll queue))
         send-msg (fn [id msg]

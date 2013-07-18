@@ -11,8 +11,8 @@
 
 (letfn [(message-transformer [transformer]
           (fn [msg] (update-in msg [0] transformer)))]
-  (def type->int (message-transformer types->ints))
-  (def int->type (message-transformer ints->types)))
+  (def type->int-in-msg (message-transformer types->ints))
+  (def int->type-in-msg (message-transformer ints->types)))
 
 (defprotocol Lifecycle
   (start [this])

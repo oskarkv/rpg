@@ -52,10 +52,10 @@
                         (let [game-id (if (= core/connect-msg msg)
                                         (new-game-id id)
                                         (net-id->game-id id))
-                              msg (core/int->type msg)]
+                              msg (core/int->type-in-msg msg)]
                           {:id game-id :msg msg})))
         new-send-msg (fn [game-id msg]
                        (send-msg (game-id->net-id game-id)
-                                 (core/type->int msg)))
+                                 (core/type->int-in-msg msg)))
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}]
     (->Server net-map game-state stop?)))
