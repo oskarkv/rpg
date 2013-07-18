@@ -18,10 +18,9 @@
 (defrecord Server [net-map game-state stop?]
   core/Lifecycle
   (start [this]
-    (let [{net-sys :net-sys} net-map]
-      (core/start net-sys)
-      (error-printing-future (main-loop net-map game-state stop?))
-      this))
+    (core/start (:net-sys net-map))
+    (error-printing-future (main-loop net-map game-state stop?))
+    this)
   (stop [this]
     (reset! stop? true)
     (core/stop (:net-sys net-map))
