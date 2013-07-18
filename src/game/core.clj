@@ -6,13 +6,13 @@
 (def disconnect-msg [:disconnect])
 
 (let [types [(connect-msg 0) (disconnect-msg 0) :login]]
-  (def types->ints (zipmap types (range)))
-  (def ints->types (zipmap (range) types)))
+  (def type->int (zipmap types (range)))
+  (def int->type (zipmap (range) types)))
 
 (letfn [(message-transformer [transformer]
           (fn [msg] (update-in msg [0] transformer)))]
-  (def type->int-in-msg (message-transformer types->ints))
-  (def int->type-in-msg (message-transformer ints->types)))
+  (def type->int-in-msg (message-transformer type->int))
+  (def int->type-in-msg (message-transformer int->type)))
 
 (defprotocol Lifecycle
   (start [this])
