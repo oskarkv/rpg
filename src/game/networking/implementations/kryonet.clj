@@ -5,10 +5,10 @@
             [game.core :as core])
   (:use game.utils))
 
-(defn from-edn [edn]
+(defn- from-edn [edn]
   (pr-str edn))
 
-(defn to-edn [obj]
+(defn- to-edn [obj]
   (read-string obj))
 
 (extend-type Connection
@@ -25,8 +25,8 @@
     (.getID this)))
 
 
-(defmacro defnetworkingsystem [name args & start-body]
-  `(deftype ~name ~args
+(defmacro- defnetworkingsystem- [name args & start-body]
+  `(deftype- ~name ~args
      core/Lifecycle
      (~'start [~'this]
        ~@start-body)
@@ -37,18 +37,18 @@
        ; Maybe having a positive timeout is better.
        (.update ~(first args) 0))))
 
-(defnetworkingsystem KryonetServer [server port]
+(defnetworkingsystem- KryonetServer [server port]
   ; .bind must be called in a thread other than the update thread, but
   ; update needs to be called at the same time; blocks until bound.
   (error-printing-future (.bind server port)))
 
-(defnetworkingsystem KryonetClient [client address port]
+(defnetworkingsystem- KryonetClient [client address port]
   ; .connect must be called in a thread other than the update thread, but
   ; update needs to be called at the same time; blocks until connected.
   (error-printing-future
-    (.connect client 3000 (InetAddress/getByName address) port)))
+    (.connect client 5000 (InetAddress/getByName address) port)))
 
-(defn construct-system [base-object creation-fn args conn-fn recv-fn disc-fn]
+(defn- construct-system [base-object creation-fn args conn-fn recv-fn disc-fn]
     (let [listener (proxy [Listener] []
                    (connected [conn]
                      (conn-fn conn))
