@@ -15,4 +15,9 @@
     (spit (str dir "/" key) (pr-str val))
     val)
   (load [this key]
-    (read-string (slurp (str dir "/" key)))))
+    (try
+      (read-string (slurp (str dir "/" key)))
+      (catch java.lang.RuntimeException e
+        nil)
+      (catch java.io.FileNotFoundException e
+        nil))))
