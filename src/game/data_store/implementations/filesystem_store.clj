@@ -12,6 +12,7 @@
   (stop [this])
   data-store/DataStore
   (store [this key val]
-    (spit (str dir "/" key) (pr-str val)))
+    (spit (str dir "/" key) (pr-str val))
+    val)
   (load [this key]
     (read-string (slurp (str dir "/" key)))))
