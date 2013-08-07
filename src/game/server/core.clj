@@ -1,33 +1,33 @@
 (ns game.server.core
   (:require [game.networking.core :as net]
             [game.core :as core]
-            [game.data-store.core :as ds.core]
-            [game.data-store.protocols :as ds])
+            [game.key-value-store.core :as kvs.core]
+            [game.key-value-store.protocols :as kvs])
   (:use game.utils))
 
 (defn process-msg [msg]
   nil)
 
-(defn main-loop [net-map data-store game-state stop?]
+(defn main-loop [net-map key-value-store game-state stop?]
   (Thread/sleep 10)
   (let [{:keys [net-sys get-msg send-msg]} net-map]
     (core/update net-sys)
     (while-let [msg (get-msg)]
       (process-msg msg)
       (core/update net-sys))
-    (if-not @stop? (recur net-map data-store game-state stop?))))
+    (if-not @stop? (recur net-map key-value-store game-state stop?))))
 
-(defrecord Server [net-map data-store game-state stop?]
+(defrecord Server [net-map key-value-store game-state stop?]
   core/Lifecycle
   (start [this]
     (core/start (:net-sys net-map))
-    (core/start data-store)
-    (error-printing-future (main-loop net-map data-store game-state stop?))
+    (core/start key-value-store)
+    (error-printing-future (main-loop net-map key-value-store game-state stop?))
     this)
   (stop [this]
     (reset! stop? true)
     (core/stop (:net-sys net-map))
-    (core/stop data-store)
+    (core/stop key-value-store)
     this))
 
 (let [game-id-counter (atom 0)
@@ -61,5 +61,5 @@
                        (send-msg (game-id->net-id game-id)
                                  (core/type->int-in-msg msg)))
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}
-        data-store (ds.core/construct-data-store)]
-    (->Server net-map data-store game-state stop?)))
+        key-value-store (kvs.core/construct-key-value-store)]
+    (->Server net-map key-value-store game-state stop?)))

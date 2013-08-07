@@ -1,8 +1,8 @@
-(ns game.data-store.implementations.filesystem-store
-  (:require [game.data-store.protocols :as data-store]
+(ns game.key-value-store.implementations.filesystem-kvs
+  (:require [game.key-value-store.protocols :as key-value-store]
             [game.core :as core]))
 
-(deftype FilesystemStore [dir]
+(deftype FilesystemKeyValueStore [dir]
   ; Since it is concievable that some stores will need to be started and
   ; stopped, e.g. a database-backed store, all stores must implement the
   ; Lifecycle protocol, since code using the store should not have to know
@@ -10,7 +10,7 @@
   core/Lifecycle
   (start [this])
   (stop [this])
-  data-store/DataStore
+  key-value-store/KeyValueStore
   (store [this key val]
     (spit (str dir "/" key) (pr-str val))
     val)
