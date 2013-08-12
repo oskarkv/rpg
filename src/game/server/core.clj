@@ -5,17 +5,56 @@
             [game.key-value-store.protocols :as kvs])
   (:use game.utils))
 
-(defn process-msg [msg]
-  nil)
+(defn new-player [username]
+  {:name username
+   :pos [0 0]})
+
+(defmulti process-delta (fn [delta _] (:type delta)))
+
+(defmethod process-delta :new-player [delta game-state]
+  (let [{:keys [id player]} delta]
+    (assoc-in game-state [:players id] player)))
+
+
+(defmulti produce-delta-from-msg :type)
+
+(defmethod produce-delta-from-msg :default [_])
+
+
+(defmulti process-msg (fn [msg _ _] (:type msg)))
+
+(defmethod process-msg :login [{:keys [id data]} game-state key-value-store]
+  (println "process-msg" id data)
+  (let [[username] data
+        player (or (kvs/load key-value-store username) (new-player username))]
+    {:type :new-player :id id :player player}))
+
+(defmethod process-msg :connect [_ _ _])
+
+(defmethod process-msg :disconnect [_ _ _])
+
+(defmethod process-msg :default [msg game-state _]
+  (produce-delta-from-msg msg game-state))
 
 (defn main-loop [net-map key-value-store game-state stop?]
-  (Thread/sleep 10)
-  (let [{:keys [net-sys get-msg send-msg]} net-map]
-    (core/update net-sys)
-    (while-let [msg (get-msg)]
-      (process-msg msg)
-      (core/update net-sys))
-    (if-not @stop? (recur net-map key-value-store game-state stop?))))
+  (loop [game-state game-state]
+    (println game-state)
+    (Thread/sleep 100)
+    (core/update (:net-sys net-map))
+    (let [{:keys [net-sys get-msg send-msg]} net-map
+          new-game-state
+          (loop [msg (get-msg) game-state game-state]
+            (if msg
+              (let [delta (process-msg msg game-state key-value-store)
+                    new-game-state (if (nil? delta)
+                                     game-state
+                                     (process-delta delta game-state))]
+                (core/update net-sys)
+                (if-let [msg (get-msg)]
+                  (recur msg new-game-state)
+                  new-game-state))
+              game-state))]
+      (if-not @stop? (recur new-game-state)))))
 
 (defrecord Server [net-map key-value-store game-state stop?]
   core/Lifecycle
@@ -44,7 +83,7 @@
     (@game->net game-id)))
 
 (defn init-server [port]
-  (let [game-state {}
+  (let [game-state {:players {}}
         stop? (atom false)
         {:keys [net-sys get-msg send-msg]} (net/construct-net-sys
                                              port
@@ -52,11 +91,12 @@
                                              core/disconnect-msg)
         new-get-msg (fn []
                       (when-let [{:keys [id msg]} (get-msg)]
-                        (let [game-id (if (= core/connect-msg msg)
+                        (let [[type & data :as game-msg]
+                              (core/int->type-in-msg msg)
+                              game-id (if (= core/connect-msg game-msg)
                                         (new-game-id id)
-                                        (net-id->game-id id))
-                              msg (core/int->type-in-msg msg)]
-                          {:id game-id :msg msg})))
+                                        (net-id->game-id id))]
+                          {:id game-id :type type :data data})))
         new-send-msg (fn [game-id msg]
                        (send-msg (game-id->net-id game-id)
                                  (core/type->int-in-msg msg)))
