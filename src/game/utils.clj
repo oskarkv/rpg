@@ -51,3 +51,6 @@
                sym# (with-meta '~constructor
                                (assoc meta# :private true))]
            (eval `(def ~sym# ~~constructor))))))
+
+(defmacro debug [x]
+  `(do (println '~x "=" ~x) ~x))
