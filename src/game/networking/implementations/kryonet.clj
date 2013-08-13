@@ -62,8 +62,10 @@
     system))
 
 (defn construct-server [port conn-fn recv-fn disc-fn]
-  (construct-system (Server.) ->KryonetServer [port] conn-fn recv-fn disc-fn))
+  {:net-sys (construct-system (Server.) ->KryonetServer
+                              [port] conn-fn recv-fn disc-fn)})
 
 (defn construct-client [address port conn-fn recv-fn disc-fn]
-  (construct-system (Client.) ->KryonetClient
-                    [address port] conn-fn recv-fn disc-fn))
+  (let [client (Client.)]
+    {:net-sys (construct-system client ->KryonetClient
+                                [address port] conn-fn recv-fn disc-fn)}))

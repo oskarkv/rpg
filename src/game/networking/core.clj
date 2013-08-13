@@ -17,8 +17,8 @@
                   (enqueue conn obj))
         disc-fn (fn [conn]
                   (enqueue conn (core/type->int-in-msg disconnect-msg)))
-        net-sys (impl/construct-server port conn-fn recv-fn disc-fn)
         get-msg (fn [] (.poll queue))
         send-msg (fn [id msg]
-                  (protocols/send-reliably (@id->conn id) msg))]
+                  (protocols/send-reliably (@id->conn id) msg))
+        net-sys (:net-sys (impl/construct-server port conn-fn recv-fn disc-fn))]
     {:net-sys net-sys :get-msg get-msg :send-msg send-msg}))
