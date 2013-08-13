@@ -36,13 +36,13 @@
 (defmethod process-msg :default [msg game-state _]
   (produce-delta-from-msg msg game-state))
 
-(defn main-loop [net-map key-value-store game-state stop?]
+(defn main-loop [{:keys [net-sys get-msg send-msg]}
+                 key-value-store game-state stop?]
   (loop [game-state game-state]
     (println game-state)
     (Thread/sleep 100)
-    (core/update (:net-sys net-map))
-    (let [{:keys [net-sys get-msg send-msg]} net-map
-          new-game-state
+    (core/update net-sys)
+    (let [new-game-state
           (loop [msg (get-msg) game-state game-state]
             (if msg
               (let [delta (process-msg msg game-state key-value-store)
