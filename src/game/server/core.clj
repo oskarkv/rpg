@@ -9,46 +9,50 @@
   {:name username
    :pos [0 0]})
 
-(defmulti process-delta (fn [delta _] (:type delta)))
+(defmulti process-msg-purely (fn [msg _] (:type msg)))
 
-(defmethod process-delta :new-player [delta game-state]
-  (let [{:keys [id player]} delta]
-    (assoc-in game-state [:players id] player)))
-
-
-(defmulti produce-delta-from-msg :type)
-
-(defmethod produce-delta-from-msg :default [_])
-
+(defmethod process-msg-purely :default [_ game-state]
+  game-state)
 
 (defmulti process-msg (fn [msg _ _] (:type msg)))
 
 (defmethod process-msg :login [{:keys [id data]} game-state key-value-store]
-  (println "process-msg" id data)
   (let [[username] data
         player (or (kvs/load key-value-store username) (new-player username))]
-    {:type :new-player :id id :player player}))
+    {:new-game-state (assoc-in game-state [:players id] player)
+     :client-delta {:id id :type :login :data [player]}}))
 
-(defmethod process-msg :connect [_ _ _])
+(defmethod process-msg :connect [_ game-state _]
+  {:new-game-state game-state})
 
-(defmethod process-msg :disconnect [_ _ _])
+(defmethod process-msg :disconnect [_ game-state _]
+  {:new-game-state game-state})
 
 (defmethod process-msg :default [msg game-state _]
-  (produce-delta-from-msg msg game-state))
+  (process-msg-purely msg game-state))
+
+(defmulti prepare-client-msgs (fn [msg _] (:type msg)))
+
+(defmethod prepare-client-msgs :login [{id :id [player] :data} game-state]
+  (let [all-players (keys (:players game-state))]
+    [[all-players [:login id player]]]))
+
+(defmethod prepare-client-msgs :default [_ _]
+  nil)
 
 (defn main-loop [{:keys [net-sys get-msg send-msg]}
                  key-value-store game-state stop?]
   (loop [game-state game-state]
-    (println game-state)
-    (Thread/sleep 100)
+    (Thread/sleep 50)
     (core/update net-sys)
     (let [new-game-state
           (loop [msg (get-msg) game-state game-state]
             (if msg
-              (let [delta (process-msg msg game-state key-value-store)
-                    new-game-state (if (nil? delta)
-                                     game-state
-                                     (process-delta delta game-state))]
+              (let [{:keys [new-game-state client-delta]}
+                    (process-msg msg game-state key-value-store)
+                    to-client-msgs (prepare-client-msgs client-delta new-game-state)]
+                (doseq [[ids to-client-msg] to-client-msgs]
+                  (send-msg ids to-client-msg))
                 (core/update net-sys)
                 (if-let [msg (get-msg)]
                   (recur msg new-game-state)
@@ -97,9 +101,10 @@
                                         (new-game-id id)
                                         (net-id->game-id id))]
                           {:id game-id :type type :data data})))
-        new-send-msg (fn [game-id msg]
-                       (send-msg (game-id->net-id game-id)
-                                 (core/type->int-in-msg msg)))
+        new-send-msg (fn [game-ids msg]
+                       (let [net-msg (core/type->int-in-msg msg)]
+                         (doseq [game-id game-ids]
+                           (send-msg (game-id->net-id game-id) net-msg))))
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}
         key-value-store (kvs.core/construct-key-value-store)]
     (->Server net-map key-value-store game-state stop?)))
