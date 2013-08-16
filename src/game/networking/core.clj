@@ -22,3 +22,20 @@
                   (protocols/send-reliably (@id->conn id) msg))
         net-sys (:net-sys (impl/construct-server port conn-fn recv-fn disc-fn))]
     {:net-sys net-sys :get-msg get-msg :send-msg send-msg}))
+
+(defn construct-client-net-sys [address port connect-msg disconnect-msg]
+  (let [queue (LinkedList.)
+        enqueue (fn [item]
+                  (.add queue item))
+        conn-fn (fn [conn]
+                  (enqueue (core/type->int-in-msg connect-msg)))
+        recv-fn (fn [conn obj]
+                  (enqueue obj))
+        disc-fn (fn [conn]
+                  (enqueue (core/type->int-in-msg disconnect-msg)))
+        get-msg (fn [] (.poll queue))
+        {:keys [net-sys conn]} (impl/construct-client address port conn-fn
+                                                      recv-fn disc-fn)
+        send-msg (fn [msg]
+                   (protocols/send-reliably conn msg))]
+    {:net-sys net-sys :get-msg get-msg :send-msg send-msg}))
