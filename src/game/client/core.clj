@@ -1,5 +1,6 @@
 (ns game.client.core
   (:require [game.networking.core :as net]
+            [game.game-map :as game-map]
             [game.core :as core])
   (:use game.utils))
 
@@ -39,7 +40,7 @@
     this))
 
 (defn init-client [address port]
-  (let [game-state {:players {}}
+  (let [game-state {:game-map (game-map/load-game-map)}
         stop? (atom false)
         {:keys [net-sys get-msg send-msg]}
         (net/construct-client-net-sys address port
