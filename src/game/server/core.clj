@@ -17,7 +17,7 @@
 (defmulti process-msg (fn [msg _ _] (:type msg)))
 
 (defmethod process-msg :login [{:keys [id data]} game-state key-value-store]
-  (let [[username] data
+  (let [[username password] data
         player (or (kvs/load key-value-store username) (new-player username))]
     {:new-game-state (assoc-in game-state [:players id] player)
      :client-delta {:id id :type :login :data [player]}}))
@@ -35,7 +35,8 @@
 
 (defmethod prepare-client-msgs :login [{id :id [player] :data} game-state]
   (let [all-players (keys (:players game-state))]
-    [[all-players [:login id player]]]))
+    [[[id] [:game-state game-state]]
+     [all-players [:login id player]]]))
 
 (defmethod prepare-client-msgs :default [_ _]
   nil)
@@ -50,7 +51,8 @@
             (if msg
               (let [{:keys [new-game-state client-delta]}
                     (process-msg msg game-state key-value-store)
-                    to-client-msgs (prepare-client-msgs client-delta new-game-state)]
+                    to-client-msgs (prepare-client-msgs client-delta
+                                                        new-game-state)]
                 (doseq [[ids to-client-msg] to-client-msgs]
                   (send-msg ids to-client-msg))
                 (core/update net-sys)
@@ -69,8 +71,8 @@
     this)
   (stop [this]
     (reset! stop? true)
-    (core/stop (:net-sys net-map))
     (core/stop key-value-store)
+    (core/stop (:net-sys net-map))
     this))
 
 (let [game-id-counter (atom 0)
