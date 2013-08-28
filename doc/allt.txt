@@ -1145,6 +1145,28 @@ resistanser tar bort skada och duration fast man inte missar helt?
     pots, och sparar pengar, så strävan efter bra gear är viktigare.
 
 
+Saker som suger med WoW
+-----------------------
+
+Oavsett hur bra items man har så har man downtime med caster för att
+man inte regenar nått när man castar spells.
+
+Det borde finnas fler sätt att öka sin spellskada. Abilities borde
+inte göra fast skada, t.ex. Arcane Shot för hunter. Hunter är ett bra
+exempel på nått som suger, 80% av skadan typ är fast, d.v.s. oberoende
+av vapen: pet-skada, serpent sting, arcane shot. Bara autoattacken och
+multishot typ beror av vapenskadan.
+
+Allt är typ BoE, vilket gör att man inte kan tradea så bra.
+
+Det suger lite att ens spellcasting blir delayad av attacker,
+för det gör att det är mycket skönare att fightas mot meleemobs om man
+är en caster. Medan det spelar typ ingen roll för melee eller hunter
+om mobsen är ranged.
+
+Att det är skillnad på in-combat och out-of-combat.
+
+
 Implementation -- frågor och lösningar
 ======================================
 
