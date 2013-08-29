@@ -26,12 +26,12 @@
 
 (defn main-update [{:keys [net-sys get-msg send-msg]} game-state key-state]
   (Thread/sleep 50)
-  (core/update net-sys)
+  (net/update net-sys)
   (if (:forward key-state) (println "forward"))
   (loop [msg (get-msg) game-state game-state]
     (if msg
       (let [new-game-state (process-msg msg game-state)]
-        (core/update net-sys)
+        (net/update net-sys)
         (if-let [msg (get-msg)]
           (recur msg new-game-state)
           new-game-state))

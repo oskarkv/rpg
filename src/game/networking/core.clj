@@ -4,6 +4,9 @@
             [game.networking.protocols :as protocols]
             [game.core :as core]))
 
+(defn update [net-sys]
+  (core/update net-sys nil))
+
 (defn construct-server-net-sys [port connect-msg disconnect-msg]
   (let [queue (LinkedList.)
         id->conn (atom {})

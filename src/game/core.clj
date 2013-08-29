@@ -19,4 +19,4 @@
   (stop [this]))
 
 (defprotocol Updatable
-  (update [this]))
+  (update [this args]))

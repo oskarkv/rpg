@@ -45,7 +45,7 @@
                  key-value-store game-state stop?]
   (loop [game-state game-state]
     (Thread/sleep 50)
-    (core/update net-sys)
+    (net/update net-sys)
     (let [new-game-state
           (loop [msg (get-msg) game-state game-state]
             (if msg
@@ -55,7 +55,7 @@
                                                         new-game-state)]
                 (doseq [[ids to-client-msg] to-client-msgs]
                   (send-msg ids to-client-msg))
-                (core/update net-sys)
+                (net/update net-sys)
                 (if-let [msg (get-msg)]
                   (recur msg new-game-state)
                   new-game-state))

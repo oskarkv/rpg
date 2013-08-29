@@ -33,7 +33,7 @@
      (~'stop [~'this]
        (.stop ~(first args)))
      core/Updatable
-     (~'update [~'this]
+     (~'update [~'this ~'_]
        ; Maybe having a positive timeout is better.
        (.update ~(first args) 0))))
 
