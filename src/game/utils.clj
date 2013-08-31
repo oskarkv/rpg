@@ -54,3 +54,6 @@
 
 (defmacro debug [x]
   `(do (println '~x "=" ~x) ~x))
+
+(defn print-thread-id [msg]
+  (println msg "(thread id:" (str (.getId (Thread/currentThread)) ")")))
