@@ -2,14 +2,11 @@
   (:import (com.jme3.app SimpleApplication
                          FlyCamAppState)
            (com.jme3.system AppSettings
-                            JmeContext$Type)
-           (com.jme3.input KeyInput
-                           MouseInput)
-           (com.jme3.input.controls KeyTrigger
-                                    ActionListener))
+                            JmeContext$Type))
   (:require [game.networking.core :as net]
             [game.game-map :as game-map]
-            [game.client.graphics :as gfx]
+            (game.client [graphics :as gfx]
+                         [input :as input])
             [game.core :as core])
   (:use game.utils))
 
@@ -24,10 +21,9 @@
 (defmethod process-msg :default [_ game-state]
   game-state)
 
-(defn main-update [{:keys [net-sys get-msg send-msg]} game-state key-state]
+(defn main-update [{:keys [net-sys get-msg send-msg]} game-state]
   (Thread/sleep 50)
   (net/update net-sys)
-  (if (:forward key-state) (println "forward"))
   (loop [msg (get-msg) game-state game-state]
     (if msg
       (let [new-game-state (process-msg msg game-state)]
@@ -36,6 +32,9 @@
           (recur msg new-game-state)
           new-game-state))
       game-state)))
+
+(defn process-player-input [key-state]
+  (if (:forward key-state) (println "forward")))
 
 (defrecord Client [net-map app]
   core/Lifecycle
@@ -48,33 +47,10 @@
     (core/stop (:net-sys net-map))
     this))
 
-(def key-bindings [["forward" "w" :hold]])
-
-(defn string->KeyInput [s]
-  (-> (.getField KeyInput (str "KEY_" (.toUpperCase s))) (.get nil)))
-
-(defn create-KeyInputs [key-bindings]
-  (map (fn [[name key type]] [name (string->KeyInput key) type])
-       key-bindings))
-
-(defn create-key-state-map [key-bindings]
-  (zipmap (map (comp keyword first)
-               (filter (fn [[_ _ type]] (= type :hold)) key-bindings))
-          (repeat false)))
-
-(defn init-input [input-manager key-bindings key-state-atom]
-  (let [keyinput-bindings (create-KeyInputs key-bindings)
-        hold-listener (reify ActionListener
-                        (onAction [this name pressed tpf]
-                          (swap! key-state-atom assoc (keyword name) pressed)))]
-    (doseq [[name key _] keyinput-bindings]
-      (.addMapping input-manager name (into-array [(KeyTrigger. key)])))
-    (.addListener input-manager
-                  hold-listener
-                  (into-array (map first key-bindings)))))
-
-(defn create-jme3-app [net-map game-state-atom key-state-atom]
-  (let [app
+(defn create-jme3-app [net-map game-state-atom]
+  (let [key-bindings (input/load-key-bindings)
+        key-state-atom (atom (input/create-key-state-map key-bindings))
+        app
         (doto (proxy [SimpleApplication] []
                 (simpleInitApp []
                   (let [{:keys [game-map]} @game-state-atom
@@ -85,12 +61,12 @@
                     (.detach state-manager (.getState state-manager
                                                       FlyCamAppState))
                     (.setCursorVisible input-manager true)
-                    (init-input input-manager key-bindings key-state-atom)
-                    #_(gfx/init-graphics root-node asset-manager game-map)))
+                    (input/start-input
+                      input-manager key-bindings key-state-atom)))
                 (simpleUpdate [tpf]
+                  (process-player-input @key-state-atom)
                   (reset! game-state-atom
-                          (main-update net-map @game-state-atom
-                                       @key-state-atom))))
+                          (main-update net-map @game-state-atom))))
           (.setShowSettings false)
           (.setSettings (AppSettings. true))
           (.setPauseOnLostFocus false))]
@@ -102,22 +78,21 @@
         (.stop this)))
     app))
 
-(defn create-non-jme3-app [net-map game-state-atom key-state-atom]
+(defn create-non-jme3-app [net-map game-state-atom]
   (let [stop? (atom false)]
     (reify core/Lifecycle
       (start [this]
         (error-printing-future
           ((fn []
             (reset! game-state-atom
-                    (main-update net-map @game-state-atom
-                                 @key-state-atom))
+                    (main-update net-map @game-state-atom))
             (if @stop? nil (recur))))))
       (stop [this]
         (reset! stop? true)))))
 
 (defn init-client [address port headless]
-  (let [game-state-atom (atom {:game-map (game-map/load-game-map)})
-        key-state-atom (atom (create-key-state-map key-bindings))
+  (let [game-map (game-map/load-game-map)
+        game-state-atom (atom {:game-map game-map})
         {:keys [net-sys get-msg send-msg]}
         (net/construct-client-net-sys address port
                                       core/connect-msg
@@ -131,6 +106,6 @@
                        (send-msg (core/type->int-in-msg msg)))
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}
         app (if headless
-              (create-non-jme3-app net-map game-state-atom key-state-atom)
-              (create-jme3-app net-map game-state-atom key-state-atom))]
+              (create-non-jme3-app net-map game-state-atom)
+              (create-jme3-app net-map game-state-atom))]
     (->Client net-map app)))
