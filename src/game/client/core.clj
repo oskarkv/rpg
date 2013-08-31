@@ -50,6 +50,7 @@
 (defn create-jme3-app [net-map game-state-atom]
   (let [key-bindings (input/load-key-bindings)
         key-state-atom (atom (input/create-key-state-map key-bindings))
+        graphics-system (atom nil)
         app
         (doto (proxy [SimpleApplication] []
                 (simpleInitApp []
@@ -62,11 +63,16 @@
                                                       FlyCamAppState))
                     (.setCursorVisible input-manager true)
                     (input/start-input
-                      input-manager key-bindings key-state-atom)))
+                      input-manager key-bindings key-state-atom)
+                    (reset! graphics-system
+                            (gfx/init-graphics-system
+                              root-node asset-manager game-map))
+                    (core/start @graphics-system)))
                 (simpleUpdate [tpf]
                   (process-player-input @key-state-atom)
                   (reset! game-state-atom
-                          (main-update net-map @game-state-atom))))
+                          (main-update net-map @game-state-atom))
+                  (core/update @graphics-system @game-state-atom)))
           (.setShowSettings false)
           (.setSettings (AppSettings. true))
           (.setPauseOnLostFocus false))]
