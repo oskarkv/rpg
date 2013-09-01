@@ -81,6 +81,7 @@
       (start [this]
         (.start this))
       (stop [this]
+        (core/stop @graphics-system)
         (.stop this)))
     app))
 
