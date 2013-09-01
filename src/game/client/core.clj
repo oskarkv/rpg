@@ -24,7 +24,7 @@
 (defmethod process-msg :default [_ game-state]
   game-state)
 
-(defn process-network-msgs [{:keys [net-sys get-msg send-msg]} game-state]
+(defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}]
   (Thread/sleep 50)
   (net/update net-sys)
   (loop [msg (get-msg) game-state game-state]
@@ -36,7 +36,7 @@
           new-game-state))
       game-state)))
 
-(defn process-player-input [key-state]
+(defn process-player-input [game-state key-state]
   (if (:forward key-state) (println "forward")))
 
 (defrecord Client [net-map app]
@@ -72,9 +72,10 @@
                               root-node asset-manager game-map))
                     (core/start @graphics-system)))
                 (simpleUpdate [tpf]
-                  (process-player-input @key-state-atom)
                   (reset! game-state-atom
-                          (process-network-msgs net-map @game-state-atom))
+                          (-> @game-state-atom
+                              (process-player-input @key-state-atom)
+                              (process-network-msgs net-map)))
                   (core/update @graphics-system @game-state-atom)))
           (.setShowSettings false)
           (.setSettings (AppSettings. true))
