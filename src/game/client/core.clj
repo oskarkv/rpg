@@ -21,7 +21,7 @@
 (defmethod process-msg :default [_ game-state]
   game-state)
 
-(defn main-update [{:keys [net-sys get-msg send-msg]} game-state]
+(defn process-network-msgs [{:keys [net-sys get-msg send-msg]} game-state]
   (Thread/sleep 50)
   (net/update net-sys)
   (loop [msg (get-msg) game-state game-state]
@@ -71,7 +71,7 @@
                 (simpleUpdate [tpf]
                   (process-player-input @key-state-atom)
                   (reset! game-state-atom
-                          (main-update net-map @game-state-atom))
+                          (process-network-msgs net-map @game-state-atom))
                   (core/update @graphics-system @game-state-atom)))
           (.setShowSettings false)
           (.setSettings (AppSettings. true))
@@ -92,7 +92,7 @@
         (error-printing-future
           ((fn []
             (reset! game-state-atom
-                    (main-update net-map @game-state-atom))
+                    (process-network-msgs net-map @game-state-atom))
             (if @stop? nil (recur))))))
       (stop [this]
         (reset! stop? true)))))
