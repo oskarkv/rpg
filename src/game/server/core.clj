@@ -36,7 +36,8 @@
 (defmethod prepare-client-msgs :login [{id :id [player] :data} game-state]
   (let [all-players (keys (:players game-state))]
     [[[id] [:game-state game-state]]
-     [all-players [:login id player]]]))
+     [all-players [:login id player]]
+     [[id] [:own-id id]]]))
 
 (defmethod prepare-client-msgs :default [_ _]
   nil)

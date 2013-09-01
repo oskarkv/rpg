@@ -15,6 +15,9 @@
 (defmethod process-msg :login [{[id player] :data} game-state]
   (assoc-in game-state [:players id] player))
 
+(defmethod process-msg :own-id [{[id] :data} game-state]
+  (assoc game-state :own-id id))
+
 (defmethod process-msg :game-state [{[incoming-game-state] :data} game-state]
   (merge game-state incoming-game-state))
 
