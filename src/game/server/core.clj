@@ -7,7 +7,8 @@
 
 (defn new-player [username]
   {:name username
-   :pos [0 0]})
+   :pos [0 0]
+   :move-dir [0 0]})
 
 (defmulti process-msg-purely (fn [msg _] (:type msg)))
 

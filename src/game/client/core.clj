@@ -7,7 +7,8 @@
             [game.game-map :as game-map]
             (game.client [graphics :as gfx]
                          [input :as input])
-            [game.core :as core])
+            [game.core :as core]
+            [game.math :as math])
   (:use game.utils))
 
 (defmulti process-msg (fn [msg _] (:type msg)))
@@ -27,17 +28,34 @@
 (defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}]
   (Thread/sleep 50)
   (net/update net-sys)
-  (loop [msg (get-msg) game-state game-state]
-    (if msg
-      (let [new-game-state (process-msg msg game-state)]
-        (net/update net-sys)
-        (if-let [msg (get-msg)]
-          (recur msg new-game-state)
-          new-game-state))
-      game-state)))
+  {:new-game-state
+   (loop [msg (get-msg) game-state game-state]
+     (if msg
+       (let [new-game-state (process-msg msg game-state)]
+         (net/update net-sys)
+         (if-let [msg (get-msg)]
+           (recur msg new-game-state)
+           new-game-state))
+       game-state))})
+
+(defn calculate-movement-direction [key-state]
+  (letfn [(adder [dx dy] (fn [[x y]] [(+ dx x) (+ dy y)]))]
+    (cond-> [0 0]
+      (:forward key-state) ((adder 0 1))
+      (:back key-state) ((adder 0 -1))
+      (:left key-state) ((adder -1 0))
+      (:right key-state) ((adder 1 0))
+      true (math/normalize))))
 
 (defn process-player-input [game-state key-state]
-  (if (:forward key-state) (println "forward")))
+  (let [id (:own-id game-state)
+        old-dir (map float (get-in game-state [:players id :move-dir]))
+        new-dir (map float (calculate-movement-direction key-state))
+        new-game-state (assoc-in game-state [:players id :move-dir] new-dir)
+        return-map {:new-game-state new-game-state}]
+    (if-not (= old-dir new-dir)
+      (conj return-map {:events [[:new-dir]]})
+      return-map)))
 
 (defrecord Client [net-map app]
   core/Lifecycle
@@ -49,6 +67,14 @@
     (core/stop app )
     (core/stop (:net-sys net-map))
     this))
+
+(defmacro call-update-fns [game-state events & calls]
+  (if (seq calls)
+    `(let [{new-state# :new-game-state
+            events# :events}
+           (-> ~game-state ~(first calls))]
+       (call-update-fns new-state# (concat ~events events#) ~@(rest calls)))
+    {:new-game-state game-state :events events}))
 
 (defn create-jme3-app [net-map game-state-atom]
   (let [key-bindings (input/load-key-bindings)
@@ -72,11 +98,13 @@
                               root-node asset-manager game-map))
                     (core/start @graphics-system)))
                 (simpleUpdate [tpf]
-                  (reset! game-state-atom
-                          (-> @game-state-atom
-                              (process-player-input @key-state-atom)
-                              (process-network-msgs net-map)))
-                  (core/update @graphics-system @game-state-atom)))
+                  (let [{:keys [new-game-state events]}
+                        (call-update-fns @game-state-atom []
+                          (process-player-input @key-state-atom)
+                          (dissoc-in [:players nil])
+                          (process-network-msgs net-map))]
+                    (reset! game-state-atom new-game-state)
+                    (core/update @graphics-system @game-state-atom))))
           (.setShowSettings false)
           (.setSettings (AppSettings. true))
           (.setPauseOnLostFocus false))]
