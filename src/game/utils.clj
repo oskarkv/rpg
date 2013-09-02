@@ -57,3 +57,13 @@
 
 (defn print-thread-id [msg]
   (println msg "(thread id:" (str (.getId (Thread/currentThread)) ")")))
+
+(defn dissoc-in [m [k & ks :as keys]]
+  (if (seq keys)
+    (if ks
+      (let [inner-map (dissoc-in (m k) ks)]
+        (if (seq inner-map)
+          (assoc m k inner-map)
+          (dissoc m k)))
+      (dissoc m k))
+    m))
