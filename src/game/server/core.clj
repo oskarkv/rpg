@@ -32,15 +32,15 @@
 (defmethod process-msg :default [msg game-state _]
   (process-msg-purely msg game-state))
 
-(defmulti prepare-client-msgs (fn [msg _] (:type msg)))
+(defmulti produce-client-msgs (fn [msg _] (:type msg)))
 
-(defmethod prepare-client-msgs :login [{id :id [player] :data} game-state]
+(defmethod produce-client-msgs :login [{id :id [player] :data} game-state]
   (let [all-players (keys (:players game-state))]
     [[[id] [:game-state game-state]]
      [all-players [:login id player]]
      [[id] [:own-id id]]]))
 
-(defmethod prepare-client-msgs :default [_ _]
+(defmethod produce-client-msgs :default [_ _]
   nil)
 
 (defn main-loop [{:keys [net-sys get-msg send-msg]}
@@ -53,7 +53,7 @@
             (if msg
               (let [{:keys [new-game-state client-delta]}
                     (process-msg msg game-state key-value-store)
-                    to-client-msgs (prepare-client-msgs client-delta
+                    to-client-msgs (produce-client-msgs client-delta
                                                         new-game-state)]
                 (doseq [[ids to-client-msg] to-client-msgs]
                   (send-msg ids to-client-msg))
