@@ -25,6 +25,8 @@
 (defmethod process-msg :default [_ game-state]
   game-state)
 
+(defmulti produce-server-msg (fn [_ event] (first event)))
+
 (defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}]
   (Thread/sleep 50)
   (net/update net-sys)
