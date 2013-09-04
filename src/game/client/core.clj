@@ -130,9 +130,16 @@
                   (let [{:keys [new-game-state events]}
                         (call-update-fns @game-state-atom []
                           (process-player-input @key-state-atom)
-                          (process-network-msgs net-map))]
-                    (reset! game-state-atom new-game-state)
-                    (core/update @graphics-system @game-state-atom))))
+                          (process-network-msgs net-map))
+                        to-server-msgs (->> events
+                                            (map (partial produce-server-msg
+                                                          new-game-state))
+                                            (remove nil?))
+                        send-to-server (:send-msg net-map)]
+                    (doseq [msg to-server-msgs]
+                      (send-to-server msg))
+                    (core/update @graphics-system new-game-state)
+                    (reset! game-state-atom new-game-state))))
           (.setShowSettings false)
           (.setSettings (AppSettings. true))
           (.setPauseOnLostFocus false))]
