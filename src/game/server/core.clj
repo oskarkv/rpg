@@ -53,6 +53,18 @@
 (defmethod produce-client-msgs :default [_ _]
   nil)
 
+(defn extrapolate-player-movement [player]
+  (let [{:keys [pos move-dir] :as player} player
+        speed 1
+        new-pos (map + pos (map #(* speed %) move-dir))]
+    (assoc player :pos new-pos)))
+
+(defn extrapolate-all-player-movements [{players-map :players :as game-state}]
+  (let [ids (keys players-map)
+        players (vals players-map)]
+    (assoc game-state :players
+           (zipmap ids (map extrapolate-player-movement players)))))
+
 (defn main-loop [{:keys [net-sys get-msg send-msg]}
                  key-value-store game-state stop?]
   (loop [game-state game-state]
