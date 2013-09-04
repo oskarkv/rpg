@@ -121,13 +121,15 @@
                     (reset! graphics-system
                             (gfx/init-graphics-system
                               root-node asset-manager game-map))
-                    (core/start @graphics-system)))
+                    (core/start @graphics-system))
+                  (reset! game-state-atom
+                          (login-and-recv-state @game-state-atom net-map
+                                                "leif" "star")))
                 (simpleUpdate [tpf]
                   (Thread/sleep 50)
                   (let [{:keys [new-game-state events]}
                         (call-update-fns @game-state-atom []
                           (process-player-input @key-state-atom)
-                          (dissoc-in [:players nil])
                           (process-network-msgs net-map))]
                     (reset! game-state-atom new-game-state)
                     (core/update @graphics-system @game-state-atom))))
