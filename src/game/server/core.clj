@@ -46,6 +46,10 @@
      [all-players [:login id player]]
      [[id] [:own-id id]]]))
 
+(defmethod produce-client-msgs :move [{id :id [pos dir] :data} game-state]
+  (let [all-but-mover (keys (dissoc (:players game-state) id))]
+    [[all-but-mover [:move pos dir]]]))
+
 (defmethod produce-client-msgs :default [_ _]
   nil)
 
