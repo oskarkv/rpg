@@ -27,6 +27,16 @@
 
 (defmulti produce-server-msg (fn [_ event] (first event)))
 
+(defmethod produce-server-msg :new-dir [game-state event]
+  (let [own-id (:own-id game-state)
+        self (get-in game-state [:players own-id])
+        pos (:pos self)
+        dir (:move-dir self)]
+    [:move pos dir]))
+
+(defmethod produce-server-msg :default [game-state event]
+  nil)
+
 (defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}]
   (Thread/sleep 50)
   (net/update net-sys)
