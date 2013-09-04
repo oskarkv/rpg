@@ -12,6 +12,12 @@
 
 (defmulti process-msg-purely (fn [msg _] (:type msg)))
 
+(defmethod process-msg-purely :move [{:keys [id data] :as msg} game-state]
+  (let [[pos dir] data]
+    {:new-game-state
+     (update-in game-state [:players id] merge {:pos pos :dir dir})
+     :client-delta msg}))
+
 (defmethod process-msg-purely :default [_ game-state]
   {:new-game-state game-state})
 
