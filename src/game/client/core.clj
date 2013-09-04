@@ -69,6 +69,17 @@
       (conj return-map {:events [[:new-dir]]})
       return-map)))
 
+(defn login-and-recv-state [game-state net-map name password]
+  (let [{:keys [net-sys send-msg get-msg]} net-map]
+    (send-msg [:login name password])
+    (loop [game-state game-state]
+      (let [new-game-state
+            (:new-game-state (process-network-msgs game-state net-map))]
+        (if (let [id (:own-id new-game-state)]
+              (and id (get-in new-game-state [:players id])))
+          new-game-state
+          (recur new-game-state))))))
+
 (defrecord Client [net-map app]
   core/Lifecycle
   (start [this]
