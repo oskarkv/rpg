@@ -38,7 +38,6 @@
   nil)
 
 (defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}]
-  (Thread/sleep 50)
   (net/update net-sys)
   {:new-game-state
    (loop [msg (get-msg) game-state game-state]
@@ -121,6 +120,7 @@
                               root-node asset-manager game-map))
                     (core/start @graphics-system)))
                 (simpleUpdate [tpf]
+                  (Thread/sleep 50)
                   (let [{:keys [new-game-state events]}
                         (call-update-fns @game-state-atom []
                           (process-player-input @key-state-atom)
