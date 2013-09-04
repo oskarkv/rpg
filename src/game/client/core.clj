@@ -91,12 +91,15 @@
     this))
 
 (defmacro call-update-fns [game-state events & calls]
-  (if (seq calls)
-    `(let [{new-state# :new-game-state
-            events# :events}
-           (-> ~game-state ~(first calls))]
-       (call-update-fns new-state# (concat ~events events#) ~@(rest calls)))
-    {:new-game-state game-state :events events}))
+  (let [new-events (gensym "new-events")
+        new-game-state (gensym "new-game-state")]
+    (if (seq calls)
+      `(let [{~new-game-state :new-game-state
+              ~new-events :events}
+             (-> ~game-state ~(first calls))
+             ~new-events (concat ~events ~new-events)]
+         (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
+      {:new-game-state game-state :events events})))
 
 (defn create-jme3-app [net-map game-state-atom]
   (let [key-bindings (input/load-key-bindings)
