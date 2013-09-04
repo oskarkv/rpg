@@ -5,7 +5,8 @@
 (def connect-msg [:connect])
 (def disconnect-msg [:disconnect])
 
-(let [types [(connect-msg 0) (disconnect-msg 0) :login :game-state :own-id]]
+(let [types [(connect-msg 0) (disconnect-msg 0) :login :game-state :own-id
+             :move]]
   (def type->int (zipmap types (range)))
   (def int->type (zipmap (range) types)))
 
