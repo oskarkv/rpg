@@ -13,7 +13,7 @@
 (defmulti process-msg-purely (fn [msg _] (:type msg)))
 
 (defmethod process-msg-purely :default [_ game-state]
-  game-state)
+  {:new-game-state game-state})
 
 (defmulti process-msg (fn [msg _ _] (:type msg)))
 
