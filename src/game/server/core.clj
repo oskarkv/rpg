@@ -16,7 +16,7 @@
   (let [[pos dir] data]
     {:new-game-state
      (update-in game-state [:players id] merge {:pos pos :dir dir})
-     :client-delta msg}))
+     :event msg}))
 
 (defmethod process-msg-purely :default [_ game-state]
   {:new-game-state game-state})
@@ -27,7 +27,7 @@
   (let [[username password] data
         player (or (kvs/load key-value-store username) (new-player username))]
     {:new-game-state (assoc-in game-state [:players id] player)
-     :client-delta {:id id :type :login :data [player]}}))
+     :event {:id id :type :login :data [player]}}))
 
 (defmethod process-msg :connect [_ game-state _]
   {:new-game-state game-state})
@@ -73,9 +73,9 @@
     (let [new-game-state
           (loop [msg (get-msg) game-state game-state]
             (if msg
-              (let [{:keys [new-game-state client-delta]}
+              (let [{:keys [new-game-state event]}
                     (process-msg msg game-state key-value-store)
-                    to-client-msgs (produce-client-msgs client-delta
+                    to-client-msgs (produce-client-msgs event
                                                         new-game-state)]
                 (doseq [[ids to-client-msg] to-client-msgs]
                   (send-msg ids to-client-msg))
