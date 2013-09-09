@@ -7,7 +7,7 @@
             [game.game-map :as game-map]
             (game.client [graphics :as gfx]
                          [input :as input])
-            [game.common :as cmn]
+            [game.common.core :as cmn]
             [game.math :as math])
   (:use game.utils))
 

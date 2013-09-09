@@ -1,6 +1,6 @@
 (ns game.key-value-store.implementations.filesystem-kvs
   (:require [game.key-value-store.protocols :as key-value-store]
-            [game.common :as cmn]))
+            [game.common.core :as cmn]))
 
 (deftype FilesystemKeyValueStore [dir]
   ; Since it is concievable that some stores will need to be started and

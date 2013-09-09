@@ -1,4 +1,4 @@
-(ns game.common)
+(ns game.common.core)
 
 (def port 12345)
 

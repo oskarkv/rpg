@@ -2,7 +2,7 @@
   (:import java.util.LinkedList)
   (:require [game.networking.implementations.kryonet :as impl]
             [game.networking.protocols :as protocols]
-            [game.common :as cmn]))
+            [game.common.core :as cmn]))
 
 (defn update [net-sys]
   (cmn/update net-sys nil))

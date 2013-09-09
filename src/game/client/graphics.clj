@@ -8,7 +8,7 @@
            com.jme3.material.Material
            com.jme3.renderer.queue.RenderQueue$Bucket
            com.jme3.font.BitmapText)
-  (:require [game.common :as cmn]))
+  (:require [game.common.core :as cmn]))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) (+ y %2) 0)

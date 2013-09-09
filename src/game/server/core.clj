@@ -1,6 +1,6 @@
 (ns game.server.core
   (:require [game.networking.core :as net]
-            [game.common :as cmn]
+            [game.common.core :as cmn]
             [game.key-value-store.core :as kvs.core]
             [game.key-value-store.protocols :as kvs])
   (:use game.utils))
