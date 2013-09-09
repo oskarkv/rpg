@@ -40,13 +40,15 @@
 (defnetworkingsystem- KryonetServer [server port]
   ; .bind must be called in a thread other than the update thread, but
   ; update needs to be called at the same time; blocks until bound.
-  (error-printing-future (.bind server port)))
+  (error-printing-future (.bind server port))
+  (.update server 0))
 
 (defnetworkingsystem- KryonetClient [client address port]
   ; .connect must be called in a thread other than the update thread, but
   ; update needs to be called at the same time; blocks until connected.
   (error-printing-future
-    (.connect client 5000 (InetAddress/getByName address) port)))
+    (.connect client 5000 (InetAddress/getByName address) port))
+  (.update client 0))
 
 (defn- construct-system [base-object creation-fn args conn-fn recv-fn disc-fn]
     (let [listener (proxy [Listener] []
