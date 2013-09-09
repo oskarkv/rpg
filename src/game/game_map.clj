@@ -5,4 +5,5 @@
   (walk/postwalk (fn [form] (if (seq? form) (vec form) form)) form))
 
 (defn load-game-map []
-  (vectorize (partition 20 (repeat (* 20 20) 1))))
+  (let [size 3]
+    (vectorize (partition size (repeat (* size size) 1)))))
