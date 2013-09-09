@@ -2,10 +2,10 @@
   (:import java.util.LinkedList)
   (:require [game.networking.implementations.kryonet :as impl]
             [game.networking.protocols :as protocols]
-            [game.core :as core]))
+            [game.common :as cmn]))
 
 (defn update [net-sys]
-  (core/update net-sys nil))
+  (cmn/update net-sys nil))
 
 (defn construct-server-net-sys [port connect-msg disconnect-msg]
   (let [queue (LinkedList.)
@@ -15,11 +15,11 @@
                                :msg item}))
         conn-fn (fn [conn]
                   (swap! id->conn assoc (protocols/get-connection-id conn) conn)
-                  (enqueue conn (core/type->int-in-msg connect-msg)))
+                  (enqueue conn (cmn/type->int-in-msg connect-msg)))
         recv-fn (fn [conn obj]
                   (enqueue conn obj))
         disc-fn (fn [conn]
-                  (enqueue conn (core/type->int-in-msg disconnect-msg)))
+                  (enqueue conn (cmn/type->int-in-msg disconnect-msg)))
         get-msg (fn [] (.poll queue))
         send-msg (fn [id msg]
                   (protocols/send-reliably (@id->conn id) msg))
@@ -31,11 +31,11 @@
         enqueue (fn [item]
                   (.add queue item))
         conn-fn (fn [conn]
-                  (enqueue (core/type->int-in-msg connect-msg)))
+                  (enqueue (cmn/type->int-in-msg connect-msg)))
         recv-fn (fn [conn obj]
                   (enqueue obj))
         disc-fn (fn [conn]
-                  (enqueue (core/type->int-in-msg disconnect-msg)))
+                  (enqueue (cmn/type->int-in-msg disconnect-msg)))
         get-msg (fn [] (.poll queue))
         {:keys [net-sys conn]} (impl/construct-client address port conn-fn
                                                       recv-fn disc-fn)

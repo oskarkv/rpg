@@ -7,7 +7,7 @@
             [game.game-map :as game-map]
             (game.client [graphics :as gfx]
                          [input :as input])
-            [game.core :as core]
+            [game.common :as cmn]
             [game.math :as math])
   (:use game.utils))
 
@@ -80,14 +80,14 @@
           (recur new-game-state))))))
 
 (defrecord Client [net-map app]
-  core/Lifecycle
+  cmn/Lifecycle
   (start [this]
-    (core/start (:net-sys net-map))
-    (core/start app)
+    (cmn/start (:net-sys net-map))
+    (cmn/start app)
     this)
   (stop [this]
-    (core/stop app )
-    (core/stop (:net-sys net-map))
+    (cmn/stop app )
+    (cmn/stop (:net-sys net-map))
     this))
 
 (defmacro call-update-fns [game-state events & calls]
@@ -121,7 +121,7 @@
                     (reset! graphics-system
                             (gfx/init-graphics-system
                               root-node asset-manager game-map))
-                    (core/start @graphics-system))
+                    (cmn/start @graphics-system))
                   (reset! game-state-atom
                           (login-and-recv-state @game-state-atom net-map
                                                 "leif" "star")))
@@ -138,23 +138,23 @@
                         send-to-server (:send-msg net-map)]
                     (doseq [msg to-server-msgs]
                       (send-to-server msg))
-                    (core/update @graphics-system new-game-state)
+                    (cmn/update @graphics-system new-game-state)
                     (reset! game-state-atom new-game-state))))
           (.setShowSettings false)
           (.setSettings (AppSettings. true))
           (.setPauseOnLostFocus false))]
     (extend-type (type app)
-      core/Lifecycle
+      cmn/Lifecycle
       (start [this]
         (.start this))
       (stop [this]
-        (core/stop @graphics-system)
+        (cmn/stop @graphics-system)
         (.stop this)))
     app))
 
 (defn create-non-jme3-app [net-map game-state-atom]
   (let [stop? (atom false)]
-    (reify core/Lifecycle
+    (reify cmn/Lifecycle
       (start [this]
         (error-printing-future
           ((fn []
@@ -169,15 +169,15 @@
         game-state-atom (atom {:game-map game-map})
         {:keys [net-sys get-msg send-msg]}
         (net/construct-client-net-sys address port
-                                      core/connect-msg
-                                      core/disconnect-msg)
+                                      cmn/connect-msg
+                                      cmn/disconnect-msg)
         new-get-msg (fn []
                       (when-let [msg (get-msg)]
                         (let [[type & data :as game-msg]
-                              (core/int->type-in-msg msg)]
+                              (cmn/int->type-in-msg msg)]
                           {:type type :data data})))
         new-send-msg (fn [msg]
-                       (send-msg (core/type->int-in-msg msg)))
+                       (send-msg (cmn/type->int-in-msg msg)))
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}
         app (if headless
               (create-non-jme3-app net-map game-state-atom)

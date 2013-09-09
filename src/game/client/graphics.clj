@@ -8,7 +8,7 @@
            com.jme3.material.Material
            com.jme3.renderer.queue.RenderQueue$Bucket
            com.jme3.font.BitmapText)
-  (:require [game.core :as core]))
+  (:require [game.common :as cmn]))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) (+ y %2) 0)
@@ -95,13 +95,13 @@
 
 (deftype GraphicsSystem
   [root-node asset-manager ids->objects characters-node game-map]
-  core/Lifecycle
+  cmn/Lifecycle
   (start [this]
     (.registerLocator asset-manager "assets" FileLocator)
     (portray-game-map root-node asset-manager game-map)
     (.attachChild root-node characters-node))
   (stop [this])
-  core/Updatable
+  cmn/Updatable
   (update [this game-state]
     (reset! ids->objects (portray-characters @ids->objects characters-node
                                              game-state asset-manager))))

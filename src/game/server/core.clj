@@ -1,6 +1,6 @@
 (ns game.server.core
   (:require [game.networking.core :as net]
-            [game.core :as core]
+            [game.common :as cmn]
             [game.key-value-store.core :as kvs.core]
             [game.key-value-store.protocols :as kvs])
   (:use game.utils))
@@ -87,16 +87,16 @@
       (if-not @stop? (recur new-game-state)))))
 
 (defrecord Server [net-map key-value-store game-state stop?]
-  core/Lifecycle
+  cmn/Lifecycle
   (start [this]
-    (core/start (:net-sys net-map))
-    (core/start key-value-store)
+    (cmn/start (:net-sys net-map))
+    (cmn/start key-value-store)
     (error-printing-future (main-loop net-map key-value-store game-state stop?))
     this)
   (stop [this]
     (reset! stop? true)
-    (core/stop key-value-store)
-    (core/stop (:net-sys net-map))
+    (cmn/stop key-value-store)
+    (cmn/stop (:net-sys net-map))
     this))
 
 (let [game-id-counter (atom 0)
@@ -117,18 +117,18 @@
         stop? (atom false)
         {:keys [net-sys get-msg send-msg]} (net/construct-server-net-sys
                                              port
-                                             core/connect-msg
-                                             core/disconnect-msg)
+                                             cmn/connect-msg
+                                             cmn/disconnect-msg)
         new-get-msg (fn []
                       (when-let [{:keys [id msg]} (get-msg)]
                         (let [[type & data :as game-msg]
-                              (core/int->type-in-msg msg)
-                              game-id (if (= core/connect-msg game-msg)
+                              (cmn/int->type-in-msg msg)
+                              game-id (if (= cmn/connect-msg game-msg)
                                         (new-game-id id)
                                         (net-id->game-id id))]
                           {:id game-id :type type :data data})))
         new-send-msg (fn [game-ids msg]
-                       (let [net-msg (core/type->int-in-msg msg)]
+                       (let [net-msg (cmn/type->int-in-msg msg)]
                          (doseq [game-id game-ids]
                            (send-msg (game-id->net-id game-id) net-msg))))
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}
