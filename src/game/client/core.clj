@@ -14,16 +14,16 @@
 (defmulti process-msg (fn [msg _] (:type msg)))
 
 (defmethod process-msg :login [{[id player] :data} game-state]
-  (assoc-in game-state [:players id] player))
+  {:new-game-state (assoc-in game-state [:players id] player)})
 
 (defmethod process-msg :own-id [{[id] :data} game-state]
-  (assoc game-state :own-id id))
+  {:new-game-state (assoc game-state :own-id id)})
 
 (defmethod process-msg :game-state [{[incoming-game-state] :data} game-state]
-  (merge game-state incoming-game-state))
+  {:new-game-state (merge game-state incoming-game-state)})
 
 (defmethod process-msg :default [_ game-state]
-  game-state)
+  {:new-game-state game-state})
 
 (defmulti produce-server-msg (fn [_ event] (first event)))
 
@@ -42,7 +42,7 @@
   {:new-game-state
    (loop [msg (get-msg) game-state game-state]
      (if msg
-       (let [new-game-state (process-msg msg game-state)]
+       (let [{new-game-state :new-game-state} (process-msg msg game-state)]
          (net/update net-sys)
          (if-let [msg (get-msg)]
            (recur msg new-game-state)
