@@ -157,10 +157,13 @@
     (reify cmn/Lifecycle
       (start [this]
         (error-printing-future
+          (reset! game-state-atom (login-and-recv-state
+                                    @game-state-atom net-map "leif" "star"))
           ((fn []
-            (reset! game-state-atom
-                    (process-network-msgs net-map @game-state-atom))
-            (if @stop? nil (recur))))))
+             (reset! game-state-atom
+                     (:new-game-state
+                       (process-network-msgs @game-state-atom net-map)))
+             (if @stop? nil (recur))))))
       (stop [this]
         (reset! stop? true)))))
 
