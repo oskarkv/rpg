@@ -2,7 +2,7 @@
   (:import (com.esotericsoftware.kryonet Server Client Listener Connection)
            (java.net InetAddress))
   (:require [game.networking.protocols :as net]
-            [game.common.core :as cmn])
+            [game.common.core :as cc])
   (:use game.utils))
 
 (defn- from-edn [edn]
@@ -27,12 +27,12 @@
 
 (defmacro- defnetworkingsystem- [name args & start-body]
   `(deftype- ~name ~args
-     cmn/Lifecycle
+     cc/Lifecycle
      (~'start [~'this]
        ~@start-body)
      (~'stop [~'this]
        (.stop ~(first args)))
-     cmn/Updatable
+     cc/Updatable
      (~'update [~'this ~'_]
        ; Maybe having a positive timeout is better.
        (.update ~(first args) 0))))
@@ -51,7 +51,7 @@
   (.update client 0))
 
 (defn- construct-system [base-object creation-fn args conn-fn recv-fn disc-fn]
-    (let [listener (proxy [Listener] []
+  (let [listener (proxy [Listener] []
                    (connected [conn]
                      (conn-fn conn))
                    (received [conn obj]
