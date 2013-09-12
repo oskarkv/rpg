@@ -7,7 +7,8 @@
             [game.game-map :as game-map]
             (game.client [graphics :as gfx]
                          [input :as input])
-            [game.common.core :as cc]
+            (game.common [core :as cc]
+                         [core-functions :as ccfns])
             [game.math :as math])
   (:use game.utils))
 
@@ -37,17 +38,8 @@
 (defmethod produce-server-msg :default [game-state event]
   nil)
 
-(defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}]
-  (net/update net-sys)
-  {:new-game-state
-   (loop [msg (get-msg) game-state game-state]
-     (if msg
-       (let [{new-game-state :new-game-state} (process-msg msg game-state)]
-         (net/update net-sys)
-         (if-let [msg (get-msg)]
-           (recur msg new-game-state)
-           new-game-state))
-       game-state))})
+(defn process-network-msgs [game-state net-map]
+  (ccfns/process-network-msgs game-state net-map process-msg))
 
 (defn calculate-movement-direction [key-state]
   (letfn [(adder [dx dy] (fn [[x y]] [(+ dx x) (+ dy y)]))]

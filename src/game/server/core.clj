@@ -1,6 +1,7 @@
 (ns game.server.core
   (:require [game.networking.core :as net]
-            [game.common.core :as cc]
+            (game.common [core :as cc]
+                         [core-functions :as ccfns])
             [game.key-value-store.core :as kvs.core]
             [game.key-value-store.protocols :as kvs])
   (:use game.utils))
@@ -65,33 +66,29 @@
     (assoc game-state :players
            (zipmap ids (map extrapolate-player-movement players)))))
 
-(defn main-loop [{:keys [net-sys get-msg send-msg]}
-                 key-value-store game-state stop?]
-  (loop [game-state game-state]
-    (Thread/sleep 50)
-    (net/update net-sys)
-    (let [new-game-state
-          (loop [msg (get-msg) game-state game-state]
-            (if msg
-              (let [{:keys [new-game-state event]}
-                    (process-msg msg game-state key-value-store)
-                    to-client-msgs (produce-client-msgs event
-                                                        new-game-state)]
-                (doseq [[ids to-client-msg] to-client-msgs]
-                  (send-msg ids to-client-msg))
-                (net/update net-sys)
-                (if-let [msg (get-msg)]
-                  (recur msg new-game-state)
-                  new-game-state))
-              game-state))]
-      (if-not @stop? (recur new-game-state)))))
+(defn process-network-msgs [game-state net-map key-value-store]
+  (ccfns/process-network-msgs game-state net-map process-msg key-value-store))
+
+(defn main-update [game-state {:keys [send-msg] :as net-map} key-value-store]
+  (Thread/sleep 50)
+  (let [{:keys [new-game-state events]}
+        (process-network-msgs game-state net-map key-value-store)
+        to-client-msgs (mapcat #(produce-client-msgs % new-game-state) events)]
+    (doseq [[ids to-client-msg] to-client-msgs]
+      (send-msg ids to-client-msg))
+    new-game-state))
 
 (defrecord Server [net-map key-value-store game-state stop?]
   cc/Lifecycle
   (start [this]
     (cc/start (:net-sys net-map))
     (cc/start key-value-store)
-    (error-printing-future (main-loop net-map key-value-store game-state stop?))
+    (error-printing-future
+      ((fn [game-state]
+         (if @stop?
+           nil
+           (recur (main-update game-state net-map key-value-store))))
+       game-state))
     this)
   (stop [this]
     (reset! stop? true)
