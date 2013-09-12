@@ -30,5 +30,6 @@ profiles.clj
 /data
 
 vimedit.bat
+vimeditbuf.bat
 treasure_chest.txt
 todo.txt
