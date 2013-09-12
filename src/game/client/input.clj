@@ -4,7 +4,10 @@
            (com.jme3.input.controls KeyTrigger
                                     ActionListener)))
 
-(defn load-key-bindings [] [["forward" "w" :hold]])
+(defn load-key-bindings [] [["forward" "w" :hold]
+                            ["back" "r" :hold]
+                            ["left" "a" :hold]
+                            ["right" "s" :hold]])
 
 (defn string->KeyInput [s]
   (-> (.getField KeyInput (str "KEY_" (.toUpperCase s))) (.get nil)))
