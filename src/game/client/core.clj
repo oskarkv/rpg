@@ -93,45 +93,14 @@
          (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
-(defn create-jme3-app [net-map game-state-atom]
-  (let [key-bindings (input/load-key-bindings)
-        key-state-atom (atom (input/create-key-state-map key-bindings))
-        graphics-system (atom nil)
-        app
+(defn create-jme3-app
+  [init-fn update-fn graphics-system]
+  (let [app
         (doto (proxy [SimpleApplication] []
                 (simpleInitApp []
-                  (let [{:keys [game-map]} @game-state-atom
-                        input-manager (.getInputManager this)
-                        state-manager (.getStateManager this)
-                        asset-manager (.getAssetManager this)
-                        root-node (.getRootNode this)]
-                    (.detach state-manager (.getState state-manager
-                                                      FlyCamAppState))
-                    (.setCursorVisible input-manager true)
-                    (input/start-input
-                      input-manager key-bindings key-state-atom)
-                    (reset! graphics-system
-                            (gfx/init-graphics-system
-                              root-node asset-manager game-map))
-                    (cc/start @graphics-system))
-                  (reset! game-state-atom
-                          (login-and-recv-state @game-state-atom net-map
-                                                "leif" "star")))
+                  (init-fn this))
                 (simpleUpdate [tpf]
-                  (Thread/sleep 50)
-                  (let [{:keys [new-game-state events]}
-                        (call-update-fns @game-state-atom []
-                          (process-player-input @key-state-atom)
-                          (process-network-msgs net-map))
-                        to-server-msgs (->> events
-                                            (map (partial produce-server-msg
-                                                          new-game-state))
-                                            (remove nil?))
-                        send-to-server (:send-msg net-map)]
-                    (doseq [msg to-server-msgs]
-                      (send-to-server msg))
-                    (cc/update @graphics-system new-game-state)
-                    (reset! game-state-atom new-game-state))))
+                  (update-fn)))
           (.setShowSettings false)
           (.setSettings (AppSettings. true))
           (.setPauseOnLostFocus false))]
@@ -143,6 +112,60 @@
         (cc/stop @graphics-system)
         (.stop this)))
     app))
+
+(defn create-client-jme3-app [net-map game-state-atom]
+  (let [key-bindings (input/load-key-bindings)
+        key-state-atom (atom (input/create-key-state-map key-bindings))
+        graphics-system (atom nil)
+        init-gfx-fn
+        (fn [asset-manager root-node]
+          (gfx/init-graphics-system
+            root-node
+            asset-manager
+            (:game-map @game-state-atom)))
+        start-input-fn
+        (fn [input-manager]
+          (input/start-input
+            input-manager
+            key-bindings
+            key-state-atom))
+        simple-init-fn
+        (fn [app]
+          (let [state-manager (.getStateManager app)
+                input-manager (.getInputManager app)
+                asset-manager (.getAssetManager app)
+                root-node (.getRootNode app)]
+            (.detach state-manager (.getState state-manager
+                                              FlyCamAppState))
+            (.setCursorVisible input-manager true)
+            (start-input-fn input-manager)
+            (reset! graphics-system
+                    (init-gfx-fn
+                      asset-manager root-node))
+            (cc/start @graphics-system)
+            (reset! game-state-atom
+                    (login-and-recv-state @game-state-atom
+                                          net-map
+                                          "leif" "star"))))
+        simple-update-fn
+        (fn []
+          (Thread/sleep 50)
+          (let [{:keys [new-game-state events]}
+                (call-update-fns @game-state-atom []
+                                 (process-player-input @key-state-atom)
+                                 (process-network-msgs net-map))
+                to-server-msgs (->> events
+                                    (map (partial produce-server-msg
+                                                  new-game-state))
+                                    (remove nil?))
+                send-to-server (:send-msg net-map)]
+            (doseq [msg to-server-msgs]
+              (send-to-server msg))
+            (cc/update @graphics-system new-game-state)
+            (reset! game-state-atom new-game-state)))
+        app (create-jme3-app simple-init-fn simple-update-fn graphics-system)]
+    app))
+
 
 (defn create-non-jme3-app [net-map game-state-atom]
   (let [stop? (atom false)]
@@ -176,5 +199,5 @@
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}
         app (if headless
               (create-non-jme3-app net-map game-state-atom)
-              (create-jme3-app net-map game-state-atom))]
+              (create-client-jme3-app net-map game-state-atom))]
     (->Client net-map app)))
