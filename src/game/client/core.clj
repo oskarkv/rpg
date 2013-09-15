@@ -1,8 +1,6 @@
 (ns game.client.core
-  (:import (com.jme3.app SimpleApplication
-                         FlyCamAppState)
-           (com.jme3.system AppSettings
-                            JmeContext$Type))
+  (:import (com.jme3.system JmeContext$Type)
+           (com.jme3.app FlyCamAppState))
   (:require [game.networking.core :as net]
             [game.game-map :as game-map]
             (game.client [input :as input])
@@ -93,26 +91,6 @@
          (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
-(defn create-jme3-app
-  [init-fn update-fn graphics-system]
-  (let [app
-        (doto (proxy [SimpleApplication] []
-                (simpleInitApp []
-                  (init-fn this))
-                (simpleUpdate [tpf]
-                  (update-fn)))
-          (.setShowSettings false)
-          (.setSettings (AppSettings. true))
-          (.setPauseOnLostFocus false))]
-    (extend-type (type app)
-      cc/Lifecycle
-      (start [this]
-        (.start this))
-      (stop [this]
-        (cc/stop @graphics-system)
-        (.stop this)))
-    app))
-
 (defn create-client-jme3-app [net-map game-state-atom]
   (let [key-bindings (input/load-key-bindings)
         key-state-atom (atom (input/create-key-state-map key-bindings))
@@ -163,7 +141,7 @@
               (send-to-server msg))
             (cc/update @graphics-system new-game-state)
             (reset! game-state-atom new-game-state)))
-        app (create-jme3-app simple-init-fn simple-update-fn graphics-system)]
+        app (ccfns/create-jme3-app simple-init-fn simple-update-fn graphics-system)]
     app))
 
 
