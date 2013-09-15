@@ -1,4 +1,4 @@
-(ns game.client.graphics
+(ns game.common.graphics
   (:import (com.jme3.math ColorRGBA Vector2f Vector3f)
            com.jme3.asset.plugins.FileLocator
            (com.jme3.scene Geometry Mesh VertexBuffer VertexBuffer$Type Node)

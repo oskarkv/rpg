@@ -5,10 +5,10 @@
                             JmeContext$Type))
   (:require [game.networking.core :as net]
             [game.game-map :as game-map]
-            (game.client [graphics :as gfx]
-                         [input :as input])
+            (game.client [input :as input])
             (game.common [core :as cc]
-                         [core-functions :as ccfns])
+                         [core-functions :as ccfns]
+                         [graphics :as gfx])
             [game.math :as math])
   (:use game.utils))
 
