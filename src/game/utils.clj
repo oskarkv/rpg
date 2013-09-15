@@ -28,6 +28,9 @@
   ; window, when running from Vim.
   `(future (try ~@body (catch Exception ~'e (.printStackTrace ~'e *err*)))))
 
+(defmacro start-new-thread [name & body]
+  `(.start (Thread. (fn [] ~@body) ~name)))
+
 (defn- private-symbol [sym]
   (with-meta sym (assoc (meta sym) :private true)))
 
