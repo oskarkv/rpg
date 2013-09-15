@@ -16,7 +16,7 @@
 (defmethod process-msg-purely :move [{:keys [id data] :as msg} game-state]
   (let [[pos dir] data]
     {:new-game-state
-     (update-in game-state [:players id] merge {:pos pos :dir dir})
+     (update-in game-state [:players id] merge {:pos pos :move-dir dir})
      :event msg}))
 
 (defmethod process-msg-purely :default [_ game-state]
