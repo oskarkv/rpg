@@ -2,11 +2,13 @@
   (require [robert.hooke :as rh]
            [clojure.pprint :as pp]
            [game.server.core :as sv]
-           [game.common.core-functions :as ccfns]))
+           [game.common.core-functions :as ccfns])
+  (use [game.utils]))
 
 (defn print-output [name f & args]
   (let [result (apply f args)]
-    (println (str "Output of " name ": "))
+    (println (str (current-thread-name) " // " name
+                  " output:"))
     (pp/pprint result)
     result))
 
