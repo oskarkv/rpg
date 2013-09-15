@@ -78,7 +78,7 @@
     (cc/start app)
     this)
   (stop [this]
-    (cc/stop app )
+    (cc/stop app)
     (cc/stop (:net-sys net-map))
     this))
 
