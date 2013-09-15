@@ -83,7 +83,7 @@
   (start [this]
     (cc/start (:net-sys net-map))
     (cc/start key-value-store)
-    (error-printing-future
+    (start-new-thread "server"
       ((fn [game-state]
          (if @stop?
            nil
