@@ -31,6 +31,9 @@
 (defmacro start-new-thread [name & body]
   `(.start (Thread. (fn [] ~@body) ~name)))
 
+(defn current-thread-name []
+  (.getName (Thread/currentThread)))
+
 (defn- private-symbol [sym]
   (with-meta sym (assoc (meta sym) :private true)))
 
