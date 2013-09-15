@@ -3,9 +3,10 @@
            (com.jme3.app FlyCamAppState))
   (:require [game.networking.core :as net]
             [game.game-map :as game-map]
-            (game.client [input :as input])
+            (game.client [input :as c-input])
             (game.common [core :as cc]
                          [core-functions :as ccfns]
+                         [input :as cmn-input]
                          [graphics :as gfx])
             [game.math :as math])
   (:use game.utils))
@@ -92,8 +93,8 @@
       {:new-game-state game-state :events events})))
 
 (defn create-client-jme3-app [net-map game-state-atom]
-  (let [key-bindings (input/load-key-bindings)
-        key-state-atom (atom (input/create-key-state-map key-bindings))
+  (let [key-bindings (c-input/load-key-bindings)
+        key-state-atom (atom (cmn-input/create-key-state-map key-bindings))
         graphics-system (atom nil)
         init-gfx-fn
         (fn [asset-manager root-node]
@@ -103,7 +104,7 @@
             (:game-map @game-state-atom)))
         start-input-fn
         (fn [input-manager]
-          (input/start-input
+          (cmn-input/start-input
             input-manager
             key-bindings
             key-state-atom))
@@ -141,9 +142,10 @@
               (send-to-server msg))
             (cc/update @graphics-system new-game-state)
             (reset! game-state-atom new-game-state)))
-        app (ccfns/create-jme3-app simple-init-fn simple-update-fn graphics-system)]
+        app (ccfns/create-jme3-app simple-init-fn
+                                   simple-update-fn
+                                   graphics-system)]
     app))
-
 
 (defn create-non-jme3-app [net-map game-state-atom]
   (let [stop? (atom false)]
