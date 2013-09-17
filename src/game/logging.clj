@@ -7,9 +7,9 @@
 
 (defn print-output [name f & args]
   (let [result (apply f args)]
-    (println (str (current-thread-name) " // " name
-                  " output:"))
-    (pp/pprint result)
+    (println (str (current-thread-name) " // " name " output:\n"
+                  (with-out-str
+                    (pp/pprint result))))
     result))
 
 (defmacro make-name-var-list [fn-list]
