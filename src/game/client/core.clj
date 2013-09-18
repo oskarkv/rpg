@@ -59,14 +59,14 @@
       (conj return-map {:events [[:new-dir]]})
       return-map)))
 
-(defn login-and-recv-state [game-state net-map name password]
+(defn login-and-recv-state [game-state net-map name password stop?]
   (let [{:keys [net-sys send-msg get-msg]} net-map]
     (send-msg [:login name password])
     (loop [game-state game-state]
       (let [new-game-state
             (:new-game-state (process-network-msgs game-state net-map))]
         (if (let [id (:own-id new-game-state)]
-              (and id (get-in new-game-state [:players id])))
+              (or @stop? (and id (get-in new-game-state [:players id]))))
           new-game-state
           (recur new-game-state))))))
 
@@ -93,7 +93,8 @@
       {:new-game-state game-state :events events})))
 
 (defn create-client-jme3-app [net-map game-state-atom]
-  (let [key-bindings (c-input/load-key-bindings)
+  (let [stop? (atom false)
+        key-bindings (c-input/load-key-bindings)
         key-state-atom (atom (cmn-input/create-key-state-map key-bindings))
         graphics-system (atom nil)
         init-gfx-fn
@@ -123,9 +124,8 @@
                       asset-manager root-node))
             (cc/start @graphics-system)
             (reset! game-state-atom
-                    (login-and-recv-state @game-state-atom
-                                          net-map
-                                          "leif" "star"))))
+                    (login-and-recv-state @game-state-atom net-map
+                                          "leif" "star" stop?))))
         simple-update-fn
         (fn []
           (Thread/sleep 50)
@@ -142,10 +142,15 @@
               (send-to-server msg))
             (cc/update @graphics-system new-game-state)
             (reset! game-state-atom new-game-state)))
-        app (ccfns/create-jme3-app simple-init-fn
-                                   simple-update-fn
-                                   graphics-system)]
-    app))
+        start-fn
+        (fn [this]
+          (.start this))
+        stop-fn
+        (fn [this]
+          (reset! stop? true)
+          (cc/stop @graphics-system)
+          (.stop this))]
+    (ccfns/create-jme3-app start-fn stop-fn simple-init-fn simple-update-fn)))
 
 (defn create-non-jme3-app [net-map game-state-atom]
   (let [stop? (atom false)]
@@ -153,7 +158,8 @@
       (start [this]
         (error-printing-future
           (reset! game-state-atom (login-and-recv-state
-                                    @game-state-atom net-map "leif" "star"))
+                                    @game-state-atom net-map "leif" "star"
+                                    stop?))
           ((fn []
              (reset! game-state-atom
                      (:new-game-state

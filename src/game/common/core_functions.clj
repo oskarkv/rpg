@@ -14,8 +14,7 @@
         (recur (get-msg) new-game-state (conj events event)))
       {:new-game-state game-state :events (remove nil? events)})))
 
-(defn create-jme3-app
-  [init-fn update-fn graphics-system]
+(defn create-jme3-app [start-fn stop-fn init-fn update-fn]
   (let [app
         (doto (proxy [SimpleApplication] []
                 (simpleInitApp []
@@ -28,8 +27,7 @@
     (extend-type (type app)
       cc/Lifecycle
       (start [this]
-        (.start this))
+        (start-fn this))
       (stop [this]
-        (cc/stop @graphics-system)
-        (.stop this)))
+        (stop-fn this)))
     app))
