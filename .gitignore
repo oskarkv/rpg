@@ -29,7 +29,6 @@ profiles.clj
 # Test data
 /data
 
-vimedit.bat
-vimeditbuf.bat
+*.bat
 treasure_chest.txt
 todo.txt
