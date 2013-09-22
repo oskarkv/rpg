@@ -30,6 +30,9 @@
 (def log-input (make-name-var-list []))
 
 (defn add-logging-wrappers []
+  (dorun (->> (all-ns) (map #(.name %)) (mapcat ns-interns) (map second)
+              (map rh/clear-hooks)))
+  (doseq [[name var] log-input]
+    (rh/add-hook var (partial print-input name)))
   (doseq [[name var] log-output]
-    (rh/clear-hooks var)
     (rh/add-hook var (partial print-output name))))
