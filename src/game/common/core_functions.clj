@@ -1,7 +1,8 @@
 (ns game.common.core-functions
   (:import (com.jme3.system AppSettings)
            (com.jme3.app SimpleApplication))
-  (:require [game.common.core :as cc]))
+  (:require [game.common.core :as cc])
+  (:use [game.utils :as utils]))
 
 (defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}
                             process-fn & process-args]
@@ -42,3 +43,7 @@
              ~new-events (concat ~events ~new-events)]
          (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
       {:new-game-state game-state :events events})))
+
+(defn move-players [game-state move-player-fn]
+  {:new-game-state
+   (update-in game-state [:players] (partial fmap move-player-fn))})

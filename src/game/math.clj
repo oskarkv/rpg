@@ -6,3 +6,6 @@
 
 (defn distance [p p2]
   (Math/sqrt (apply + (map #(* % %) (map - p p2)))))
+
+(defn extrapolate-pos [pos dir time speed]
+  (map + pos (map #(* speed time %) dir)))

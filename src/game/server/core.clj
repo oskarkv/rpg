@@ -2,13 +2,16 @@
   (:require [game.networking.core :as net]
             (game.common [core :as cc]
                          [core-functions :as ccfns])
-            [game.key-value-store.core :as kvs.core]
-            [game.key-value-store.protocols :as kvs])
+            (game.key-value-store [core :as kvs.core]
+                                  [protocols :as kvs])
+            [game.math :as math])
   (:use game.utils))
 
 (defn new-player [username]
   {:name username
+   :speed 1
    :pos [0 0]
+   :old-recv-pos [0 0]
    :move-dir [0 0]})
 
 (defmulti process-msg-purely (fn [msg _] (:type msg)))
@@ -16,7 +19,10 @@
 (defmethod process-msg-purely :move [{:keys [id data] :as msg} game-state]
   (let [[pos dir] data]
     {:new-game-state
-     (update-in game-state [:players id] merge {:pos pos :move-dir dir})
+     (-> game-state
+         (update-in [:players id] merge
+                    {:recv-pos pos :move-dir dir :recv-time (current-time-ms)})
+         (update-in [:players id :recv-this-frame] conj pos))
      :event msg}))
 
 (defmethod process-msg-purely :default [_ game-state]
@@ -26,7 +32,10 @@
 
 (defmethod process-msg :login [{:keys [id data]} game-state key-value-store]
   (let [[username password] data
-        player (or (kvs/load key-value-store username) (new-player username))]
+        curr-time (current-time-ms)
+        player (assoc (or (kvs/load key-value-store username)
+                          (new-player username))
+                      :old-recv-time curr-time :last-move curr-time)]
     {:new-game-state (assoc-in game-state [:players id] player)
      :event {:id id :type :login :data [player]}}))
 
@@ -41,30 +50,48 @@
 
 (defmulti produce-client-msgs (fn [msg _] (:type msg)))
 
-(defmethod produce-client-msgs :login [{id :id [player] :data} game-state]
-  (let [all-players (keys (:players game-state))]
-    [[[id] [:game-state game-state]]
-     [all-players [:login id player]]
+(defn prepare-players-for-sending [players]
+  (fmap (fn [player] (select-keys player [:speed :name :move-dir :pos]))
+        players))
+
+(defmethod produce-client-msgs :login [{id :id} game-state]
+  (let [all-players (keys (:players game-state))
+        game-state-to-send (update-in game-state [:players]
+                                      prepare-players-for-sending)]
+    [[[id] [:game-state game-state-to-send]]
+     [all-players [:login id (get-in game-state-to-send [:players id])]]
      [[id] [:own-id id]]]))
 
 (defmethod produce-client-msgs :move [{id :id [pos dir] :data} game-state]
   (let [all-but-mover (keys (dissoc (:players game-state) id))]
-    [[all-but-mover [:move pos dir]]]))
+    [[all-but-mover [:move id pos dir]]]))
 
 (defmethod produce-client-msgs :default [_ _]
   nil)
 
-(defn extrapolate-player-movement [player]
-  (let [{:keys [pos move-dir] :as player} player
-        speed 1
-        new-pos (map + pos (map #(* speed %) move-dir))]
-    (assoc player :pos new-pos)))
+(defn move-from-recv-pos
+  [{:keys [recv-time recv-pos move-dir speed] :as player}]
+  ; TOTO: Use old-recv-pos, recv-this-frame, recv-time and old-recv-time to
+  ; calculate the distance and time the player has moved this frame, and save
+  ; that somewhere so that the server can check that the player is not moving
+  ; too fast.
+  (let [curr-time (current-time-ms)
+        extrap-time (- curr-time recv-time)
+        new-pos (math/extrapolate-pos recv-pos move-dir
+                                      (/ extrap-time 1000) speed)]
+    (-> player
+        (assoc :pos new-pos :old-recv-pos recv-pos
+               :last-move curr-time :old-recv-time recv-time)
+        (dissoc :recv-this-frame))))
 
-(defn extrapolate-all-player-movements [{players-map :players :as game-state}]
-  (let [ids (keys players-map)
-        players (vals players-map)]
-    (assoc game-state :players
-           (zipmap ids (map extrapolate-player-movement players)))))
+(defn move-player
+  [{:keys [pos last-move move-dir recv-this-frame speed] :as player}]
+  (if recv-this-frame
+    (move-from-recv-pos player)
+    (let [curr-time (current-time-ms)
+          time-delta (/ (- curr-time last-move) 1000)]
+      (assoc player :pos (math/extrapolate-pos pos move-dir time-delta speed)
+             :last-move curr-time))))
 
 (defn process-network-msgs [game-state net-map key-value-store]
   (ccfns/process-network-msgs game-state net-map process-msg key-value-store))
@@ -72,7 +99,9 @@
 (defn main-update [game-state {:keys [send-msg] :as net-map} key-value-store]
   (Thread/sleep 50)
   (let [{:keys [new-game-state events]}
-        (process-network-msgs game-state net-map key-value-store)
+        (ccfns/call-update-fns game-state []
+          (process-network-msgs net-map key-value-store)
+          (ccfns/move-players move-player))
         to-client-msgs (mapcat #(produce-client-msgs % new-game-state) events)]
     (doseq [[ids to-client-msg] to-client-msgs]
       (send-msg ids to-client-msg))
