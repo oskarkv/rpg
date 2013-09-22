@@ -34,6 +34,9 @@
 (defn current-thread-name []
   (.getName (Thread/currentThread)))
 
+(defn current-time-ms []
+  (System/currentTimeMillis))
+
 (defn- private-symbol [sym]
   (with-meta sym (assoc (meta sym) :private true)))
 
