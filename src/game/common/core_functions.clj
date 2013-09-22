@@ -31,3 +31,14 @@
       (stop [this]
         (stop-fn this)))
     app))
+
+(defmacro call-update-fns [game-state events & calls]
+  (let [new-events (gensym "new-events")
+        new-game-state (gensym "new-game-state")]
+    (if (seq calls)
+      `(let [{~new-game-state :new-game-state
+              ~new-events :events}
+             (-> ~game-state ~(first calls))
+             ~new-events (concat ~events ~new-events)]
+         (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
+      {:new-game-state game-state :events events})))

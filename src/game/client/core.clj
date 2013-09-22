@@ -81,17 +81,6 @@
     (cc/stop (:net-sys net-map))
     this))
 
-(defmacro call-update-fns [game-state events & calls]
-  (let [new-events (gensym "new-events")
-        new-game-state (gensym "new-game-state")]
-    (if (seq calls)
-      `(let [{~new-game-state :new-game-state
-              ~new-events :events}
-             (-> ~game-state ~(first calls))
-             ~new-events (concat ~events ~new-events)]
-         (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
-      {:new-game-state game-state :events events})))
-
 (defn create-client-jme3-app [net-map game-state-atom]
   (let [stop? (atom false)
         key-bindings (c-input/load-key-bindings)
@@ -130,9 +119,9 @@
         (fn []
           (Thread/sleep 50)
           (let [{:keys [new-game-state events]}
-                (call-update-fns @game-state-atom []
-                                 (process-player-input @key-state-atom)
-                                 (process-network-msgs net-map))
+                (ccfns/call-update-fns @game-state-atom []
+                  (process-player-input @key-state-atom)
+                  (process-network-msgs net-map))
                 to-server-msgs (->> events
                                     (map (partial produce-server-msg
                                                   new-game-state))
