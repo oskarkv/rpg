@@ -76,3 +76,6 @@
           (dissoc m k)))
       (dissoc m k))
     m))
+
+(defn fmap [f m]
+  (into {} (for [[k v] m] [k (f v)])))
