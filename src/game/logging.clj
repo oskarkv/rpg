@@ -18,20 +18,25 @@
     result))
 
 (defn print-input [name f & args]
-    (log-println name "input" args)
-    (apply f args))
+  (log-println name "input" args)
+  (apply f args))
 
 (defmacro make-name-var-list [fn-list]
   `[~@(for [fn fn-list]
         [(str fn) `(var ~fn)])])
 
-(def log-output (make-name-var-list []))
+(def log-both (make-name-var-list []))
 
 (def log-input (make-name-var-list []))
+
+(def log-output (make-name-var-list []))
 
 (defn add-logging-wrappers []
   (dorun (->> (all-ns) (map #(.name %)) (mapcat ns-interns) (map second)
               (map rh/clear-hooks)))
+  (doseq [[name var] log-both]
+    (rh/add-hook var (partial print-input name))
+    (rh/add-hook var (partial print-output name)))
   (doseq [[name var] log-input]
     (rh/add-hook var (partial print-input name)))
   (doseq [[name var] log-output]
