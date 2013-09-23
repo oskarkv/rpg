@@ -35,13 +35,18 @@
 
 (defmacro call-update-fns [game-state events & calls]
   (let [new-events (gensym "new-events")
-        new-game-state (gensym "new-game-state")]
+        new-game-state (gensym "new-game-state")
+        new-event (gensym "new-event")]
     (if (seq calls)
       `(let [{~new-game-state :new-game-state
-              ~new-events :events}
+              ~new-events :events
+              ~new-event :event}
              (-> ~game-state ~(first calls))
              ~new-game-state (or ~new-game-state ~game-state)
-             ~new-events (concat ~events ~new-events)]
+             ~new-events (concat ~events ~new-events)
+             ~new-events (if ~new-event
+                           (conj ~new-events ~new-event)
+                           ~new-events)]
          (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
