@@ -6,7 +6,8 @@
 
 (defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}
                             process-fn & process-args]
-  (cc/update net-sys nil)
+  (dotimes [i 3]
+    (cc/update net-sys nil))
   (loop [msg (get-msg) game-state game-state events []]
     (if msg
       (let [{:keys [new-game-state event]}
