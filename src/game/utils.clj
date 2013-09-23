@@ -79,3 +79,14 @@
 
 (defn fmap [f m]
   (into {} (for [[k v] m] [k (f v)])))
+
+(defn rec==
+  ([x] true)
+  ([x y]
+   (cond (and (number? x) (number? y)) (== x y)
+         (and (coll? x) (coll? y)) (every? true? (map rec== x y))
+         :else (= x y)))
+  ([x y & more]
+   (if (rec== x y)
+     (apply rec== x (first more) (rest more))
+     false)))
