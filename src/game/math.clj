@@ -4,6 +4,9 @@
   (let [len (Math/sqrt (apply + (map #(* % %) v)))]
     (map (if (zero? len) identity #(/ % len)) v)))
 
+(defn norm-diff [v v2]
+  (normalize (map - v v2)))
+
 (defn distance [p p2]
   (Math/sqrt (apply + (map #(* % %) (map - p p2)))))
 
