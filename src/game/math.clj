@@ -12,3 +12,6 @@
 
 (defn extrapolate-pos [pos dir time speed]
   (map + pos (map #(* speed time %) dir)))
+
+(defn dot-product [v v2]
+  (apply + (map * v v2)))
