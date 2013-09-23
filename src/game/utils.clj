@@ -31,6 +31,14 @@
 (defmacro start-new-thread [name & body]
   `(.start (Thread. (fn [] ~@body) ~name)))
 
+(defmacro with-gensyms [syms & body]
+  (assert-args
+    (vector? syms) "a vector of symbols as it's first argument"
+    (every? symbol? syms) "a vector of symbols as it's first argument")
+  `(let [~@(apply concat (for [sym syms]
+                           [sym `(gensym ~(str sym))]))]
+     ~@body))
+
 (defn current-thread-name []
   (.getName (Thread/currentThread)))
 
