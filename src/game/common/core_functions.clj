@@ -40,6 +40,7 @@
       `(let [{~new-game-state :new-game-state
               ~new-events :events}
              (-> ~game-state ~(first calls))
+             ~new-game-state (or ~new-game-state ~game-state)
              ~new-events (concat ~events ~new-events)]
          (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
       {:new-game-state game-state :events events})))
