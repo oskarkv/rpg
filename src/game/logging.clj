@@ -31,13 +31,15 @@
 
 (def log-output (make-name-var-list []))
 
+(defn add-hooks [name-vars & wrappers]
+  (when (seq wrappers)
+    (doseq [[name var] name-vars]
+      (rh/add-hook var (partial (first wrappers) name)))
+    (recur name-vars (next wrappers))))
+
 (defn add-logging-wrappers []
   (dorun (->> (all-ns) (map #(.name %)) (mapcat ns-interns) (map second)
               (map rh/clear-hooks)))
-  (doseq [[name var] log-both]
-    (rh/add-hook var (partial print-input name))
-    (rh/add-hook var (partial print-output name)))
-  (doseq [[name var] log-input]
-    (rh/add-hook var (partial print-input name)))
-  (doseq [[name var] log-output]
-    (rh/add-hook var (partial print-output name))))
+  (add-hooks log-both print-output print-input)
+  (add-hooks log-input print-input)
+  (add-hooks log-output print-output))
