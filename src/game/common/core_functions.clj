@@ -35,9 +35,7 @@
     app))
 
 (defmacro call-update-fns [game-state events & calls]
-  (let [new-events (gensym "new-events")
-        new-game-state (gensym "new-game-state")
-        new-event (gensym "new-event")]
+  (with-gensyms [new-game-state new-events new-event]
     (if (seq calls)
       `(let [{~new-game-state :new-game-state
               ~new-events :events
