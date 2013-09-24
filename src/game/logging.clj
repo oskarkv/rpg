@@ -25,11 +25,14 @@
   `[~@(for [fn fn-list]
         [(str fn) `(var ~fn)])])
 
-(def log-both (make-name-var-list []))
+(defmacro defloglist [name & fns]
+  `(def ~name (make-name-var-list [~@fns])))
 
-(def log-input (make-name-var-list []))
+(defloglist log-both)
 
-(def log-output (make-name-var-list []))
+(defloglist log-input)
+
+(defloglist log-output)
 
 (defn add-hooks [name-vars & wrappers]
   (when (seq wrappers)
