@@ -39,6 +39,9 @@
                            [sym `(gensym ~(str sym))]))]
      ~@body))
 
+(defn current-thread-id [msg]
+  (.getId (Thread/currentThread)))
+
 (defn current-thread-name []
   (.getName (Thread/currentThread)))
 
@@ -71,9 +74,6 @@
 
 (defmacro debug [x]
   `(do (println '~x "=" ~x) ~x))
-
-(defn print-thread-id [msg]
-  (println msg "(thread id:" (str (.getId (Thread/currentThread)) ")")))
 
 (defn dissoc-in [m [k & ks :as keys]]
   (if (seq keys)
