@@ -1,6 +1,5 @@
 (ns game.common.core-functions
-  (:import (com.jme3.system AppSettings)
-           (com.jme3.app SimpleApplication))
+  (:import (com.jme3.app SimpleApplication))
   (:require [game.common.core :as cc]
             [game.math :as math]
             [game.constants :as consts])
@@ -26,18 +25,14 @@
         (recur (get-msg) new-game-state (conj events event)))
       {:new-game-state game-state :events (remove nil? events)})))
 
-(defn create-jme3-app [start-fn stop-fn init-fn update-fn]
+(defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
   (let [app
-        (doto (proxy [SimpleApplication] []
-                (simpleInitApp []
-                  (init-fn this))
-                (simpleUpdate [tpf]
-                  (update-fn)))
-          (.setShowSettings false)
-          (.setSettings
-            (doto (AppSettings. true)
-              (.setResolution consts/resolution-x consts/resolution-y)))
-          (.setPauseOnLostFocus false))]
+        (init-app-settings-fn
+          (proxy [SimpleApplication] []
+            (simpleInitApp []
+              (init-fn this))
+            (simpleUpdate [tpf]
+              (update-fn))))]
     (extend-type (type app)
       cc/Lifecycle
       (start [this]

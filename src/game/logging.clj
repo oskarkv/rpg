@@ -1,13 +1,12 @@
 (ns game.logging
   (:require [robert.hooke :as rh]
-            [clojure.pprint :as pp]
-            [game.server.core :as sv]
-            [game.client.core :as cl]
-            [game.client.hud :as hud]
-            [game.math :as math]
-            (game.common [core-functions :as ccfns]
-                         [graphics :as gfx])
-            (game.server [pathfinding :as pf]))
+           [clojure.pprint :as pp]
+           [game.server.core :as sv]
+           [game.client.core :as cl]
+           [game.math :as math]
+           [game.editor.core :as ec]
+           (game.common [core-functions :as ccfns]
+                        [graphics :as gfx]))
   (:use [game.utils]))
 
 (defn log-println [name type object]

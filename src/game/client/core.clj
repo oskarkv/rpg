@@ -1,5 +1,5 @@
 (ns game.client.core
-  (:import (com.jme3.system JmeContext$Type)
+  (:import (com.jme3.system AppSettings JmeContext$Type)
            (com.jme3.app FlyCamAppState))
   (:require [game.networking.core :as net]
             [game.game-map :as gmap]
@@ -215,6 +215,14 @@
             (cc/update @graphics-system new-game-state)
             (cc/update @hud-system new-game-state)
             (reset! game-state-atom new-game-state)))
+        init-app-settings-fn
+        (fn [app]
+          (doto app
+            (.setShowSettings false)
+            (.setSettings
+              (doto (AppSettings. true)
+                (.setResolution consts/resolution-x consts/resolution-y)))
+            (.setPauseOnLostFocus false)))
         start-fn
         (fn [this]
           (.start this))
@@ -223,16 +231,19 @@
           (reset! stop? true)
           (cc/stop @graphics-system)
           (.stop this))]
-    (ccfns/create-jme3-app start-fn stop-fn simple-init-fn simple-update-fn)))
+    (ccfns/create-jme3-app start-fn stop-fn
+                           simple-init-fn simple-update-fn
+                           init-app-settings-fn)))
 
 (defn create-non-jme3-app [net-map game-state-atom]
   (let [stop? (atom false)]
     (reify cc/Lifecycle
       (start [this]
         (error-printing-future
-          (reset! game-state-atom (login-and-recv-state
-                                    @game-state-atom net-map "leif" "star"
-                                    stop?))
+          (reset! game-state-atom
+                  (login-and-recv-state
+                    @game-state-atom net-map "leif" "star"
+                    stop?))
           ((fn []
              (reset! game-state-atom
                      (:new-game-state
