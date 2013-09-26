@@ -88,7 +88,7 @@
 
 (defn move-from-recv-pos
   [{:keys [recv-time recv-pos move-dir speed] :as player}]
-  ; TOTO: Use old-recv-pos, recv-this-frame, recv-time and old-recv-time to
+  ; TODO: Use old-recv-pos, recv-this-frame, recv-time and old-recv-time to
   ; calculate the distance and time the player has moved this frame, and save
   ; that somewhere so that the server can check that the player is not moving
   ; too fast.
