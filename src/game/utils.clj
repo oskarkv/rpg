@@ -88,6 +88,15 @@
 (defn fmap [f m]
   (into {} (for [[k v] m] [k (f v)])))
 
+(defn call-times [n f & args]
+  (let [n (int n)]
+    (if (or (zero? n) (neg? n))
+      (first args)
+      (loop [i (dec n) result (apply f args)]
+        (if (zero? i)
+          result
+          (recur (dec i) (f result)))))))
+
 (defn rec==
   ([x] true)
   ([x y]
