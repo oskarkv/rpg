@@ -69,10 +69,14 @@
                          (assoc :pos (map float (:pos player)))))
         players))
 
+(defn prepare-for-sending [game-state]
+  (-> game-state
+      (update-in [:players] prepare-players-for-sending)
+      (select-keys [:players])))
+
 (defmethod produce-client-msgs :login [{id :id} game-state]
   (let [all-players (keys (:players game-state))
-        game-state-to-send (update-in game-state [:players]
-                                      prepare-players-for-sending)]
+        game-state-to-send (prepare-for-sending game-state)]
     [[[id] [:game-state game-state-to-send]]
      [all-players [:login id (get-in game-state-to-send [:players id])]]
      [[id] [:own-id id]]]))
