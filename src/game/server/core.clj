@@ -14,6 +14,21 @@
    :old-recv-pos [0 0]
    :move-dir [0 0]})
 
+(let [game-id-counter (atom 0)
+      net->game (atom {})
+      game->net (atom {})]
+  (defn new-game-id
+    ([] (swap! game-id-counter inc))
+    ([net-id]
+     (let [game-id (swap! game-id-counter inc)]
+       (swap! net->game assoc net-id game-id)
+       (swap! game->net assoc game-id net-id)
+       game-id)))
+  (defn net-id->game-id [net-id]
+    (@net->game net-id))
+  (defn game-id->net-id [game-id]
+    (@game->net game-id)))
+
 (defmulti process-msg-purely (fn [msg _] (:type msg)))
 
 (defmethod process-msg-purely :move [{:keys [id data] :as msg} game-state]
@@ -141,19 +156,6 @@
     (cc/stop key-value-store)
     (cc/stop (:net-sys net-map))
     this))
-
-(let [game-id-counter (atom 0)
-      net->game (atom {})
-      game->net (atom {})]
-  (defn new-game-id [net-id]
-    (let [game-id (swap! game-id-counter inc)]
-      (swap! net->game assoc net-id game-id)
-      (swap! game->net assoc game-id net-id)
-      game-id))
-  (defn net-id->game-id [net-id]
-    (@net->game net-id))
-  (defn game-id->net-id [game-id]
-    (@game->net game-id)))
 
 (defn init-server [port]
   (let [game-state {:players {}}
