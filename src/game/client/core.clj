@@ -2,7 +2,7 @@
   (:import (com.jme3.system JmeContext$Type)
            (com.jme3.app FlyCamAppState))
   (:require [game.networking.core :as net]
-            [game.game-map :as game-map]
+            [game.game-map :as gmap]
             (game.client [input :as c-input])
             (game.common [core :as cc]
                          [core-functions :as ccfns]
@@ -129,7 +129,7 @@
           (gfx/init-graphics-system
             root-node
             asset-manager
-            (:game-map @game-state-atom)))
+            (:terrain @game-state-atom)))
         start-input-fn
         (fn [input-manager]
           (cmn-input/start-input
@@ -198,8 +198,7 @@
         (reset! stop? true)))))
 
 (defn init-client [address port headless]
-  (let [game-map (game-map/load-game-map)
-        game-state-atom (atom {:game-map game-map})
+  (let [game-state-atom (atom (dissoc (gmap/load-game-map) :spawns))
         {:keys [net-sys get-msg send-msg]}
         (net/construct-client-net-sys address port
                                       cc/connect-msg
