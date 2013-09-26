@@ -1,10 +1,12 @@
 (ns game.server.core
-  (:require [game.networking.core :as net]
+  (:require [clojure.data.priority-map :as pm]
+            [game.networking.core :as net]
             (game.common [core :as cc]
                          [core-functions :as ccfns])
             (game.key-value-store [core :as kvs.core]
                                   [protocols :as kvs])
-            [game.math :as math])
+            (game [math :as math]
+                  [game-map :as gmap]))
   (:use game.utils))
 
 (defn new-player [username]
@@ -119,6 +121,19 @@
         new-pos (:pos new-player)]
     (assoc new-player :moved-this-frame (not (rec== pos new-pos)))))
 
+(defn spawn-mobs [{:keys [to-spawn spawns] :as game-state}]
+  (let [curr-time (current-time-ms)]
+    (letfn [(time-to-spawn [[id spawn-time]] (> curr-time spawn-time))
+            (spawn-mob [spawn-id] (-> spawn-id spawns (dissoc :respawn-time)
+                                      (assoc :spawn spawn-id)))]
+      (let [new-mobs (map spawn-mob (keys (take-while time-to-spawn to-spawn)))
+            new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
+            num-mobs (count new-mobs-map)]
+        {:new-game-state
+         (-> game-state
+             (update-in [:npcs] merge new-mobs-map)
+             (assoc :to-spawn (call-times num-mobs pop to-spawn)))}))))
+
 (defn check-if-moved [game-state]
   (when-let [moved (reduce (fn [moved [id player]]
                              (if (:moved-this-frame player)
@@ -137,7 +152,8 @@
         (ccfns/call-update-fns game-state []
           (process-network-msgs net-map key-value-store)
           (ccfns/move-players move-player)
-          (check-if-moved))
+          (check-if-moved)
+          (spawn-mobs))
         to-client-msgs (mapcat #(produce-client-msgs % new-game-state) events)]
     (doseq [[ids to-client-msg] to-client-msgs]
       (send-msg ids to-client-msg))
@@ -161,8 +177,16 @@
     (cc/stop (:net-sys net-map))
     this))
 
+(defn create-to-spawn-queue [spawns]
+  (apply pm/priority-map (interleave (keys spawns) (repeat 0))))
+
+(defn create-game-state []
+  (-> {:players {} :npcs {}}
+      (merge (gmap/load-game-map))
+      (#(assoc % :to-spawn (create-to-spawn-queue (:spawns %))))))
+
 (defn init-server [port]
-  (let [game-state {:players {}}
+  (let [game-state (create-game-state)
         stop? (atom false)
         {:keys [net-sys get-msg send-msg]} (net/construct-server-net-sys
                                              port
