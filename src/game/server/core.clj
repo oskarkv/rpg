@@ -122,17 +122,17 @@
     (assoc new-player :moved-this-frame (not (rec== pos new-pos)))))
 
 (defn spawn-mobs [{:keys [to-spawn spawns] :as game-state}]
-  (let [curr-time (current-time-ms)]
-    (letfn [(time-to-spawn [[id spawn-time]] (> curr-time spawn-time))
-            (spawn-mob [spawn-id] (-> spawn-id spawns (dissoc :respawn-time)
-                                      (assoc :spawn spawn-id)))]
-      (let [new-mobs (map spawn-mob (keys (take-while time-to-spawn to-spawn)))
-            new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
-            num-mobs (count new-mobs-map)]
-        {:new-game-state
-         (-> game-state
-             (update-in [:npcs] merge new-mobs-map)
-             (assoc :to-spawn (call-times num-mobs pop to-spawn)))}))))
+  (let [curr-time (current-time-ms)
+        time-to-spawn (fn [[id spawn-time]] (> curr-time spawn-time))
+        spawn-mob (fn [spawn-id] (-> spawn-id spawns (dissoc :respawn-time)
+                                     (assoc :spawn spawn-id :type :mob)))
+        new-mobs (map spawn-mob (keys (take-while time-to-spawn to-spawn)))
+        new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
+        num-mobs (count new-mobs-map)]
+    {:new-game-state
+     (-> game-state
+         (update-in [:npcs] merge new-mobs-map)
+         (assoc :to-spawn (call-times num-mobs pop to-spawn)))}))
 
 (defn check-if-moved [game-state]
   (when-let [moved (reduce (fn [moved [id player]]
