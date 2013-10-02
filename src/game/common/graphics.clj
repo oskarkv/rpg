@@ -86,7 +86,7 @@
       (update-character node character))))
 
 (defn portray-characters [ids->objects characters-node game-state asset-manager]
-  (if-let [players (:players game-state)]
+  (if-let [players (:chars game-state)]
     (apply conj ids->objects
            (for [[id character] players]
              [id (portray-character (ids->objects id) characters-node

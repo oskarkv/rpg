@@ -15,7 +15,7 @@
 
 (defmethod process-msg :login [{[id player] :data} game-state]
   (let [player (assoc player :last-move (current-time-ms))]
-    {:new-game-state (assoc-in game-state [:players id] player)}))
+    {:new-game-state (assoc-in game-state [:chars id] player)}))
 
 (defmethod process-msg :own-id [{[id] :data} game-state]
   {:new-game-state (assoc game-state :own-id id)})
@@ -24,11 +24,11 @@
   {:new-game-state (merge game-state incoming-game-state)})
 
 (defmethod process-msg :move [{[id pos] :data} game-state]
-  (let [player (get-in game-state [:players id])]
+  (let [char (get-in game-state [:chars id])]
     {:new-game-state
-     (assoc-in game-state [:players id]
-               (cond-> player
-                 (nil? (:new-pos player)) (assoc :last-move (current-time-ms))
+     (assoc-in game-state [:chars id]
+               (cond-> char
+                 (nil? (:new-pos char)) (assoc :last-move (current-time-ms))
                  true (assoc :new-pos pos)))}))
 
 (defmethod process-msg :default [_ game-state]
@@ -38,7 +38,7 @@
 
 (defmethod produce-server-msg :new-dir [game-state event]
   (let [own-id (:own-id game-state)
-        self (get-in game-state [:players own-id])
+        self (get-in game-state [:chars own-id])
         pos (map float (:pos self))
         dir (map float (:move-dir self))]
     [:move pos dir]))
@@ -60,18 +60,18 @@
 
 (defn process-player-input [game-state key-state]
   (let [id (:own-id game-state)
-        old-dir (map float (get-in game-state [:players id :move-dir]))
+        old-dir (map float (get-in game-state [:chars id :move-dir]))
         new-dir (map float (calculate-movement-direction key-state))
-        new-game-state (assoc-in game-state [:players id :move-dir] new-dir)
+        new-game-state (assoc-in game-state [:chars id :move-dir] new-dir)
         return-map {:new-game-state new-game-state}]
     (if-not (= old-dir new-dir)
       (conj return-map {:events [[:new-dir]]})
       return-map)))
 
-(defn process-received-game-state [{:keys [players] :as game-state}]
+(defn process-received-game-state [{:keys [chars] :as game-state}]
   (let [curr-time (current-time-ms)]
-    (assoc game-state :players
-           (fmap (fn [player] (assoc player :last-move curr-time)) players))))
+    (assoc game-state :chars
+           (fmap (fn [char] (assoc char :last-move curr-time)) chars))))
 
 (defn login-and-recv-state [game-state net-map name password stop?]
   (let [{:keys [net-sys send-msg get-msg]} net-map]
@@ -80,7 +80,7 @@
       (let [new-game-state
             (:new-game-state (process-network-msgs game-state net-map))]
         (if (let [id (:own-id new-game-state)]
-              (or @stop? (and id (get-in new-game-state [:players id]))))
+              (or @stop? (and id (get-in new-game-state [:chars id]))))
           (process-received-game-state new-game-state)
           (recur new-game-state))))))
 
@@ -93,11 +93,11 @@
 
 (defn move-self [game-state]
   {:new-game-state
-   (update-in game-state [:players (:own-id game-state)] extrapolate-player)})
+   (update-in game-state [:chars (:own-id game-state)] extrapolate-player)})
 
-(defn move-toward-new-pos [{:keys [pos new-pos last-move speed] :as player}]
+(defn move-toward-new-pos [{:keys [pos new-pos last-move speed] :as char}]
   (if-not new-pos
-    player
+    char
     (let [dir (math/norm-diff new-pos pos)
           curr-time (current-time-ms)
           time-delta (- curr-time last-move)
@@ -105,8 +105,8 @@
           new-dir (math/norm-diff new-pos updated-pos)
           dp (math/dot-product dir new-dir)]
       (if (> dp 0)
-        (assoc player :pos updated-pos :last-move curr-time)
-        (-> player (assoc :pos new-pos) (dissoc :new-pos :last-move))))))
+        (assoc char :pos updated-pos :last-move curr-time)
+        (-> char (assoc :pos new-pos) (dissoc :new-pos :last-move))))))
 
 (defrecord Client [net-map app]
   cc/Lifecycle
@@ -161,7 +161,7 @@
                   (process-player-input @key-state-atom)
                   (process-network-msgs net-map)
                   (move-self)
-                  (ccfns/move-players move-toward-new-pos))
+                  (ccfns/move-chars move-toward-new-pos))
                 to-server-msgs (->> events
                                     (map (partial produce-server-msg
                                                   new-game-state))

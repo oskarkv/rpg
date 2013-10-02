@@ -14,7 +14,8 @@
    :speed 1
    :pos [0 0]
    :old-recv-pos [0 0]
-   :move-dir [0 0]})
+   :move-dir [0 0]
+   :type :player})
 
 (let [game-id-counter (atom 0)
       net->game (atom {})
@@ -37,9 +38,9 @@
   (let [[pos dir] data]
     {:new-game-state
      (-> game-state
-         (update-in [:players id] merge
+         (update-in [:chars id] merge
                     {:recv-pos pos :move-dir dir :recv-time (current-time-ms)})
-         (update-in [:players id :recv-this-frame] conj pos))}))
+         (update-in [:chars id :recv-this-frame] conj pos))}))
 
 (defmethod process-msg-purely :default [_ game-state]
   {:new-game-state game-state})
@@ -52,7 +53,9 @@
         player (assoc (or (kvs/load key-value-store username)
                           (new-player username))
                       :old-recv-time curr-time :last-move curr-time)]
-    {:new-game-state (assoc-in game-state [:players id] player)
+    {:new-game-state (-> game-state
+                         (assoc-in [:chars id] player)
+                         (update-in [:player-ids] conj id))
      :event {:id id :type :login :data [player]}}))
 
 (defmethod process-msg :connect [_ game-state _]
@@ -66,28 +69,28 @@
 
 (defmulti produce-client-msgs (fn [msg _] (:type msg)))
 
-(defn prepare-players-for-sending [players]
-  (fmap (fn [player] (-> player (select-keys [:speed :name :pos])
-                         (assoc :pos (map float (:pos player)))))
-        players))
+(defn prepare-chars-for-sending [chars]
+  (fmap (fn [char] (-> char (select-keys [:speed :name :pos :type])
+                       (assoc :pos (map float (:pos char)))))
+        chars))
 
 (defn prepare-for-sending [game-state]
   (-> game-state
-      (update-in [:players] prepare-players-for-sending)
-      (select-keys [:players])))
+      (update-in [:chars] prepare-chars-for-sending)
+      (select-keys [:chars])))
 
 (defmethod produce-client-msgs :login [{id :id} game-state]
-  (let [all-players (keys (:players game-state))
+  (let [all-players (:player-ids game-state)
         game-state-to-send (prepare-for-sending game-state)]
     [[[id] [:game-state game-state-to-send]]
-     [all-players [:login id (get-in game-state-to-send [:players id])]]
+     [all-players [:login id (get-in game-state-to-send [:chars id])]]
      [[id] [:own-id id]]]))
 
 (defmethod produce-client-msgs :move [{ids :data} game-state]
-  (let [all-players (set (keys (:players game-state)))]
+  (let [all-players (:player-ids game-state)]
     (for [id ids]
       [(disj all-players id)
-       [:move id (map float (get-in game-state [:players id :pos]))]])))
+       [:move id (map float (get-in game-state [:chars id :pos]))]])))
 
 (defmethod produce-client-msgs :default [_ _]
   nil)
@@ -107,19 +110,19 @@
                :last-move curr-time :old-recv-time recv-time)
         (dissoc :recv-this-frame))))
 
-(defn actually-move-player
-  [{:keys [pos last-move move-dir recv-this-frame speed] :as player}]
+(defn actually-move-char
+  [{:keys [pos last-move move-dir recv-this-frame speed] :as char}]
   (if recv-this-frame
-    (move-from-recv-pos player)
+    (move-from-recv-pos char)
     (let [curr-time (current-time-ms)
           time-delta (/ (- curr-time last-move) 1000)]
-      (assoc player :pos (math/extrapolate-pos pos move-dir time-delta speed)
+      (assoc char :pos (math/extrapolate-pos pos move-dir time-delta speed)
              :last-move curr-time))))
 
-(defn move-player [{pos :pos :as player}]
-  (let [new-player (actually-move-player player)
-        new-pos (:pos new-player)]
-    (assoc new-player :moved-this-frame (not (rec== pos new-pos)))))
+(defn move-char [{pos :pos :as char}]
+  (let [new-char (actually-move-char char)
+        new-pos (:pos new-char)]
+    (assoc new-char :moved-this-frame (not (rec== pos new-pos)))))
 
 (defn spawn-mobs [{:keys [to-spawn spawns] :as game-state}]
   (let [curr-time (current-time-ms)
@@ -134,16 +137,16 @@
         num-mobs (count new-mobs-map)]
     {:new-game-state
      (-> game-state
-         (update-in [:npcs] merge new-mobs-map)
+         (update-in [:chars] merge new-mobs-map)
          (assoc :to-spawn (call-times num-mobs pop to-spawn)))}))
 
 (defn check-if-moved [game-state]
-  (when-let [moved (reduce (fn [moved [id player]]
-                             (if (:moved-this-frame player)
+  (when-let [moved (reduce (fn [moved [id char]]
+                             (if (:moved-this-frame char)
                                (conj moved id)
                                moved))
                            nil
-                           (:players game-state))]
+                           (:chars game-state))]
     {:event {:type :move :data moved}}))
 
 (defn process-network-msgs [game-state net-map key-value-store]
@@ -154,7 +157,7 @@
   (let [{:keys [new-game-state events]}
         (ccfns/call-update-fns game-state []
           (process-network-msgs net-map key-value-store)
-          (ccfns/move-players move-player)
+          (ccfns/move-chars move-char)
           (check-if-moved)
           (spawn-mobs))
         to-client-msgs (mapcat #(produce-client-msgs % new-game-state) events)]
@@ -184,7 +187,7 @@
   (apply pm/priority-map (interleave (keys spawns) (repeat 0))))
 
 (defn create-game-state []
-  (-> {:players {} :npcs {}}
+  (-> {:chars {} :player-ids #{}}
       (merge (gmap/load-game-map))
       (#(assoc % :to-spawn (create-to-spawn-queue (:spawns %))))))
 

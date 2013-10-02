@@ -49,6 +49,6 @@
          (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
-(defn move-players [game-state move-player-fn]
+(defn move-chars [game-state move-char-fn]
   {:new-game-state
-   (update-in game-state [:players] (partial fmap move-player-fn))})
+   (update-in game-state [:chars] (partial fmap move-char-fn))})
