@@ -125,7 +125,10 @@
   (let [curr-time (current-time-ms)
         time-to-spawn (fn [[id spawn-time]] (> curr-time spawn-time))
         spawn-mob (fn [spawn-id] (-> spawn-id spawns (dissoc :respawn-time)
-                                     (assoc :spawn spawn-id :type :mob)))
+                                     (assoc :spawn spawn-id :type :mob
+                                            :move-dir [0 0]
+                                            :last-move curr-time
+                                            :speed 1)))
         new-mobs (map spawn-mob (keys (take-while time-to-spawn to-spawn)))
         new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
         num-mobs (count new-mobs-map)]
