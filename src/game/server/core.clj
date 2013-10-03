@@ -6,7 +6,8 @@
             (game.key-value-store [core :as kvs.core]
                                   [protocols :as kvs])
             (game [math :as math]
-                  [game-map :as gmap]))
+                  [game-map :as gmap]
+                  [mobs :as mobs]))
   (:use game.utils))
 
 (defn new-player [username]
@@ -119,11 +120,11 @@
 (defn spawn-mobs [{:keys [to-spawn spawns] :as game-state}]
   (let [curr-time (current-time-ms)
         time-to-spawn (fn [[id spawn-time]] (> curr-time spawn-time))
-        spawn-mob (fn [spawn-id] (-> spawn-id spawns (dissoc :respawn-time)
-                                     (assoc :spawn spawn-id :type :mob
+        spawn-mob (fn [spawn-id] (-> spawn-id spawns :type mobs/mobs
+                                     (assoc :spawn spawn-id
+                                            :pos (-> spawn-id spawns :pos)
                                             :move-dir [0 0]
-                                            :last-move curr-time
-                                            :speed 1)))
+                                            :last-move curr-time)))
         new-mobs (map spawn-mob (keys (take-while time-to-spawn to-spawn)))
         new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
         num-mobs (count new-mobs-map)]
