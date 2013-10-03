@@ -1,7 +1,8 @@
 (ns game.common.core-functions
   (:import (com.jme3.system AppSettings)
            (com.jme3.app SimpleApplication))
-  (:require [game.common.core :as cc])
+  (:require [game.common.core :as cc]
+            [game.math :as math])
   (:use [game.utils :as utils]))
 
 (defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}
@@ -52,3 +53,11 @@
 (defn move-chars [game-state move-char-fn]
   {:new-game-state
    (update-in game-state [:chars] (partial fmap move-char-fn))})
+
+(defn extrapolate-char
+  ([{:keys [last-move pos] :as char}] (extrapolate-char char pos last-move))
+  ([{:keys [move-dir speed] :as char} from-pos from-time]
+   (let [curr-time (current-time-ms)
+         extrap-time (/ (- curr-time from-time) 1000.0)
+         new-pos (math/extrapolate-pos from-pos move-dir extrap-time speed)]
+     (assoc char :pos new-pos :last-move curr-time))))

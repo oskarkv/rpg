@@ -96,28 +96,20 @@
   nil)
 
 (defn move-from-recv-pos
-  [{:keys [recv-time recv-pos move-dir speed] :as player}]
+  [{:keys [recv-time recv-pos] :as player}]
   ; TODO: Use old-recv-pos, recv-this-frame, recv-time and old-recv-time to
   ; calculate the distance and time the player has moved this frame, and save
   ; that somewhere so that the server can check that the player is not moving
   ; too fast.
-  (let [curr-time (current-time-ms)
-        extrap-time (- curr-time recv-time)
-        new-pos (math/extrapolate-pos recv-pos move-dir
-                                      (/ extrap-time 1000) speed)]
-    (-> player
-        (assoc :pos new-pos :old-recv-pos recv-pos
-               :last-move curr-time :old-recv-time recv-time)
-        (dissoc :recv-this-frame))))
+  (-> (ccfns/extrapolate-char player recv-pos recv-time)
+      (assoc :old-recv-pos recv-pos :old-recv-time recv-time)
+      (dissoc :recv-this-frame)))
 
 (defn actually-move-char
   [{:keys [pos last-move move-dir recv-this-frame speed] :as char}]
   (if recv-this-frame
     (move-from-recv-pos char)
-    (let [curr-time (current-time-ms)
-          time-delta (/ (- curr-time last-move) 1000)]
-      (assoc char :pos (math/extrapolate-pos pos move-dir time-delta speed)
-             :last-move curr-time))))
+    (ccfns/extrapolate-char char pos last-move)))
 
 (defn move-char [{pos :pos :as char}]
   (let [new-char (actually-move-char char)

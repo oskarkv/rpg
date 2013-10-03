@@ -84,16 +84,9 @@
           (process-received-game-state new-game-state)
           (recur new-game-state))))))
 
-(defn extrapolate-player [{:keys [pos move-dir last-move speed] :as player}]
-  (let [curr-time (current-time-ms)
-        time-delta (/ (- curr-time last-move) 1000.0)]
-    (assoc player
-           :pos (math/extrapolate-pos pos move-dir time-delta speed)
-           :last-move curr-time)))
-
 (defn move-self [game-state]
   {:new-game-state
-   (update-in game-state [:chars (:own-id game-state)] extrapolate-player)})
+   (update-in game-state [:chars (:own-id game-state)] ccfns/extrapolate-char)})
 
 (defn move-toward-new-pos [{:keys [pos new-pos last-move speed] :as char}]
   (if-not new-pos
