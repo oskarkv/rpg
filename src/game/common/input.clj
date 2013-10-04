@@ -1,8 +1,10 @@
 (ns game.common.input
-  (:import (com.jme3.input KeyInput
-                           MouseInput)
-           (com.jme3.input.controls KeyTrigger
-                                    ActionListener)))
+  (:import (com.jme3.input
+             KeyInput
+             MouseInput)
+           (com.jme3.input.controls
+             KeyTrigger
+             ActionListener)))
 
 (defn string->KeyInput [s]
   (-> (.getField KeyInput (str "KEY_" (.toUpperCase s))) (.get nil)))
