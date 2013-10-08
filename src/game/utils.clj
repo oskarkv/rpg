@@ -107,3 +107,9 @@
    (if (rec== x y)
      (apply rec== x (first more) (rest more))
      false)))
+
+(defn flip [f]
+  (comp (partial apply f) reverse list))
+
+(defn partial* [f & args]
+  (apply partial (flip f) args))
