@@ -26,6 +26,10 @@ augroup clojure_settings
   autocmd Syntax clojure syntax keyword clojureMacro assert-args
 
    call CljHL(fn, 'dissoc-in')
+   call CljHL(fn, 'partial\*')
+   call CljHL(fn, 'flip')
+   call CljHL(fn, 'rec==')
+   call CljHL(fn, 'fmap')
    call CljHL(macro, 'call-update-fns')
    call CljHL(macro, 'error-printing-future')
    call CljHL(macro, 'start-new-thread')
