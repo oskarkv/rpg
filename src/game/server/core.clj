@@ -16,7 +16,8 @@
    :pos [0 0]
    :old-recv-pos [0 0]
    :move-dir [0 0]
-   :type :player})
+   :type :player
+   :attacking false})
 
 (let [game-id-counter (atom 0)
       net->game (atom {})
@@ -42,6 +43,9 @@
          (update-in [:chars id] merge
                     {:recv-pos pos :move-dir dir :recv-time (current-time-ms)})
          (update-in [:chars id :recv-this-frame] conj pos))}))
+
+(defmethod process-msg-purely :attack [{:keys [id]} game-state]
+  {:new-game-state (update-in game-state [:chars id :attacking] not)})
 
 (defmethod process-msg-purely :default [_ game-state]
   {:new-game-state game-state})

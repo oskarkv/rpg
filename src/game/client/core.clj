@@ -43,6 +43,9 @@
         dir (map float (:move-dir self))]
     [:move pos dir]))
 
+(defmethod produce-server-msg :attack [game-state event]
+  [:attack])
+
 (defmethod produce-server-msg :default [game-state event]
   nil)
 
@@ -58,15 +61,28 @@
       (:right key-state) ((adder 1 0))
       true (math/normalize))))
 
+(defmulti process-tap (fn [_ type] second type))
+
+(defmethod process-tap :attack [{id :own-id :as game-state} type]
+  {:new-game-state (update-in game-state [:chars id :attacking] not)
+   :event [:attack]})
+
+(defn process-taps [game-state taps]
+  (loop [[tap & more] taps game-state game-state events []]
+    (if tap
+      (let [{:keys [new-game-state event]} (process-tap game-state tap)]
+        (recur more new-game-state (conj events event)))
+      {:new-game-state game-state
+       :events (remove nil? events)})))
+
 (defn process-player-input [game-state key-state]
   (let [id (:own-id game-state)
-        old-dir (map float (get-in game-state [:chars id :move-dir]))
+        {:keys [new-game-state events]} (process-taps game-state (:taps key-state))
+        old-dir (map float (get-in new-game-state [:chars id :move-dir]))
         new-dir (map float (calculate-movement-direction key-state))
-        new-game-state (assoc-in game-state [:chars id :move-dir] new-dir)
-        return-map {:new-game-state new-game-state}]
-    (if-not (= old-dir new-dir)
-      (conj return-map {:events [[:new-dir]]})
-      return-map)))
+        new-game-state (assoc-in new-game-state [:chars id :move-dir] new-dir)
+        events (if (= old-dir new-dir) events (conj events [:new-dir]))]
+    {:new-game-state new-game-state :events events}))
 
 (defn process-received-game-state [{:keys [chars] :as game-state}]
   (let [curr-time (current-time-ms)]
@@ -160,6 +176,7 @@
                                                   new-game-state))
                                     (remove nil?))
                 send-to-server (:send-msg net-map)]
+            (cmn-input/empty-taps key-state-atom)
             (doseq [msg to-server-msgs]
               (send-to-server msg))
             (cc/update @graphics-system new-game-state)

@@ -4,4 +4,5 @@
   [["forward" "w" :hold]
    ["back" "r" :hold]
    ["left" "a" :hold]
-   ["right" "s" :hold]])
+   ["right" "s" :hold]
+   ["attack" "f" :tap]])
