@@ -1,7 +1,7 @@
 (ns game.mobs)
 
 (def mobs-table
-  [[:name        , :hp, :speed, :damage]
+  [[:name        , :hp, :speed, :dmg]
    ["an orc pawn", 110, 1     , 90]
    ["spiderling" , 100, 1     , 100]])
 
