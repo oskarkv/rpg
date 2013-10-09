@@ -61,7 +61,7 @@
       (:right key-state) ((adder 1 0))
       true (math/normalize))))
 
-(defmulti process-tap (fn [_ type] second type))
+(defmulti process-tap (fn [_ type] type))
 
 (defmethod process-tap :attack [{id :own-id :as game-state} type]
   {:new-game-state (update-in game-state [:chars id :attacking] not)
