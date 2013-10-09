@@ -17,7 +17,10 @@
    :old-recv-pos [0 0]
    :move-dir [0 0]
    :type :player
-   :attacking false})
+   :attacking false
+   :hp 100
+   :max-hp 100
+   :dmg 15})
 
 (let [game-id-counter (atom 0)
       net->game (atom {})
@@ -121,15 +124,21 @@
         new-pos (:pos new-char)]
     (assoc new-char :moved-this-frame (not (rec== pos new-pos)))))
 
+(defn spawn-mob [spawn-id spawns curr-time]
+  (let [mob-type (-> spawn-id spawns :type mobs/mobs)]
+    (assoc mob-type
+           :spawn spawn-id
+           :pos (-> spawn-id spawns :pos)
+           :move-dir [0 0]
+           :last-move curr-time
+           :max-hp (:hp mob-type)
+           :dmg (/ (:dmg mob-type) 10))))
+
 (defn spawn-mobs [{:keys [to-spawn spawns] :as game-state}]
   (let [curr-time (current-time-ms)
         time-to-spawn (fn [[id spawn-time]] (> curr-time spawn-time))
-        spawn-mob (fn [spawn-id] (-> spawn-id spawns :type mobs/mobs
-                                     (assoc :spawn spawn-id
-                                            :pos (-> spawn-id spawns :pos)
-                                            :move-dir [0 0]
-                                            :last-move curr-time)))
-        new-mobs (map spawn-mob (keys (take-while time-to-spawn to-spawn)))
+        new-mobs (map (partial* spawn-mob curr-time spawns)
+                      (keys (take-while time-to-spawn to-spawn)))
         new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
         num-mobs (count new-mobs-map)]
     {:new-game-state
