@@ -32,12 +32,6 @@
 (defmacro defloglist [name & fns]
   `(def ~name (make-name-var-list [~@fns])))
 
-(defloglist log-both)
-
-(defloglist log-input)
-
-(defloglist log-output)
-
 (defn add-hooks [name-vars & wrappers]
   (when (seq wrappers)
     (doseq [[name var] name-vars]
@@ -49,6 +43,12 @@
 
 (defn add-hooks-to-ns [ns-sym & wrappers]
   (apply add-hooks (get-ns-name-vars ns-sym) wrappers))
+
+(defloglist log-both)
+
+(defloglist log-input)
+
+(defloglist log-output)
 
 (defn add-logging-wrappers []
   (dorun (->> (all-ns) (map #(.name %)) (mapcat ns-interns) (map second)
