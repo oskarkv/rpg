@@ -71,7 +71,7 @@
   (loop [[tap & more] taps game-state game-state events []]
     (if tap
       (let [{:keys [new-game-state event]} (process-tap game-state tap)]
-        (recur more new-game-state (conj events event)))
+        (recur more (or new-game-state game-state) (conj events event)))
       {:new-game-state game-state
        :events (remove nil? events)})))
 
