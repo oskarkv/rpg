@@ -21,6 +21,10 @@
   (log-println name "input" args)
   (apply f args))
 
+(defn print-call [name f & args]
+  (println (str (current-thread-name) "//" name))
+  (apply f args))
+
 (defmacro make-name-var-list [fn-list]
   `[~@(for [fn fn-list]
         [(str fn) `(var ~fn)])])
