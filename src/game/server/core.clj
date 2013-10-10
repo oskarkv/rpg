@@ -50,6 +50,9 @@
 (defmethod process-msg-purely :attack [{:keys [id]} game-state]
   {:new-game-state (update-in game-state [:chars id :attacking] not)})
 
+(defmethod process-msg-purely :target [{:keys [id data]} game-state]
+  {:new-game-state (assoc-in game-state [:chars id :target] (first data))})
+
 (defmethod process-msg-purely :default [_ game-state]
   {:new-game-state game-state})
 
