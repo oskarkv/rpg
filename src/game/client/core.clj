@@ -134,11 +134,8 @@
         key-state-atom (atom (cmn-input/create-key-state-map key-bindings))
         graphics-system (atom nil)
         init-gfx-fn
-        (fn [asset-manager root-node]
-          (gfx/init-graphics-system
-            root-node
-            asset-manager
-            (:terrain @game-state-atom)))
+        (fn [app]
+          (gfx/init-graphics-system app (:terrain @game-state-atom)))
         start-input-fn
         (fn [input-manager]
           (cmn-input/start-input
@@ -155,9 +152,7 @@
                                               FlyCamAppState))
             (.setCursorVisible input-manager true)
             (start-input-fn input-manager)
-            (reset! graphics-system
-                    (init-gfx-fn
-                      asset-manager root-node))
+            (reset! graphics-system (init-gfx-fn app))
             (cc/start @graphics-system)
             (reset! game-state-atom
                     (login-and-recv-state @game-state-atom net-map
