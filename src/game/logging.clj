@@ -44,6 +44,12 @@
       (rh/add-hook var (partial (first wrappers) name)))
     (recur name-vars (next wrappers))))
 
+(defn get-ns-name-vars [ns-sym]
+  (-> (the-ns ns-sym) (#(.name %)) ns-interns))
+
+(defn add-hooks-to-ns [ns-sym & wrappers]
+  (apply add-hooks (get-ns-name-vars ns-sym) wrappers))
+
 (defn add-logging-wrappers []
   (dorun (->> (all-ns) (map #(.name %)) (mapcat ns-interns) (map second)
               (map rh/clear-hooks)))
