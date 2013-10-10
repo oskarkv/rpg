@@ -43,11 +43,9 @@
         dir (map float (:move-dir self))]
     [:move pos dir]))
 
-(defmethod produce-server-msg :attack [game-state event]
-  [:attack])
-
+;;; Works for :attack and :target events
 (defmethod produce-server-msg :default [game-state event]
-  nil)
+  event)
 
 (defn process-network-msgs [game-state net-map]
   (ccfns/process-network-msgs game-state net-map process-msg))
@@ -66,6 +64,13 @@
 (defmethod process-tap :attack [{id :own-id :as game-state} type]
   {:new-game-state (update-in game-state [:chars id :attacking] not)
    :event [:attack]})
+
+(defmethod process-tap :target [game-state type]
+  (let [id (:own-id game-state)
+        target (gfx/pick-target)]
+    (when target
+      {:new-game-state (assoc-in game-state [:chars id :target] target)
+       :event [:target target]})))
 
 (defn process-taps [game-state taps]
   (loop [[tap & more] taps game-state game-state events []]

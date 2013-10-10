@@ -5,4 +5,5 @@
    ["back" "r" :hold]
    ["left" "a" :hold]
    ["right" "s" :hold]
-   ["attack" "f" :tap]])
+   ["attack" "f" :tap]
+   ["target" "m-left" :tap]])
