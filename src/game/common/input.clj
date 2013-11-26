@@ -19,7 +19,6 @@
                      (.get nil))]
     (eval `(new ~trigger ~key-code))))
 
-
 (defn create-triggers [key-bindings]
   (map (fn [[name key type]] [name (string->trigger key) type])
        key-bindings))
@@ -52,4 +51,3 @@
       (.addMapping input-manager name (into-array [trigger])))
     (.addListener input-manager hold-listener hold-names)
     (.addListener input-manager tap-listener tap-names)))
-
