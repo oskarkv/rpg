@@ -78,8 +78,6 @@
 (defmethod process-msg :default [msg game-state _]
   (process-msg-purely msg game-state))
 
-(defmulti produce-client-msgs (fn [msg _] (:type msg)))
-
 (defn prepare-chars-for-sending [chars]
   (fmap (fn [char] (-> char (select-keys [:speed :name :pos :type])
                        (assoc :pos (map float (:pos char)))))
@@ -89,6 +87,8 @@
   (-> game-state
       (update-in [:chars] prepare-chars-for-sending)
       (select-keys [:chars])))
+
+(defmulti produce-client-msgs (fn [msg _] (:type msg)))
 
 (defmethod produce-client-msgs :login [{id :id} game-state]
   (let [all-players (:player-ids game-state)
