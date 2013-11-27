@@ -229,7 +229,8 @@
 (defn create-game-state []
   (-> {:chars {} :player-ids #{}}
       (merge (gmap/load-game-map))
-      (#(assoc % :to-spawn (create-to-spawn-queue (:spawns %))))))
+      (as-> gs
+        (assoc gs :to-spawn (create-to-spawn-queue (:spawns gs))))))
 
 (defn init-server [port]
   (let [game-state (create-game-state)
