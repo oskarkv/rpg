@@ -47,7 +47,7 @@
                     {:recv-pos pos :move-dir dir :recv-time (current-time-ms)})
          (update-in [:chars id :recv-this-frame] conj pos))}))
 
-(defmethod process-msg-purely :attack [{:keys [id]} game-state]
+(defmethod process-msg-purely :toggle-attack [{:keys [id]} game-state]
   {:new-game-state (update-in game-state [:chars id :attacking] not)})
 
 (defmethod process-msg-purely :target [{:keys [id data]} game-state]

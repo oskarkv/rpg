@@ -43,7 +43,7 @@
         dir (map float (:move-dir self))]
     [:move pos dir]))
 
-;;; Works for :attack and :target events
+;;; Works for :toggle-attack and :target events
 (defmethod produce-server-msg :default [game-state event]
   event)
 
@@ -61,9 +61,9 @@
 
 (defmulti process-tap (fn [_ type] type))
 
-(defmethod process-tap :attack [{id :own-id :as game-state} type]
+(defmethod process-tap :toggle-attack [{id :own-id :as game-state} type]
   {:new-game-state (update-in game-state [:chars id :attacking] not)
-   :event [:attack]})
+   :event [:toggle-attack]})
 
 (defmethod process-tap :target [game-state type]
   (let [id (:own-id game-state)
