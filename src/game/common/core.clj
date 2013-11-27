@@ -6,7 +6,7 @@
 (def disconnect-msg [:disconnect])
 
 (let [types [(connect-msg 0) (disconnect-msg 0) :login :game-state :own-id
-             :move :toggle-attack :target]]
+             :move :toggle-attack :target :attack]]
   (def type->int (zipmap types (range)))
   (def int->type (zipmap (range) types)))
 
