@@ -7,7 +7,8 @@
                                   [protocols :as kvs])
             (game [math :as math]
                   [game-map :as gmap]
-                  [mobs :as mobs]))
+                  [mobs :as mobs]
+                  [constants :as consts]))
   (:use game.utils))
 
 (defn new-player [username]
@@ -20,7 +21,9 @@
    :attacking false
    :hp 100
    :max-hp 100
-   :dmg 15})
+   :dmg 15
+   :delay 2
+   :last-attack 0})
 
 (let [game-id-counter (atom 0)
       net->game (atom {})
@@ -134,6 +137,7 @@
            :pos (-> spawn-id spawns :pos)
            :move-dir [0 0]
            :last-move curr-time
+           :last-attack 0
            :max-hp (:hp mob-type)
            :dmg (/ (:dmg mob-type) 10))))
 
@@ -157,6 +161,33 @@
                            nil
                            (:chars game-state))]
     {:event {:type :move :data moved}}))
+
+(defn cooled-down? [{:keys [last-attack delay]}]
+  (> (current-time-ms) (+ last-attack (* 1000 delay))))
+
+(defn close-enough? [game-state attacker-id target-id]
+  (let [curr-time (current-time-ms)
+        get-pos (fn [id] (get-in game-state [:chars id :pos]))
+        attacker-pos (get-pos attacker-id)
+        target-pos (get-pos target-id)]
+    (> consts/attack-distance (math/distance attacker-pos target-pos))))
+
+(defn calculate-new-last-attack [{:keys [last-attack delay]}]
+  (let [curr-time (current-time-ms)]
+    (if (> (+ last-attack (* 1000 (+ delay consts/attack-delay-leeway)))
+           curr-time)
+      (+ last-attack (* 1000 delay))
+      curr-time)))
+
+(defn let-chars-attack [game-state]
+  (let [generate-attack-event
+        (fn [[id {:keys [target attacking dmg last-attack delay] :as char}]]
+          (when (and attacking target
+                     (cooled-down? char)
+                     (close-enough? game-state id target))
+            {:id id :type :attack
+             :data [target dmg (calculate-new-last-attack char)]}))]
+    {:events (map generate-attack-event (:chars game-state))}))
 
 (defn process-network-msgs [game-state net-map key-value-store]
   (ccfns/process-network-msgs game-state net-map process-msg key-value-store))
