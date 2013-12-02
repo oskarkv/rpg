@@ -187,7 +187,7 @@
                      (close-enough? game-state id target))
             {:id id :type :attack
              :data [target dmg (calculate-new-last-attack char)]}))]
-    {:events (map generate-attack-event (:chars game-state))}))
+    {:events (remove nil? (map generate-attack-event (:chars game-state)))}))
 
 (defn process-network-msgs [game-state net-map key-value-store]
   (ccfns/process-network-msgs game-state net-map process-msg key-value-store))
