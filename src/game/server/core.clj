@@ -81,6 +81,37 @@
 (defmethod process-msg :default [msg game-state _]
   (process-msg-purely msg game-state))
 
+(defmulti process-event (fn [game-state event] (:type event)))
+
+(defn spawn-mob [spawn-id spawns curr-time]
+  (let [mob-type (-> spawn-id spawns :type mobs/mobs)]
+    (assoc mob-type
+           :spawn spawn-id
+           :pos (-> spawn-id spawns :pos)
+           :move-dir [0 0]
+           :last-move curr-time
+           :last-attack 0
+           :max-hp (:hp mob-type)
+           :dmg (/ (:dmg mob-type) 10))))
+
+(defmethod process-event :spawn-mobs
+  [{:keys [to-spawn spawns] :as game-state} {ids :data}]
+  (let [curr-time (current-time-ms)
+        new-mobs (map (partial* spawn-mob curr-time spawns)
+                      ids)
+        new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
+        num-mobs (count new-mobs-map)]
+    {:new-game-state
+     (-> game-state
+         (update-in [:chars] merge new-mobs-map)
+         (assoc :to-spawn (call-times num-mobs pop to-spawn)))}))
+
+(defmethod process-event :attack [game-state event]
+  {:new-game-state game-state})
+
+(defmethod process-event :default [game-state event]
+  {:new-game-state game-state})
+
 (defn prepare-chars-for-sending [chars]
   (fmap (fn [char] (-> char (select-keys [:speed :name :pos :type])
                        (assoc :pos (map float (:pos char)))))
@@ -130,28 +161,13 @@
         new-pos (:pos new-char)]
     (assoc new-char :moved-this-frame (not (rec== pos new-pos)))))
 
-(defn spawn-mob [spawn-id spawns curr-time]
-  (let [mob-type (-> spawn-id spawns :type mobs/mobs)]
-    (assoc mob-type
-           :spawn spawn-id
-           :pos (-> spawn-id spawns :pos)
-           :move-dir [0 0]
-           :last-move curr-time
-           :last-attack 0
-           :max-hp (:hp mob-type)
-           :dmg (/ (:dmg mob-type) 10))))
-
-(defn spawn-mobs [{:keys [to-spawn spawns] :as game-state}]
+(defn spawn-mobs [{:keys [to-spawn] :as game-state}]
   (let [curr-time (current-time-ms)
         time-to-spawn (fn [[id spawn-time]] (> curr-time spawn-time))
-        new-mobs (map (partial* spawn-mob curr-time spawns)
-                      (keys (take-while time-to-spawn to-spawn)))
-        new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
-        num-mobs (count new-mobs-map)]
-    {:new-game-state
-     (-> game-state
-         (update-in [:chars] merge new-mobs-map)
-         (assoc :to-spawn (call-times num-mobs pop to-spawn)))}))
+        ids (keys (take-while time-to-spawn to-spawn))]
+    (when (seq ids)
+      {:event {:type :spawn-mobs
+               :data ids}})))
 
 (defn check-if-moved [game-state]
   (when-let [moved (reduce (fn [moved [id char]]
@@ -192,6 +208,17 @@
 (defn process-network-msgs [game-state net-map key-value-store]
   (ccfns/process-network-msgs game-state net-map process-msg key-value-store))
 
+(defn process-events [game-state input-events]
+  (let [events-q (reduce conj clojure.lang.PersistentQueue/EMPTY input-events)]
+    (loop [game-state game-state events-q events-q new-events []]
+      (if (seq events-q)
+        (let [{:keys [new-game-state event events]}
+              (process-event game-state (first events-q))
+              events (if event (conj events event) events)]
+          (recur new-game-state (reduce conj (pop events-q) events)
+                 (reduce conj new-events events)))
+        {:new-game-state game-state :new-events new-events}))))
+
 (defn main-update [game-state {:keys [send-msg] :as net-map} key-value-store]
   (Thread/sleep 50)
   (let [{:keys [new-game-state events]}
@@ -199,8 +226,12 @@
           (process-network-msgs net-map key-value-store)
           (ccfns/move-chars move-char)
           (check-if-moved)
-          (spawn-mobs))
-        to-client-msgs (mapcat #(produce-client-msgs % new-game-state) events)]
+          (spawn-mobs)
+          (let-chars-attack))
+        {:keys [new-events new-game-state]} (process-events new-game-state events)
+        all-events (concat events new-events)
+        to-client-msgs (mapcat #(produce-client-msgs % new-game-state)
+                               all-events)]
     (doseq [[ids to-client-msg] to-client-msgs]
       (send-msg ids to-client-msg))
     new-game-state))
