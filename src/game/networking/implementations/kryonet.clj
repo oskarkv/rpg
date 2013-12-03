@@ -28,12 +28,12 @@
 (defmacro- defnetworkingsystem- [name args & start-body]
   `(deftype- ~name ~args
      cc/Lifecycle
-     (~'start [~'this]
+     (~'start [this#]
        ~@start-body)
-     (~'stop [~'this]
+     (~'stop [this#]
        (.stop ~(first args)))
      cc/Updatable
-     (~'update [~'this ~'_]
+     (~'update [this# _#]
        ; Maybe having a positive timeout is better.
        (.update ~(first args) 0))))
 

@@ -26,7 +26,7 @@
 (defmacro error-printing-future [& body]
   ;; *err* makes the stack trace print in Vim instead of in the lein repl cmd
   ;; window, when running from Vim.
-  `(future (try ~@body (catch Exception ~'e (.printStackTrace ~'e *err*)))))
+  `(future (try ~@body (catch Exception e# (.printStackTrace e# *err*)))))
 
 (defmacro start-new-thread [name & body]
   `(.start (Thread. (fn [] ~@body) ~name)))
@@ -53,8 +53,8 @@
 
 ;; We don't want defprivatedef to be public.
 (defn- defprivatedef [name deffer]
-  (eval `(defmacro ~name ~'[inner-name & rest]
-           (list* ~deffer (private-symbol ~'inner-name) ~'rest))))
+  (eval `(defmacro ~name [inner-name# & rest#]
+           (list* ~deffer (private-symbol inner-name#) rest#))))
 
 (defprivatedef 'def- '`def)
 (defprivatedef 'defmacro- '`defmacro)
