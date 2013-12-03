@@ -42,27 +42,27 @@
 
 (defmulti process-msg-purely (fn [msg _] (:type msg)))
 
-(defmethod process-msg-purely :move [{:keys [id data] :as msg} game-state]
-  (let [[pos dir] data]
-    {:new-game-state
-     (-> game-state
-         (update-in [:chars id] merge
-                    {:recv-pos pos :move-dir dir :recv-time (current-time-ms)})
-         (update-in [:chars id :recv-this-frame] conj pos))}))
+(defmethod process-msg-purely :c-move [{:keys [id pos move-dir]} game-state]
+  {:new-game-state
+   (-> game-state
+       (update-in [:chars id] merge
+                  {:recv-pos pos :move-dir move-dir
+                   :recv-time (current-time-ms)})
+       (update-in [:chars id :recv-this-frame] conj pos))})
 
-(defmethod process-msg-purely :toggle-attack [{:keys [id]} game-state]
+(defmethod process-msg-purely :c-toggle-attack [{:keys [id]} game-state]
   {:new-game-state (update-in game-state [:chars id :attacking] not)})
 
-(defmethod process-msg-purely :target [{:keys [id data]} game-state]
-  {:new-game-state (assoc-in game-state [:chars id :target] (first data))})
+(defmethod process-msg-purely :c-target [{:keys [id target]} game-state]
+  {:new-game-state (assoc-in game-state [:chars id :target] target)})
 
 (defmethod process-msg-purely :default [_ game-state]
   {:new-game-state game-state})
 
 (defmulti process-msg (fn [msg _ _] (:type msg)))
 
-(defmethod process-msg :login [{:keys [id data]} game-state key-value-store]
-  (let [[username password] data
+(defmethod process-msg :c-login [msg game-state key-value-store]
+  (let [{:keys [id username password]} msg
         curr-time (current-time-ms)
         player (assoc (or (kvs/load key-value-store username)
                           (new-player username))
@@ -70,7 +70,7 @@
     {:new-game-state (-> game-state
                          (assoc-in [:chars id] player)
                          (update-in [:player-ids] conj id))
-     :event {:id id :type :login :data [player]}}))
+     :event {:type :login :id id}}))
 
 (defmethod process-msg :connect [_ game-state _]
   {:new-game-state game-state})
@@ -95,7 +95,7 @@
            :dmg (/ (:dmg mob-type) 10))))
 
 (defmethod process-event :spawn-mobs
-  [{:keys [to-spawn spawns] :as game-state} {ids :data}]
+  [{:keys [to-spawn spawns] :as game-state} {ids :mob-ids}]
   (let [curr-time (current-time-ms)
         new-mobs (map (partial* spawn-mob curr-time spawns)
                       ids)
@@ -122,30 +122,32 @@
       (update-in [:chars] prepare-chars-for-sending)
       (select-keys [:chars])))
 
-(defmulti produce-client-msgs (fn [msg _] (:type msg)))
+(defmulti produce-client-msgs (fn [event _] (:type event)))
 
 (defmethod produce-client-msgs :login [{id :id} game-state]
   (let [all-players (:player-ids game-state)
         game-state-to-send (prepare-for-sending game-state)]
-    [[[id] [:game-state game-state-to-send]]
-     [all-players [:login id (get-in game-state-to-send [:chars id])]]
-     [[id] [:own-id id]]]))
+    [[[id] {:type :s-game-state :game-state game-state-to-send}]
+     [all-players
+      {:type :s-login :id id :player (get-in game-state-to-send [:chars id])}]
+     [[id] {:type :s-own-id :id id}]]))
 
-(defmethod produce-client-msgs :move [{ids :data} game-state]
+(defmethod produce-client-msgs :chars-moved [{ids :moved-ids} game-state]
   (let [all-players (:player-ids game-state)]
     (for [id ids]
       [(disj all-players id)
-       [:move id (map float (get-in game-state [:chars id :pos]))]])))
+       {:type :s-move :id id
+        :pos (map float (get-in game-state [:chars id :pos]))}])))
 
 (defmethod produce-client-msgs :default [_ _]
   nil)
 
 (defn move-from-recv-pos
   [{:keys [recv-time recv-pos] :as player}]
-  ; TODO: Use old-recv-pos, recv-this-frame, recv-time and old-recv-time to
-  ; calculate the distance and time the player has moved this frame, and save
-  ; that somewhere so that the server can check that the player is not moving
-  ; too fast.
+  ;; TODO: Use old-recv-pos, recv-this-frame, recv-time and old-recv-time to
+  ;; calculate the distance and time the player has moved this frame, and save
+  ;; that somewhere so that the server can check that the player is not moving
+  ;; too fast.
   (-> (ccfns/extrapolate-char player recv-pos recv-time)
       (assoc :old-recv-pos recv-pos :old-recv-time recv-time)
       (dissoc :recv-this-frame)))
@@ -167,7 +169,7 @@
         ids (keys (take-while time-to-spawn to-spawn))]
     (when (seq ids)
       {:event {:type :spawn-mobs
-               :data ids}})))
+               :mob-ids ids}})))
 
 (defn check-if-moved [game-state]
   (when-let [moved (reduce (fn [moved [id char]]
@@ -176,7 +178,7 @@
                                moved))
                            nil
                            (:chars game-state))]
-    {:event {:type :move :data moved}}))
+    {:event {:type :chars-moved :moved-ids moved}}))
 
 (defn cooled-down? [{:keys [last-attack delay]}]
   (> (current-time-ms) (+ last-attack (* 1000 delay))))
@@ -201,8 +203,8 @@
           (when (and attacking target
                      (cooled-down? char)
                      (close-enough? game-state id target))
-            {:id id :type :attack
-             :data [target dmg (calculate-new-last-attack char)]}))]
+            {:id id :type :attack :target target :damage dmg
+             :last-attack (calculate-new-last-attack char)}))]
     {:events (remove nil? (map generate-attack-event (:chars game-state)))}))
 
 (defn process-network-msgs [game-state net-map key-value-store]
@@ -272,14 +274,13 @@
                                              cc/disconnect-msg)
         new-get-msg (fn []
                       (when-let [{:keys [id msg]} (get-msg)]
-                        (let [[type & data :as game-msg]
-                              (cc/int->type-in-msg msg)
+                        (let [game-msg (ccfns/msg->map msg)
                               game-id (if (= cc/connect-msg game-msg)
                                         (new-game-id id)
                                         (net-id->game-id id))]
-                          {:id game-id :type type :data data})))
-        new-send-msg (fn [game-ids msg]
-                       (let [net-msg (cc/type->int-in-msg msg)]
+                          (assoc game-msg :id game-id))))
+        new-send-msg (fn [game-ids msg-map]
+                       (let [net-msg (ccfns/map->msg msg-map)]
                          (doseq [game-id game-ids]
                            (send-msg (game-id->net-id game-id) net-msg))))
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}

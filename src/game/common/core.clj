@@ -2,11 +2,24 @@
 
 (def port 12345)
 
-(def connect-msg [:connect])
-(def disconnect-msg [:disconnect])
+(def connect-msg {:type :connect})
+(def disconnect-msg {:type :disconnect})
 
-(let [types [(connect-msg 0) (disconnect-msg 0) :login :game-state :own-id
-             :move :toggle-attack :target :attack]]
+(def type->keys
+  ;; c-msgs can't have an :id key, because the
+  ;; server adds one when it receives the msg
+  {:connect nil :disconnect nil
+   :c-login [:username :password]
+   :c-move [:pos :move-dir]
+   :c-target [:target]
+   :c-toggle-attack []
+   :s-attack [:target :damage]
+   :s-game-state [:game-state]
+   :s-login [:id :player]
+   :s-move [:id :pos]
+   :s-own-id [:id]})
+
+(let [types (-> (keys type->keys) sort)]
   (def type->int (zipmap types (range)))
   (def int->type (zipmap (range) types)))
 

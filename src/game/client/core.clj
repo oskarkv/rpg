@@ -13,17 +13,17 @@
 
 (defmulti process-msg (fn [msg _] (:type msg)))
 
-(defmethod process-msg :login [{[id player] :data} game-state]
+(defmethod process-msg :s-login [{:keys [id player]} game-state]
   (let [player (assoc player :last-move (current-time-ms))]
     {:new-game-state (assoc-in game-state [:chars id] player)}))
 
-(defmethod process-msg :own-id [{[id] :data} game-state]
+(defmethod process-msg :s-own-id [{id :id} game-state]
   {:new-game-state (assoc game-state :own-id id)})
 
-(defmethod process-msg :game-state [{[incoming-game-state] :data} game-state]
+(defmethod process-msg :s-game-state [{incoming-game-state :game-state} game-state]
   {:new-game-state (merge game-state incoming-game-state)})
 
-(defmethod process-msg :move [{[id pos] :data} game-state]
+(defmethod process-msg :s-move [{:keys [id pos]} game-state]
   (let [char (get-in game-state [:chars id])]
     {:new-game-state
      (assoc-in game-state [:chars id]
@@ -34,18 +34,20 @@
 (defmethod process-msg :default [_ game-state]
   {:new-game-state game-state})
 
-(defmulti produce-server-msg (fn [_ event] (first event)))
+(defmulti produce-server-msg (fn [_ event] (:type event)))
 
 (defmethod produce-server-msg :new-dir [game-state event]
   (let [own-id (:own-id game-state)
         self (get-in game-state [:chars own-id])
         pos (map float (:pos self))
         dir (map float (:move-dir self))]
-    [:move pos dir]))
+    {:type :c-move :pos pos :move-dir dir}))
 
-;;; Works for :toggle-attack and :target events
-(defmethod produce-server-msg :default [game-state event]
-  event)
+(defmethod produce-server-msg :toggle-attack [game-state event]
+  {:type :c-toggle-attack})
+
+(defmethod produce-server-msg :target [game-state event]
+  (assoc event :type :c-target))
 
 (defn process-network-msgs [game-state net-map]
   (ccfns/process-network-msgs game-state net-map process-msg))
@@ -63,14 +65,14 @@
 
 (defmethod process-tap :toggle-attack [{id :own-id :as game-state} type]
   {:new-game-state (update-in game-state [:chars id :attacking] not)
-   :event [:toggle-attack]})
+   :event {:type :toggle-attack}})
 
 (defmethod process-tap :target [game-state type]
   (let [id (:own-id game-state)
         target (gfx/pick-target)]
     (when target
       {:new-game-state (assoc-in game-state [:chars id :target] target)
-       :event [:target target]})))
+       :event {:type :target :target target}})))
 
 (defn process-taps [game-state taps]
   (loop [[tap & more] taps game-state game-state events []]
@@ -86,7 +88,7 @@
         old-dir (map float (get-in new-game-state [:chars id :move-dir]))
         new-dir (map float (calculate-movement-direction key-state))
         new-game-state (assoc-in new-game-state [:chars id :move-dir] new-dir)
-        events (if (= old-dir new-dir) events (conj events [:new-dir]))]
+        events (if (= old-dir new-dir) events (conj events {:type :new-dir}))]
     {:new-game-state new-game-state :events events}))
 
 (defn process-received-game-state [{:keys [chars] :as game-state}]
@@ -96,7 +98,7 @@
 
 (defn login-and-recv-state [game-state net-map name password stop?]
   (let [{:keys [net-sys send-msg get-msg]} net-map]
-    (send-msg [:login name password])
+    (send-msg {:type :c-login :username name :password password})
     (loop [game-state game-state]
       (let [new-game-state
             (:new-game-state (process-network-msgs game-state net-map))]
@@ -215,11 +217,9 @@
                                       cc/disconnect-msg)
         new-get-msg (fn []
                       (when-let [msg (get-msg)]
-                        (let [[type & data :as game-msg]
-                              (cc/int->type-in-msg msg)]
-                          {:type type :data data})))
-        new-send-msg (fn [msg]
-                       (send-msg (cc/type->int-in-msg msg)))
+                        (ccfns/msg->map msg)))
+        new-send-msg (fn [msg-map]
+                       (send-msg (ccfns/map->msg msg-map)))
         net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}
         app (if headless
               (create-non-jme3-app net-map game-state-atom)

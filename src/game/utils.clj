@@ -24,8 +24,8 @@
            (recur ~expr))))))
 
 (defmacro error-printing-future [& body]
-  ; *err* makes the stack trace print in Vim instead of in the lein repl cmd
-  ; window, when running from Vim.
+  ;; *err* makes the stack trace print in Vim instead of in the lein repl cmd
+  ;; window, when running from Vim.
   `(future (try ~@body (catch Exception ~'e (.printStackTrace ~'e *err*)))))
 
 (defmacro start-new-thread [name & body]
@@ -51,7 +51,7 @@
 (defn- private-symbol [sym]
   (with-meta sym (assoc (meta sym) :private true)))
 
-; We don't want defprivatedef to be public.
+;; We don't want defprivatedef to be public.
 (defn- defprivatedef [name deffer]
   (eval `(defmacro ~name ~'[inner-name & rest]
            (list* ~deffer (private-symbol ~'inner-name) ~'rest))))
@@ -62,9 +62,9 @@
 (defmacro deftype- [name & decls]
   (let [constructor (symbol (str "->" name))]
     `(do (deftype ~name ~@decls)
-         ; The metadata map will be evaluated by def,
-         ; so we have to quote the arglists which can
-         ; contain arbitrary symbols.
+         ;; The metadata map will be evaluated by def,
+         ;; so we have to quote the arglists which can
+         ;; contain arbitrary symbols.
          (let [meta# (meta #'~constructor)
                args# (:arglists meta#)
                meta# (assoc meta# :arglists `'~args#)

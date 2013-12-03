@@ -5,6 +5,14 @@
             [game.math :as math])
   (:use [game.utils :as utils]))
 
+(defn map->msg [{:keys [type] :as m}]
+  ((apply juxt #(cc/type->int (:type %)) (type cc/type->keys)) m))
+
+(defn msg->map [msg]
+  (let [type (cc/int->type (first msg))]
+    (assoc (zipmap (type cc/type->keys) (rest msg))
+           :type type)))
+
 (defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}
                             process-fn & process-args]
   (dotimes [i 3]
