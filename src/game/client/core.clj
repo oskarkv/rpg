@@ -11,19 +11,19 @@
             [game.math :as math])
   (:use game.utils))
 
-(defmulti process-msg (fn [msg _] (:type msg)))
+(defmulti process-msg (fn [game-state msg] (:type msg)))
 
-(defmethod process-msg :s-login [{:keys [id player]} game-state]
+(defmethod process-msg :s-login [game-state {:keys [id player]}]
   (let [player (assoc player :last-move (current-time-ms))]
     {:new-game-state (assoc-in game-state [:chars id] player)}))
 
-(defmethod process-msg :s-own-id [{id :id} game-state]
+(defmethod process-msg :s-own-id [game-state {id :id}]
   {:new-game-state (assoc game-state :own-id id)})
 
-(defmethod process-msg :s-game-state [{incoming-game-state :game-state} game-state]
+(defmethod process-msg :s-game-state [game-state {incoming-game-state :game-state}]
   {:new-game-state (merge game-state incoming-game-state)})
 
-(defmethod process-msg :s-move [{:keys [id pos]} game-state]
+(defmethod process-msg :s-move [game-state {:keys [id pos]}]
   (let [char (get-in game-state [:chars id])]
     {:new-game-state
      (assoc-in game-state [:chars id]
@@ -31,7 +31,7 @@
                  (nil? (:new-pos char)) (assoc :last-move (current-time-ms))
                  true (assoc :new-pos pos)))}))
 
-(defmethod process-msg :default [_ game-state]
+(defmethod process-msg :default [game-state _]
   {:new-game-state game-state})
 
 (defmulti produce-server-msg (fn [_ event] (:type event)))
@@ -63,11 +63,11 @@
 
 (defmulti process-tap (fn [_ type] type))
 
-(defmethod process-tap :toggle-attack [{id :own-id :as game-state} type]
+(defmethod process-tap :toggle-attack [{id :own-id :as game-state} _]
   {:new-game-state (update-in game-state [:chars id :attacking] not)
    :event {:type :toggle-attack}})
 
-(defmethod process-tap :target [game-state type]
+(defmethod process-tap :target [game-state _]
   (let [id (:own-id game-state)
         target (gfx/pick-target)]
     (when target

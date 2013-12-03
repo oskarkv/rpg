@@ -40,9 +40,9 @@
   (defn game-id->net-id [game-id]
     (@game->net game-id)))
 
-(defmulti process-msg-purely (fn [msg _] (:type msg)))
+(defmulti process-msg-purely (fn [game-state msg] (:type msg)))
 
-(defmethod process-msg-purely :c-move [{:keys [id pos move-dir]} game-state]
+(defmethod process-msg-purely :c-move [game-state {:keys [id pos move-dir]}]
   {:new-game-state
    (-> game-state
        (update-in [:chars id] merge
@@ -50,18 +50,18 @@
                    :recv-time (current-time-ms)})
        (update-in [:chars id :recv-this-frame] conj pos))})
 
-(defmethod process-msg-purely :c-toggle-attack [{:keys [id]} game-state]
+(defmethod process-msg-purely :c-toggle-attack [game-state {:keys [id]}]
   {:new-game-state (update-in game-state [:chars id :attacking] not)})
 
-(defmethod process-msg-purely :c-target [{:keys [id target]} game-state]
+(defmethod process-msg-purely :c-target [game-state {:keys [id target]}]
   {:new-game-state (assoc-in game-state [:chars id :target] target)})
 
-(defmethod process-msg-purely :default [_ game-state]
+(defmethod process-msg-purely :default [game-state _]
   {:new-game-state game-state})
 
-(defmulti process-msg (fn [msg _ _] (:type msg)))
+(defmulti process-msg (fn [game-state msg key-value-store] (:type msg)))
 
-(defmethod process-msg :c-login [msg game-state key-value-store]
+(defmethod process-msg :c-login [game-state msg key-value-store]
   (let [{:keys [id username password]} msg
         curr-time (current-time-ms)
         player (assoc (or (kvs/load key-value-store username)
@@ -72,14 +72,14 @@
                          (update-in [:player-ids] conj id))
      :event {:type :login :id id}}))
 
-(defmethod process-msg :connect [_ game-state _]
+(defmethod process-msg :connect [game-state _ _]
   {:new-game-state game-state})
 
-(defmethod process-msg :disconnect [_ game-state _]
+(defmethod process-msg :disconnect [game-state _ _]
   {:new-game-state game-state})
 
-(defmethod process-msg :default [msg game-state _]
-  (process-msg-purely msg game-state))
+(defmethod process-msg :default [game-state msg _]
+  (process-msg-purely game-state msg))
 
 (defmulti process-event (fn [game-state event] (:type event)))
 
@@ -122,9 +122,9 @@
       (update-in [:chars] prepare-chars-for-sending)
       (select-keys [:chars])))
 
-(defmulti produce-client-msgs (fn [event _] (:type event)))
+(defmulti produce-client-msgs (fn [game-state event] (:type event)))
 
-(defmethod produce-client-msgs :login [{id :id} game-state]
+(defmethod produce-client-msgs :login [game-state {id :id}]
   (let [all-players (:player-ids game-state)
         game-state-to-send (prepare-for-sending game-state)]
     [[[id] {:type :s-game-state :game-state game-state-to-send}]
@@ -132,7 +132,7 @@
       {:type :s-login :id id :player (get-in game-state-to-send [:chars id])}]
      [[id] {:type :s-own-id :id id}]]))
 
-(defmethod produce-client-msgs :chars-moved [{ids :moved-ids} game-state]
+(defmethod produce-client-msgs :chars-moved [game-state {ids :moved-ids}]
   (let [all-players (:player-ids game-state)]
     (for [id ids]
       [(disj all-players id)
@@ -232,7 +232,7 @@
           (let-chars-attack))
         {:keys [new-events new-game-state]} (process-events new-game-state events)
         all-events (concat events new-events)
-        to-client-msgs (mapcat #(produce-client-msgs % new-game-state)
+        to-client-msgs (mapcat (partial produce-client-msgs new-game-state)
                                all-events)]
     (doseq [[ids to-client-msg] to-client-msgs]
       (send-msg ids to-client-msg))
