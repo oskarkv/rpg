@@ -20,8 +20,8 @@
 (defmethod process-msg :s-own-id [game-state {id :id}]
   {:new-game-state (assoc game-state :own-id id)})
 
-(defmethod process-msg :s-game-state [game-state {incoming-game-state :game-state}]
-  {:new-game-state (merge game-state incoming-game-state)})
+(defmethod process-msg :s-game-state [game-state {new-game-state :game-state}]
+  {:new-game-state (merge game-state new-game-state)})
 
 (defmethod process-msg :s-move [game-state {:keys [id pos]}]
   (let [char (get-in game-state [:chars id])]
@@ -84,7 +84,8 @@
 
 (defn process-player-input [game-state key-state]
   (let [id (:own-id game-state)
-        {:keys [new-game-state events]} (process-taps game-state (:taps key-state))
+        {:keys [new-game-state events]}
+        (process-taps game-state (:taps key-state))
         old-dir (map float (get-in new-game-state [:chars id :move-dir]))
         new-dir (map float (calculate-movement-direction key-state))
         new-game-state (assoc-in new-game-state [:chars id :move-dir] new-dir)
