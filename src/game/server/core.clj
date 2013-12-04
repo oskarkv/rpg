@@ -107,7 +107,11 @@
          (assoc :to-spawn (call-times num-mobs pop to-spawn)))}))
 
 (defmethod process-event :attack [game-state event]
-  {:new-game-state game-state})
+  (let [{:keys [id target damage last-attack]} event
+        new-game-state (-> game-state
+                           (update-in [:chars target :hp] - damage)
+                           (assoc-in [:chars id :last-attack] last-attack))]
+    {:new-game-state new-game-state}))
 
 (defmethod process-event :default [game-state event]
   {:new-game-state game-state})
