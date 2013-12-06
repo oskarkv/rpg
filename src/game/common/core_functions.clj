@@ -41,6 +41,20 @@
         (stop-fn this)))
     app))
 
+(defn process-taps [state taps process-tap]
+  (loop [[tap & more] taps state state events []]
+    (if tap
+      (let [{:keys [new-app-state event]} (process-tap state tap)]
+        (recur more (or new-app-state state) (conj events event)))
+      {:new-app-state state
+       :events (remove nil? events)})))
+
+(defn process-player-input [app-state key-state process-tap]
+  (let [{:keys [new-app-state events]} (process-taps app-state
+                                                     (:taps key-state)
+                                                     process-tap)]
+       {:new-app-state new-app-state :events events}))
+
 (defmacro call-update-fns [game-state events & calls]
   (with-gensyms [new-game-state new-events new-event]
     (if (seq calls)

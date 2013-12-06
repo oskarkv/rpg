@@ -18,7 +18,7 @@
    :tex-coords (map #(Vector2f. %1 %2)
                     [0 1 0 1] [0 0 1 1])})
 
-(defn portray-game-map [root-node asset-manager game-map]
+(defn portray-game-map [root-node asset-manager gamemap-node game-map]
   (let [w (count game-map)
         h (count (first game-map))
         quads (for [x (range w) y (range h)]
@@ -40,7 +40,8 @@
               (.setTexture "ColorMap" (.loadTexture asset-manager
                                                     "test_ground.jpg")))
         geom (doto (Geometry. "ground" mesh) (.setMaterial mat))]
-    (.attachChild root-node geom)))
+    (.attachChild gamemap-node geom)
+    (.attachChild root-node gamemap-node)))
 
 (defn create-character-name-text [name height font]
   (let [name (or name "")
@@ -107,12 +108,28 @@
     (swap! ids->objects merge ids->objects-addition)
     (swap! geoms->ids merge geoms->ids-addition)))
 
-(defn pick-target* [input-manager characters-node camera geoms->ids]
+(defn get-collisions [objects collidables]
+  (let [results (CollisionResults.)
+        _ (.collideWith objects collidables results)]
+    results))
+
+(defn get-target-ray* [input-manager camera]
   (let [mouse-coords (.getCursorPosition input-manager)
         [near far] (map #(.getWorldCoordinates camera mouse-coords %) [0 1])
-        ray (Ray. near (doto far (.subtractLocal near) (.normalizeLocal)))
-        results (CollisionResults.)
-        _ (.collideWith characters-node ray results)
+        ray (Ray. near (doto far (.subtractLocal near) (.normalizeLocal)))]
+    ray))
+
+(defn get-target-coords* [input-manager camera gamemap-node]
+  (let [ray (get-target-ray* input-manager camera)
+        collisions (get-collisions gamemap-node ray)
+        collision (.getClosestCollision collisions)
+        collision-point (if collision (.getContactPoint collision))
+        pos (if collision-point {(.getX collision-point) (.getY collision-point)})]
+    pos))
+
+(defn pick-target* [input-manager characters-node camera geoms->ids]
+  (let [ray (get-target-ray* input-manager camera)
+        results (get-collisions characters-node ray)
         picked (loop [results results ret nil dist 1e9]
                  (if-let [hit (first results)]
                    (let [id (geoms->ids (.getGeometry hit))
@@ -125,11 +142,12 @@
     picked))
 
 (deftype GraphicsSystem
-  [root-node asset-manager ids->objects geoms->ids characters-node game-map]
+  [root-node asset-manager ids->objects geoms->ids
+   characters-node gamemap-node game-map]
   cc/Lifecycle
   (start [this]
     (.registerLocator asset-manager "assets" FileLocator)
-    (portray-game-map root-node asset-manager game-map)
+    (portray-game-map root-node asset-manager gamemap-node game-map)
     (.attachChild root-node characters-node))
   (stop [this])
   cc/Updatable
@@ -139,6 +157,7 @@
 
 (defn init-graphics-system [app game-map]
   (let [characters-node (Node. "characters-node")
+        gamemap-node (Node. "gamemap-node")
         input-manager (.getInputManager app)
         asset-manager (.getAssetManager app)
         camera (.getCamera app)
@@ -146,5 +165,10 @@
         geoms->ids (atom {})]
     (defn pick-target []
       (pick-target* input-manager characters-node camera @geoms->ids))
+    (defn get-target-ray []
+      (get-target-ray* input-manager camera))
+    (defn get-target-coords []
+      (get-target-coords* input-manager camera gamemap-node))
     (->GraphicsSystem
-      root-node asset-manager (atom {}) geoms->ids characters-node game-map)))
+      root-node asset-manager (atom {}) geoms->ids
+      characters-node gamemap-node game-map)))
