@@ -8,5 +8,8 @@
        (defconstants ~@(drop 2 pairs)))))
 
 (defconstants
-  attack-distance 1.5
-  attack-delay-leeway 0.3)
+  attack-distance 1
+  attack-delay-leeway 0.3
+  attack-nearest-threshold 2
+  a*-heuristic-factor 1.2
+  player-radius 0.3)
