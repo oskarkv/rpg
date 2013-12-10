@@ -9,7 +9,8 @@
            com.jme3.material.Material
            com.jme3.renderer.queue.RenderQueue$Bucket
            com.jme3.font.BitmapText)
-  (:require [game.common.core :as cc]))
+  (:require [game.common.core :as cc]
+            [game.constants :as consts]))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) (+ y %2) 0)
@@ -59,7 +60,8 @@
 (defn create-character-geom [color asset-manager]
   (let [mat (doto (Material. asset-manager "Common/MatDefs/Misc/Unshaded.j3md")
               (.setColor "Color" color))
-        box (Box. (Vector3f. 0 0 0.3) 0.3 0.3 0.3)
+        r consts/player-radius
+        box (Box. (Vector3f. 0 0 r) r r r)
         geom (doto (Geometry. "character-geom" box)
                (.setMaterial mat))]
     geom))
