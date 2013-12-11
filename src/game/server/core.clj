@@ -167,14 +167,6 @@
         new-pos (:pos new-char)]
     (assoc new-char :moved-this-frame (not (rec== pos new-pos)))))
 
-(defn spawn-mobs [{:keys [to-spawn] :as game-state}]
-  (let [curr-time (current-time-ms)
-        time-to-spawn (fn [[id spawn-time]] (> curr-time spawn-time))
-        ids (keys (take-while time-to-spawn to-spawn))]
-    (when (seq ids)
-      {:event {:type :spawn-mobs
-               :mob-ids ids}})))
-
 (defn check-if-moved [game-state]
   (when-let [moved (reduce (fn [moved [id char]]
                              (if (:moved-this-frame char)
@@ -183,6 +175,13 @@
                            nil
                            (:chars game-state))]
     {:event {:type :chars-moved :moved-ids moved}}))
+
+(defn spawn-mobs [{:keys [to-spawn] :as game-state}]
+  (let [curr-time (current-time-ms)
+        time-to-spawn (fn [[id spawn-time]] (> curr-time spawn-time))
+        ids (keys (take-while time-to-spawn to-spawn))]
+    (when (seq ids)
+      {:event {:type :spawn-mobs :mob-ids ids}})))
 
 (defn cooled-down? [{:keys [last-attack delay]}]
   (> (current-time-ms) (+ last-attack (* 1000 delay))))
@@ -272,10 +271,8 @@
 (defn init-server [port]
   (let [game-state (create-game-state)
         stop? (atom false)
-        {:keys [net-sys get-msg send-msg]} (net/construct-server-net-sys
-                                             port
-                                             cc/connect-msg
-                                             cc/disconnect-msg)
+        {:keys [net-sys get-msg send-msg]}
+        (net/construct-server-net-sys port cc/connect-msg cc/disconnect-msg)
         new-get-msg (fn []
                       (when-let [{:keys [id msg]} (get-msg)]
                         (let [game-msg (ccfns/msg->map msg)
