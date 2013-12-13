@@ -5,7 +5,8 @@
            [game.client.core :as cl]
            [game.math :as math]
            (game.common [core-functions :as ccfns]
-                        [graphics :as gfx]))
+                        [graphics :as gfx])
+           (game.server [pathfinding :as pf]))
   (use [game.utils]))
 
 (defn log-println [name type object]
