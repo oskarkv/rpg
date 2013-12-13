@@ -8,14 +8,14 @@
             (game [math :as math]
                   [game-map :as gmap]
                   [mobs :as mobs]
-                  [constants :as consts]))
+                  [constants :as consts])
+            (game.server [pathfinding :as pf]))
   (:use game.utils))
 
 (defn new-player [username]
   {:name username
-   :speed 1
+   :speed 2
    :pos [0 0]
-   :old-recv-pos [0 0]
    :move-dir [0 0]
    :type :player
    :attacking false
@@ -24,6 +24,42 @@
    :dmg 15
    :delay 2
    :last-attack 0})
+
+(defn attack-nearest [game-state mob players]
+  (let [{:keys [pos]} mob
+        [nearest dist]
+        (reduce (fn [[nearest-id dist :as old] [id char]]
+                  (let [new-dist (math/distance (:pos char) pos)]
+                    (if (< new-dist dist)
+                      [id new-dist]
+                      old)))
+                [nil Integer/MAX_VALUE]
+                players)]
+    (if (< dist consts/attack-nearest-threshold)
+      (assoc mob :target nearest :attacking true)
+      (assoc mob :target nil))))
+
+(defn decide-mob-path [game-state mob]
+  (if (:target mob)
+    (let [{:keys [target pos]} mob
+          {:keys [terrain]} game-state
+          target-pos (get-in game-state [:chars target :pos])
+          path (pf/find-path terrain pos target-pos consts/player-radius)]
+      (assoc mob :path path))
+    mob))
+
+(defn call-on-all-mobs [{:keys [chars] :as game-state} f]
+  (let [mobs (filter (fn [[id char]] (= :mob (:type char))) chars)
+        new-mobs (fmap #(f game-state %) mobs)]
+    {:new-game-state (assoc game-state :chars (into chars new-mobs))}))
+
+(defn decide-mob-actions [{:keys [chars player-ids] :as game-state}]
+  (let [players (select-keys chars player-ids)
+        ai-fn #(attack-nearest % %2 players)]
+    (call-on-all-mobs game-state ai-fn)))
+
+(defn decide-mob-paths [game-state]
+  (call-on-all-mobs game-state decide-mob-path))
 
 (let [game-id-counter (atom 0)
       net->game (atom {})
@@ -63,10 +99,8 @@
 
 (defmethod process-msg :c-login [game-state msg key-value-store]
   (let [{:keys [id username password]} msg
-        curr-time (current-time-ms)
-        player (assoc (or (kvs/load key-value-store username)
-                          (new-player username))
-                      :old-recv-time curr-time :last-move curr-time)]
+        player (or (kvs/load key-value-store username)
+                   (new-player username))]
     {:new-game-state (-> game-state
                          (assoc-in [:chars id] player)
                          (update-in [:player-ids] conj id))
@@ -83,22 +117,21 @@
 
 (defmulti process-event (fn [game-state event] (:type event)))
 
-(defn spawn-mob [spawn-id spawns curr-time]
+(defn spawn-mob [spawn-id spawns]
   (let [mob-type (-> spawn-id spawns :type mobs/mobs)]
     (assoc mob-type
+           :type :mob
            :spawn spawn-id
            :pos (-> spawn-id spawns :pos)
            :move-dir [0 0]
-           :last-move curr-time
            :last-attack 0
            :max-hp (:hp mob-type)
+           :delay 2
            :dmg (/ (:dmg mob-type) 10))))
 
 (defmethod process-event :spawn-mobs
   [{:keys [to-spawn spawns] :as game-state} {ids :mob-ids}]
-  (let [curr-time (current-time-ms)
-        new-mobs (map (partial* spawn-mob curr-time spawns)
-                      ids)
+  (let [new-mobs (map #(spawn-mob % spawns) ids)
         new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
         num-mobs (count new-mobs-map)]
     {:new-game-state
@@ -146,26 +179,47 @@
 (defmethod produce-client-msgs :default [_ _]
   nil)
 
-(defn move-from-recv-pos
-  [{:keys [recv-time recv-pos] :as player}]
-  ;; TODO: Use old-recv-pos, recv-this-frame, recv-time and old-recv-time to
-  ;; calculate the distance and time the player has moved this frame, and save
-  ;; that somewhere so that the server can check that the player is not moving
-  ;; too fast.
-  (-> (ccfns/extrapolate-char player recv-pos recv-time)
-      (assoc :old-recv-pos recv-pos :old-recv-time recv-time)
-      (dissoc :recv-this-frame)))
+(defn move-player* [char time-delta last-move]
+  (let [{:keys [pos move-dir recv-pos recv-time speed]} char]
+    (if recv-pos
+      (recur (-> char (dissoc :recv-pos) (assoc :pos recv-pos))
+             (/ (- last-move recv-time) 1000.0)
+             last-move)
+      (assoc char :pos (math/extrapolate-pos pos move-dir time-delta speed)))))
 
-(defn actually-move-char
-  [{:keys [pos last-move move-dir recv-this-frame speed] :as char}]
-  (if recv-this-frame
-    (move-from-recv-pos char)
-    (ccfns/extrapolate-char char pos last-move)))
+(defn move-mob* [{:keys [pos speed path target] :as mob} time-delta chars]
+  (let [target-pos (get-in chars [target :pos])]
+    (if (and path (> (math/distance pos target-pos) consts/attack-distance))
+      (let [[next-point & path-left] path
+            time-cost (/ (math/distance pos next-point) speed)]
+        (if (< time-cost time-delta)
+          (recur (assoc mob :pos next-point :path path-left)
+                 (- time-delta time-cost) chars)
+          (ccfns/move-toward-pos mob time-delta next-point)))
+      mob)))
 
-(defn move-char [{pos :pos :as char}]
-  (let [new-char (actually-move-char char)
-        new-pos (:pos new-char)]
-    (assoc new-char :moved-this-frame (not (rec== pos new-pos)))))
+(defn moved-wrapper [move-fn]
+  (fn [char & args]
+    (let [pos (:pos char)
+          new-char (apply move-fn char args)
+          new-pos (:pos new-char)]
+      (assoc new-char :moved-this-frame (not (rec== pos new-pos))))))
+
+(def move-player (moved-wrapper move-player*))
+
+(def move-mob (moved-wrapper move-mob*))
+
+(defmacro defmovefn [name type move-fn & args]
+  `(defn ~name [{:keys [~@args] :as game-state#}]
+     (let [{group# ~type} (group-by (fn [[id# char#]] (:type char#))
+                                    (:chars game-state#))
+           move-char# #(~move-fn % ~@args)]
+       {:new-game-state
+        (update-in game-state# [:chars] into (fmap move-char# group#))})))
+
+(defmovefn move-players :player move-player move-time-delta last-move)
+
+(defmovefn move-mobs :mob move-mob move-time-delta chars)
 
 (defn check-if-moved [game-state]
   (when-let [moved (reduce (fn [moved [id char]]
@@ -229,11 +283,16 @@
   (let [{:keys [new-game-state events]}
         (ccfns/call-update-fns game-state []
           (process-network-msgs net-map key-value-store)
-          (ccfns/move-chars move-char)
-          (check-if-moved)
           (spawn-mobs)
+          (ccfns/calculate-move-time-delta)
+          (move-players)
+          (decide-mob-actions)
+          (decide-mob-paths)
+          (move-mobs)
+          (check-if-moved)
           (let-chars-attack))
-        {:keys [new-events new-game-state]} (process-events new-game-state events)
+        {:keys [new-events new-game-state]} (process-events new-game-state
+                                                            events)
         all-events (concat events new-events)
         to-client-msgs (mapcat (partial produce-client-msgs new-game-state)
                                all-events)]
@@ -263,7 +322,8 @@
   (apply pm/priority-map (interleave (keys spawns) (repeat 0))))
 
 (defn create-game-state []
-  (-> {:chars {} :player-ids #{}}
+  (-> {:chars {} :player-ids #{}
+       :last-move (current-time-ms)}
       (merge (gmap/load-game-map))
       (as-> gs
         (assoc gs :to-spawn (create-to-spawn-queue (:spawns gs))))))

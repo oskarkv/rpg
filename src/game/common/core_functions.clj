@@ -58,14 +58,17 @@
          (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
-(defn move-chars [game-state move-char-fn]
-  {:new-game-state
-   (update-in game-state [:chars] (partial fmap move-char-fn))})
+(defn calculate-move-time-delta [{:keys [last-move] :as game-state}]
+  (let [curr-time (current-time-ms)
+        time-delta (/ (- curr-time last-move) 1000.0)]
+    {:new-game-state
+     (assoc game-state :last-move curr-time :move-time-delta time-delta)}))
 
-(defn extrapolate-char
-  ([{:keys [last-move pos] :as char}] (extrapolate-char char pos last-move))
-  ([{:keys [move-dir speed] :as char} from-pos from-time]
-   (let [curr-time (current-time-ms)
-         extrap-time (/ (- curr-time from-time) 1000.0)
-         new-pos (math/extrapolate-pos from-pos move-dir extrap-time speed)]
-     (assoc char :pos new-pos :last-move curr-time))))
+(defn move-toward-pos [{:keys [pos speed] :as char} time-delta target-pos]
+  (let [dir (math/norm-diff target-pos pos)
+        updated-pos (math/extrapolate-pos pos dir time-delta speed)
+        new-dir (math/norm-diff target-pos updated-pos)
+        dp (math/dot-product dir new-dir)]
+    (if (> dp 0)
+      (assoc char :pos updated-pos)
+      (assoc char :pos target-pos))))
