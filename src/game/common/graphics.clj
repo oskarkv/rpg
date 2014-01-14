@@ -86,19 +86,21 @@
         node (new-group-node (:name character) geom name-text)]
     {:node node :geom geom}))
 
-(defn portray-character [old-object characters-node character id asset-manager]
-  (if old-object
-    {:node (update-character old-object character)}
-    (let [{:keys [node geom]} (create-character-node asset-manager character id)]
-      (.attachChild characters-node node)
-      {:geom geom :node (update-character node character)})))
+(defn portray-object
+  [spatial type-node game-object id asset-manager create-fn update-fn]
+  (if spatial
+    {:node (update-fn spatial game-object)}
+    (let [{:keys [node geom]} (create-fn asset-manager game-object id)]
+      (.attachChild type-node node)
+      {:geom geom :node (update-fn node game-object)})))
 
 (defn portray-characters
   [ids->objects geoms->ids characters-node game-state asset-manager]
   (let [id-node-geom-list
         (for [[id character] (:chars game-state)]
-          [id (portray-character (@ids->objects id) characters-node
-                                 character id asset-manager)])
+          [id (portray-object (@ids->objects id) characters-node
+                              character id asset-manager
+                              create-character-node update-character)])
         get-id-node (fn [[id map]] (if-let [node (:node map)] [id node]))
         get-geom-id (fn [[id map]] (if-let [geom (:geom map)] [geom id]))
         ids->objects-addition
@@ -124,7 +126,8 @@
         collisions (get-collisions gamemap-node ray)
         collision (.getClosestCollision collisions)
         collision-point (if collision (.getContactPoint collision))
-        pos (if collision-point {(.getX collision-point) (.getY collision-point)})]
+        pos (if collision-point
+              {(.getX collision-point) (.getY collision-point)})]
     pos))
 
 (defn pick-target* [input-manager characters-node camera geoms->ids]
