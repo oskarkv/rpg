@@ -5,17 +5,11 @@
            (javax.swing ImageIcon JButton JFrame
                         JMenu JMenuBar JMenuItem JPanel
                         JTextArea JToolBar SwingConstants))
-  (:require (game.common [core :as cc])
-            (game.editor [editor-functions :as e-fns])
+  (:require (game [constants :as consts])
+            (game.common [core :as cc])
+            (game.editor [core :as ec]
+                         [editor-functions :as e-fns])
             (clojure [reflect :as refl])))
-
-(defmacro create-listener [type prefix]
-  (let [methods (map :name (:members (refl/reflect (resolve type))))
-        fns (map (fn [sym] (symbol (str prefix "-" sym))) methods)
-        defs (map (fn [method fn]
-                    (list method ['this 'event] (list fn 'this 'event)))
-                  methods fns)]
-    `(reify ~type ~@defs)))
 
 (defn stop-application [app j-frame]
   (cc/stop app)
@@ -26,7 +20,7 @@
     (.pack)
     (.setVisible true)))
 
-(defn add-file-menu [app j-frame]
+(defn add-file-menu [app j-frame game-state-atom]
   (let [file-menu (JMenu. "File")
         open (JMenuItem. "Open")
         save (JMenuItem. "Save")
@@ -36,23 +30,29 @@
       (reify ActionListener
         (actionPerformed [this event]
           (stop-application app j-frame))))
+    (.addActionListener
+      save
+      (reify ActionListener
+        (actionPerformed [this event]
+          (ec/enqueue-event {:type :save-zone}))))
     (doto file-menu
       (.add open)
       (.add save)
       (.add exit))
     file-menu))
 
-(defn create-tool-bar [editor-state-atom]
+(defn create-tool-bar [game-state-atom]
   (let [tool-bar (JToolBar. (JToolBar/VERTICAL))
-        spawn-button (JButton. (ImageIcon. "assets/editor/toolbar/yellow.png"))
-        b2 (JButton. (ImageIcon. "assets/editor/toolbar/red.png"))
-        b3 (JButton. (ImageIcon. "assets/editor/toolbar/blue.png"))
-        b4 (JButton. (ImageIcon. "assets/editor/toolbar/green.png"))]
+        spawn-button
+        (JButton. (ImageIcon. (str consts/spawn-button)))
+        b2 (JButton. (ImageIcon. (str consts/editor-toolbar "red.png")))
+        b3 (JButton. (ImageIcon. (str consts/editor-toolbar "blue.png")))
+        b4 (JButton. (ImageIcon. (str consts/editor-toolbar "green.png")))]
     (.addActionListener
       spawn-button
       (reify ActionListener
         (actionPerformed [this event]
-          (swap! editor-state-atom
+          (swap! game-state-atom
                  conj
                  {:current-action e-fns/create-spawn-location}))))
     (doto tool-bar
@@ -62,9 +62,9 @@
       (.add b4))
     tool-bar))
 
-(defn create-menu-bar [app j-frame]
+(defn create-menu-bar [app j-frame game-state-atom]
   (let [menu-bar (JMenuBar.)]
-    (.add menu-bar (add-file-menu app j-frame))
+    (.add menu-bar (add-file-menu app j-frame game-state-atom))
     menu-bar))
 
 (defn calc-canvas-dim [dim]
@@ -81,15 +81,15 @@
     (.setPreferredSize (.getCanvas context) (Dimension. 640 480))
     context))
 
-(defn create-editor-swing-app [app editor-state-atom]
+(defn create-editor-swing-app [app game-state-atom]
   (let [context (init-context app)
         canvas (.getCanvas context)
         j-frame (JFrame. "Editor")
         flow-layout (FlowLayout.)
-        menu-bar (create-menu-bar app j-frame)
+        menu-bar (create-menu-bar app j-frame game-state-atom)
         main-panel (doto (JPanel. flow-layout)
                      (.add canvas)
-                     (.add (create-tool-bar editor-state-atom)))]
+                     (.add (create-tool-bar game-state-atom)))]
     (doto j-frame
       (.setDefaultCloseOperation JFrame/DO_NOTHING_ON_CLOSE)
       (.addWindowListener
@@ -102,7 +102,10 @@
         (reify ComponentListener
           (componentResized [this event]
             (resize-canvas canvas (.getComponent event)))
-          (componentMoved [this event])))
+          ;; Empty implementation(s) to prevent error message when starting app
+          (componentMoved [this event])
+          (componentHidden [this event])
+          (componentShown [this event])))
       (.addWindowStateListener
         (reify WindowStateListener
           (windowStateChanged [this event]

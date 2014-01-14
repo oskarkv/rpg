@@ -77,27 +77,23 @@
 (defmulti process-tap (fn [_ type] type))
 
 (defmethod process-tap :toggle-attack [{id :own-id :as game-state} _]
-  {:new-app-state (update-in game-state [:chars id :attacking] not)
+  {:new-game-state (update-in game-state [:chars id :attacking] not)
    :event {:type :toggle-attack}})
-
-(defmethod process-tap :attack [{id :own-id :as game-state} type]
-  {:new-app-state (update-in game-state [:chars id :attacking] not)
-   :event [:attack]})
 
 (defmethod process-tap :target [game-state _]
   (let [id (:own-id game-state)
         target (gfx/pick-target)]
     (when target
-      {:new-app-state (assoc-in game-state [:chars id :target] target)
+      {:new-game-state (assoc-in game-state [:chars id :target] target)
        :event {:type :target :target target}})))
 
 (defn process-player-input [game-state key-state]
   (let [id (:own-id game-state)
-        {:keys [new-app-state events]} (ccfns/process-player-input
+        {:keys [new-game-state events]} (ccfns/process-player-input
                                          game-state key-state process-tap)
-        old-dir (map float (get-in new-app-state [:chars id :move-dir]))
+        old-dir (map float (get-in new-game-state [:chars id :move-dir]))
         new-dir (map float (calculate-movement-direction key-state))
-        new-game-state (assoc-in new-app-state [:chars id :move-dir] new-dir)
+        new-game-state (assoc-in new-game-state [:chars id :move-dir] new-dir)
         events (if (= old-dir new-dir) events (conj events {:type :new-dir}))]
     {:new-game-state new-game-state :events events}))
 

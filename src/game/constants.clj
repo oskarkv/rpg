@@ -8,6 +8,7 @@
        (defconstants ~@(drop 2 pairs)))))
 
 (defconstants
+  ;;; GAME SPECIFIC ;;;
   attack-distance 1
   attack-delay-leeway 0.3
   attack-nearest-threshold 3
@@ -19,3 +20,14 @@
   portrait-width 200
   chat-height 220
   chat-width 330)
+
+(defconstants
+  ;;; GENERAL ;;;
+  zone-folders "zones/"
+
+  ;;; EDITOR SPECIFIC ;;;
+  editor-assets "assets/editor/"
+  editor-toolbar (str editor-assets "toolbar/")
+
+  ;;; TOOLBAR BUTTONS ;;;
+  spawn-button (str editor-toolbar "yellow.png"))
