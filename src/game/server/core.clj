@@ -150,7 +150,7 @@
   {:new-game-state game-state})
 
 (defn prepare-chars-for-sending [chars]
-  (fmap (fn [char] (-> char (select-keys [:speed :name :pos :type])
+  (fmap (fn [char] (-> char (select-keys [:speed :name :pos :type :hp :max-hp])
                        (assoc :pos (map float (:pos char)))))
         chars))
 
@@ -175,6 +175,10 @@
       [(disj all-players id)
        {:type :s-move :id id
         :pos (map float (get-in game-state [:chars id :pos]))}])))
+
+(defmethod produce-client-msgs :attack [game-state event]
+  [[(:player-ids game-state) (merge {:type :s-attack}
+                                   (select-keys event [:target :damage]))]])
 
 (defmethod produce-client-msgs :default [_ _]
   nil)

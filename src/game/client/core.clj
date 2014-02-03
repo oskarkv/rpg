@@ -3,7 +3,8 @@
            (com.jme3.app FlyCamAppState))
   (:require [game.networking.core :as net]
             [game.game-map :as gmap]
-            (game.client [input :as c-input])
+            (game.client [input :as c-input]
+                         [hud :as hud])
             (game.common [core :as cc]
                          [core-functions :as ccfns]
                          [input :as cmn-input]
@@ -24,6 +25,9 @@
 
 (defmethod process-msg :s-move [game-state {:keys [id pos]}]
   {:new-game-state (assoc-in game-state [:chars id :new-pos] pos)})
+
+(defmethod process-msg :s-attack [game-state {:keys [target damage]}]
+  {:new-game-state (update-in game-state [:chars target :hp] - damage)})
 
 (defmethod process-msg :default [game-state _]
   {:new-game-state game-state})
@@ -138,6 +142,7 @@
         key-bindings (c-input/load-key-bindings)
         key-state-atom (atom (cmn-input/create-key-state-map key-bindings))
         graphics-system (atom nil)
+        hud-system (atom nil)
         init-gfx-fn
         (fn [app]
           (gfx/init-graphics-system app (:terrain @game-state-atom)))
@@ -159,12 +164,14 @@
             (start-input-fn input-manager)
             (reset! graphics-system (init-gfx-fn app))
             (cc/start @graphics-system)
+            (reset! hud-system (hud/init-hud-system app))
+            (cc/start @hud-system)
             (reset! game-state-atom
                     (login-and-recv-state @game-state-atom net-map
                                           "leif" "star" stop?))))
         simple-update-fn
         (fn []
-          (Thread/sleep 50)
+          (Thread/sleep 1)
           (let [{:keys [new-game-state events]}
                 (ccfns/call-update-fns @game-state-atom []
                   (process-player-input @key-state-atom)
@@ -181,6 +188,7 @@
             (doseq [msg to-server-msgs]
               (send-to-server msg))
             (cc/update @graphics-system new-game-state)
+            (cc/update @hud-system new-game-state)
             (reset! game-state-atom new-game-state)))
         start-fn
         (fn [this]

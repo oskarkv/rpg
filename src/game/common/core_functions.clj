@@ -2,7 +2,8 @@
   (:import (com.jme3.system AppSettings)
            (com.jme3.app SimpleApplication))
   (:require [game.common.core :as cc]
-            [game.math :as math])
+            [game.math :as math]
+            [game.constants :as consts])
   (:use [game.utils :as utils]))
 
 (defn map->msg [{:keys [type] :as m}]
@@ -33,7 +34,9 @@
                 (simpleUpdate [tpf]
                   (update-fn)))
           (.setShowSettings false)
-          (.setSettings (AppSettings. true))
+          (.setSettings
+            (doto (AppSettings. true)
+              (.setResolution consts/resolution-x consts/resolution-y)))
           (.setPauseOnLostFocus false))]
     (extend-type (type app)
       cc/Lifecycle
