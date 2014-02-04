@@ -8,4 +8,5 @@
                  [org.clojure/math.numeric-tower "0.0.2"]
                  [tonegodgui/tonegodgui "0.1.0"]]
   :resource-paths ["assets"]
+  :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
   :global-vars {*warn-on-reflection* false})
