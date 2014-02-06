@@ -82,7 +82,7 @@
   {:new-game-state
    (-> game-state
        (update-in [:chars id] merge
-                  {:recv-pos pos :move-dir move-dir
+                  {:recv-pos pos :move-dir (math/normalize move-dir)
                    :recv-time (current-time-ms)})
        (update-in [:chars id :recv-this-frame] conj pos))})
 
