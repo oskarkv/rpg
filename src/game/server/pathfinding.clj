@@ -3,10 +3,11 @@
   (:require [clojure.math.numeric-tower :as math]
             [clojure.data.priority-map :as pm]
             (game [math :as gmath]
-                  [constants :as consts])))
+                  [constants :as consts]
+                  [game-map :as gmap])))
 
 (defn walkable? [x]
-  (and x (= 1 x)))
+  (and x (gmap/walkable-type? x)))
 
 (defn point->tile
   ([p] (apply point->tile p))

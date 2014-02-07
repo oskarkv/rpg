@@ -3,13 +3,15 @@
            (com.jme3.app FlyCamAppState))
   (:require [game.networking.core :as net]
             [game.game-map :as gmap]
+            [game.constants :as consts]
             (game.client [input :as c-input]
                          [hud :as hud])
             (game.common [core :as cc]
                          [core-functions :as ccfns]
                          [input :as cmn-input]
                          [graphics :as gfx])
-            [game.math :as math])
+            [game.math :as gmath]
+            [clojure.math.numeric-tower :as math])
   (:use game.utils))
 
 (defmulti process-msg (fn [game-state msg] (:type msg)))
@@ -70,7 +72,7 @@
       (:back key-state) ((adder 0 -1))
       (:left key-state) ((adder -1 0))
       (:right key-state) ((adder 1 0))
-      true (math/normalize))))
+      true (gmath/normalize))))
 
 (defmulti process-tap (fn [_ type] type))
 
@@ -118,11 +120,21 @@
           (process-received-game-state new-game-state)
           (recur new-game-state))))))
 
+(defn legal-pos? [{:keys [terrain] :as game-state} pos]
+  (let [r consts/player-radius
+        -r (- r)
+        adder (fn [v] (map + pos v))]
+    (every? gmap/walkable-type?
+            (map #(get-in terrain (mapv (comp int math/floor) %))
+                 (map adder [[r r] [r -r] [-r r] [-r -r]])))))
+
 (defn move-self [{:keys [own-id chars move-time-delta] :as game-state}]
   (let [{:keys [pos move-dir speed] :as self} (chars own-id)
-        new-pos (math/extrapolate-pos pos move-dir move-time-delta speed)]
-  {:new-game-state
-   (assoc-in game-state [:chars own-id :pos] new-pos)}))
+        new-pos (gmath/extrapolate-pos pos move-dir move-time-delta speed)]
+    (if (legal-pos? game-state new-pos)
+      {:new-game-state (assoc-in game-state [:chars own-id :pos] new-pos)}
+      {:new-game-state (assoc-in game-state [:chars own-id :move-dir] [0 0])
+       :event {:type :new-dir}})))
 
 (defn move-toward-new-pos [{:keys [pos new-pos speed] :as char} time-delta _]
   (if new-pos
