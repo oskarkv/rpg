@@ -14,8 +14,8 @@
     (assoc (zipmap (type cc/type->keys) (rest msg))
            :type type)))
 
-(defn process-network-msgs [game-state {:keys [net-sys get-msg send-msg]}
-                            process-fn & process-args]
+(defn process-network-msgs
+  [game-state {:keys [net-sys get-msg send-msg]} process-fn & process-args]
   (dotimes [i 3]
     (cc/update net-sys nil))
   (loop [msg (get-msg) game-state game-state events []]

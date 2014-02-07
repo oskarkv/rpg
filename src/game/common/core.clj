@@ -16,8 +16,11 @@
    :s-attack [:target :damage]
    :s-game-state [:game-state]
    :s-login [:id :player]
-   :s-move [:id :pos]
-   :s-own-id [:id]})
+   :s-move [:id :positions]
+   :s-own-id [:id]
+   :s-spawn-mobs [:mobs]
+   :s-char-death [:id]
+   :s-spawn-player [:id-char]})
 
 (let [types (-> (keys type->keys) sort)]
   (def type->int (zipmap types (range)))

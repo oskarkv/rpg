@@ -15,14 +15,15 @@
 (defn new-player [username]
   {:name username
    :speed 2
-   :pos [0 0]
+   :pos [1 1]
+   :bind-spot [0 0]
    :move-dir [0 0]
    :type :player
    :attacking false
    :hp 100
    :max-hp 100
-   :dmg 15
-   :delay 2
+   :dmg 50
+   :delay 0.5
    :last-attack 0})
 
 (defn attack-nearest [game-state mob players]
@@ -129,30 +130,55 @@
            :delay 2
            :dmg (/ (:dmg mob-type) 10))))
 
-(defmethod process-event :spawn-mobs
-  [{:keys [to-spawn spawns] :as game-state} {ids :mob-ids}]
+(defmethod process-event :spawn-ids
+  [{:keys [to-spawn spawns] :as game-state} {ids :ids}]
   (let [new-mobs (map #(spawn-mob % spawns) ids)
         new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
-        num-mobs (count new-mobs-map)]
+        num-mobs (count new-mobs-map)
+        event {:type :spawn-mobs :mobs new-mobs-map}]
     {:new-game-state
      (-> game-state
          (update-in [:chars] merge new-mobs-map)
-         (assoc :to-spawn (call-times num-mobs pop to-spawn)))}))
+         (assoc :to-spawn (call-times num-mobs pop to-spawn)))
+     :event event}))
 
 (defmethod process-event :attack [game-state event]
   (let [{:keys [id target damage last-attack]} event
         new-game-state (-> game-state
                            (update-in [:chars target :hp] - damage)
-                           (assoc-in [:chars id :last-attack] last-attack))]
-    {:new-game-state new-game-state}))
+                           (assoc-in [:chars id :last-attack] last-attack))
+        death (when (<= (get-in new-game-state [:chars target :hp]) 0)
+                {:type :death :id target :by id})]
+    {:new-game-state new-game-state :event death}))
+
+(defn mob-death [game-state {:keys [id by]}]
+  (let [spawn-id (get-in game-state [:chars id :spawn])
+        respawn-time (get-in game-state [:spawns spawn-id :respawn-time])]
+    {:new-game-state
+     (-> game-state
+         (dissoc-in [:chars id])
+         (update-in [:to-spawn] conj
+                    [spawn-id (+ (current-time-ms) (* 1000 respawn-time))]))}))
+
+(defn player-death [game-state {:keys [id by]}]
+  {:new-game-state
+   (assoc-in game-state [:chars id :pos]
+             (get-in game-state [:chars id :bind-spot]))})
+
+(defmethod process-event :death [game-state {:keys [id] :as event}]
+  (if (= :mob (get-in game-state [:chars id :type]))
+    (mob-death game-state event)
+    (player-death game-state event)))
 
 (defmethod process-event :default [game-state event]
   {:new-game-state game-state})
 
+(defn prepare-char-for-sending [char]
+  (-> char (select-keys [:speed :name :pos :type :hp :max-hp])
+      (assoc :pos (map float (:pos char)))))
+
 (defn prepare-chars-for-sending [chars]
-  (fmap (fn [char] (-> char (select-keys [:speed :name :pos :type :hp :max-hp])
-                       (assoc :pos (map float (:pos char)))))
-        chars))
+  (fmap prepare-char-for-sending chars))
 
 (defn prepare-for-sending [game-state]
   (-> game-state
@@ -170,15 +196,30 @@
      [[id] {:type :s-own-id :id id}]]))
 
 (defmethod produce-client-msgs :chars-moved [game-state {ids :moved-ids}]
-  (let [all-players (:player-ids game-state)]
-    (for [id ids]
-      [(disj all-players id)
-       {:type :s-move :id id
-        :pos (map float (get-in game-state [:chars id :pos]))}])))
+  [[(:player-ids game-state)
+    {:type :s-move :positions
+     (into {} (for [id ids
+                    :let [pos (get-in game-state [:chars id :pos])]
+                    :when pos]
+                [id (map float pos)]))}]])
 
 (defmethod produce-client-msgs :attack [game-state event]
   [[(:player-ids game-state) (merge {:type :s-attack}
                                    (select-keys event [:target :damage]))]])
+
+(defmethod produce-client-msgs :spawn-mobs [game-state {mobs :mobs}]
+  [[(:player-ids game-state)
+    {:type :s-spawn-mobs :mobs (prepare-chars-for-sending mobs)}]])
+
+(defmethod produce-client-msgs :death [game-state {:keys [id by]}]
+  (let [all-players (:player-ids game-state)
+        char (get-in game-state [:chars id])
+        msgs-vec [[all-players {:type :s-char-death :id id}]]]
+    (if (= :player (:type char))
+      (conj msgs-vec
+            [all-players {:type :s-spawn-player
+                          :id-char [id (prepare-char-for-sending char)]}])
+      msgs-vec)))
 
 (defmethod produce-client-msgs :default [_ _]
   nil)
@@ -234,12 +275,12 @@
                            (:chars game-state))]
     {:event {:type :chars-moved :moved-ids moved}}))
 
-(defn spawn-mobs [{:keys [to-spawn] :as game-state}]
+(defn check-spawns [{:keys [to-spawn] :as game-state}]
   (let [curr-time (current-time-ms)
         time-to-spawn (fn [[id spawn-time]] (> curr-time spawn-time))
         ids (keys (take-while time-to-spawn to-spawn))]
     (when (seq ids)
-      {:event {:type :spawn-mobs :mob-ids ids}})))
+      {:event {:type :spawn-ids :ids ids}})))
 
 (defn cooled-down? [{:keys [last-attack delay]}]
   (> (current-time-ms) (+ last-attack (* 1000 delay))))
@@ -263,6 +304,7 @@
         (fn [[id {:keys [target attacking dmg last-attack delay] :as char}]]
           (when (and attacking target
                      (cooled-down? char)
+                     (get-in game-state [:chars target])
                      (close-enough? game-state id target))
             {:id id :type :attack :target target :damage dmg
              :last-attack (calculate-new-last-attack char)}))]
@@ -287,7 +329,7 @@
   (let [{:keys [new-game-state events]}
         (ccfns/call-update-fns game-state []
           (process-network-msgs net-map key-value-store)
-          (spawn-mobs)
+          (check-spawns)
           (ccfns/calculate-move-time-delta)
           (move-players)
           (decide-mob-actions)

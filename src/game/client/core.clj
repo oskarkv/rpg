@@ -23,13 +23,26 @@
 (defmethod process-msg :s-game-state [game-state {new-game-state :game-state}]
   {:new-game-state (merge game-state new-game-state)})
 
-(defmethod process-msg :s-move [game-state {:keys [id pos]}]
-  {:new-game-state (assoc-in game-state [:chars id :new-pos] pos)})
+(defmethod process-msg :s-move [game-state {:keys [positions]}]
+  (let [positions (dissoc positions (:own-id game-state))]
+    {:new-game-state
+     (reduce (fn [gs [id pos]] (assoc-in gs [:chars id :pos] pos))
+             game-state
+             positions)}))
+
+(defmethod process-msg :s-char-death [game-state {:keys [id]}]
+  {:new-game-state (dissoc-in game-state [:chars id])})
+
+(defmethod process-msg :s-spawn-player [game-state {:keys [id-char]}]
+  {:new-game-state (update-in game-state [:chars] conj id-char)})
 
 (defmethod process-msg :s-attack [game-state {:keys [target damage]}]
   {:new-game-state (update-in game-state [:chars target :hp] - damage)})
 
-(defmethod process-msg :default [game-state _]
+(defmethod process-msg :s-spawn-mobs [game-state {:keys [mobs]}]
+  {:new-game-state (update-in game-state [:chars] merge mobs)})
+
+(defmethod process-msg :default [game-state msg]
   {:new-game-state game-state})
 
 (defmulti produce-server-msg (fn [_ event] (:type event)))
