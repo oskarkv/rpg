@@ -26,11 +26,6 @@
   (def type->int (zipmap types (range)))
   (def int->type (zipmap (range) types)))
 
-(letfn [(message-transformer [transformer]
-          (fn [msg] (update-in msg [0] transformer)))]
-  (def type->int-in-msg (message-transformer type->int))
-  (def int->type-in-msg (message-transformer int->type)))
-
 (defprotocol Lifecycle
   (start [this])
   (stop [this]))
