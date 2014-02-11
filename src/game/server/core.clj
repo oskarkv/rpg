@@ -16,7 +16,7 @@
   {:name username
    :speed 2
    :pos [1 1]
-   :bind-spot [0 0]
+   :bind-spot [1 1]
    :move-dir [0 0]
    :type :player
    :attacking false
@@ -161,9 +161,14 @@
                     [spawn-id (+ (current-time-ms) (* 1000 respawn-time))]))}))
 
 (defn player-death [game-state {:keys [id by]}]
-  {:new-game-state
-   (assoc-in game-state [:chars id :pos]
-             (get-in game-state [:chars id :bind-spot]))})
+  (let [char-set (fn [gs key val] (assoc-in gs [:chars id key] val))
+        char-get (fn [key] (get-in game-state [:chars id key]))]
+    {:new-game-state
+     (-> game-state
+         (char-set :pos (char-get :bind-spot))
+         (char-set :hp (char-get :max-hp))
+         (char-set :target nil)
+         (char-set :attacking false))}))
 
 (defmethod process-event :death [game-state {:keys [id] :as event}]
   (if (= :mob (get-in game-state [:chars id :type]))
