@@ -5,11 +5,12 @@
                          [core-functions :as ccfns])
             (game.key-value-store [core :as kvs.core]
                                   [protocols :as kvs])
-            (game [math :as math]
+            (game [math :as gmath]
                   [game-map :as gmap]
                   [mobs :as mobs]
                   [constants :as consts])
-            (game.server [pathfinding :as pf]))
+            (game.server [pathfinding :as pf])
+            [clojure.math.numeric-tower :as math])
   (:use game.utils))
 
 (defn new-player [username]
@@ -22,15 +23,17 @@
    :attacking false
    :hp 100
    :max-hp 100
-   :dmg 50
-   :delay 0.5
-   :last-attack 0})
+   :dmg 35
+   :delay 1
+   :last-attack 0
+   :level 1
+   :exp 0})
 
 (defn attack-nearest [game-state mob players]
   (let [{:keys [pos]} mob
         [nearest dist]
         (reduce (fn [[nearest-id dist :as old] [id char]]
-                  (let [new-dist (math/distance (:pos char) pos)]
+                  (let [new-dist (gmath/distance (:pos char) pos)]
                     (if (< new-dist dist)
                       [id new-dist]
                       old)))
@@ -83,7 +86,7 @@
   {:new-game-state
    (-> game-state
        (update-in [:chars id] merge
-                  {:recv-pos pos :move-dir (math/normalize move-dir)
+                  {:recv-pos pos :move-dir (gmath/normalize move-dir)
                    :recv-time (current-time-ms)})
        (update-in [:chars id :recv-this-frame] conj pos))})
 
@@ -127,7 +130,8 @@
            :move-dir [0 0]
            :last-attack 0
            :max-hp (:hp mob-type)
-           :delay 2
+           :delay 1
+           :level 1
            :dmg (/ (:dmg mob-type) 10))))
 
 (defmethod process-event :spawn-ids
@@ -142,23 +146,75 @@
          (assoc :to-spawn (call-times num-mobs pop to-spawn)))
      :event event}))
 
+(defn register-damage [char id damage]
+  (let [tag #(if % % id)
+        set-damage #(if % (+ % damage) damage)]
+    (-> char
+        (update-in [:tagged-by] tag)
+        (update-in [:damaged-by id] set-damage))))
+
 (defmethod process-event :attack [game-state event]
   (let [{:keys [id target damage last-attack]} event
+        register-damage' #(if (= :mob (:type %))
+                            (register-damage % id damage)
+                            %)
         new-game-state (-> game-state
                            (update-in [:chars target :hp] - damage)
-                           (assoc-in [:chars id :last-attack] last-attack))
+                           (assoc-in [:chars id :last-attack] last-attack)
+                           (update-in [:chars target] register-damage'))
         death (when (<= (get-in new-game-state [:chars target :hp]) 0)
                 {:type :death :id target :by id})]
     {:new-game-state new-game-state :event death}))
 
+(defn exp-per-mob [level]
+  (let [level (dec level)]
+    (+ 10 (* 5 level))))
+
+(defn mobs-per-level [level]
+  (let [level (dec level)]
+    (+ 10 (* 5 level) (math/round (math/expt level 1.5)))))
+
+(defn exp-to-level [level]
+  (let [level (dec level)]
+    (* (exp-per-mob level) (mobs-per-level level))))
+
+(defn exp-modifier [mob-level player-level]
+  (let [diff (- mob-level player-level)]
+    (if (< diff -10)
+      0
+      (+ 1 (* 0.1 diff)))))
+
+(defn exp-gained [mob-level player-level]
+  (* (exp-modifier mob-level player-level) (exp-per-mob mob-level)))
+
+(defn give-exp [{:keys [level exp] :as char} new-exp]
+  (let [exp-sum (+ exp new-exp)
+        req-exp (exp-to-level (inc level))]
+    (if (> exp-sum req-exp)
+      (-> char
+          (update-in [:level] inc)
+          (assoc-in [:exp] (- exp-sum req-exp)))
+      (update-in char [:exp] + new-exp))))
+
+(defn distribute-exp [game-state mob]
+  (let [{:keys [damaged-by tagged-by]} mob
+        total-damage (apply + (vals damaged-by))
+        tagged-damage (damaged-by tagged-by)
+        all-exp (exp-gained (:level mob)
+                            (get-in game-state [:chars tagged-by :level]))
+        actual-exp (* all-exp (/ tagged-damage total-damage))]
+    (update-in game-state [:chars tagged-by] give-exp actual-exp)))
+
 (defn mob-death [game-state {:keys [id by]}]
-  (let [spawn-id (get-in game-state [:chars id :spawn])
+  (let [mob (get-in game-state [:chars id])
+        spawn-id (:spawn mob)
         respawn-time (get-in game-state [:spawns spawn-id :respawn-time])]
     {:new-game-state
      (-> game-state
          (dissoc-in [:chars id])
          (update-in [:to-spawn] conj
-                    [spawn-id (+ (current-time-ms) (* 1000 respawn-time))]))}))
+                    [spawn-id (+ (current-time-ms) (* 1000 respawn-time))])
+         (distribute-exp mob))}))
 
 (defn player-death [game-state {:keys [id by]}]
   (let [char-set (fn [gs key val] (assoc-in gs [:chars id key] val))
@@ -235,13 +291,13 @@
       (recur (-> char (dissoc :recv-pos) (assoc :pos recv-pos))
              (/ (- last-move recv-time) 1000.0)
              last-move)
-      (assoc char :pos (math/extrapolate-pos pos move-dir time-delta speed)))))
+      (assoc char :pos (gmath/extrapolate-pos pos move-dir time-delta speed)))))
 
 (defn move-mob* [{:keys [pos speed path target] :as mob} time-delta chars]
   (let [target-pos (get-in chars [target :pos])]
-    (if (and path (> (math/distance pos target-pos) consts/attack-distance))
+    (if (and path (> (gmath/distance pos target-pos) consts/attack-distance))
       (let [[next-point & path-left] path
-            time-cost (/ (math/distance pos next-point) speed)]
+            time-cost (/ (gmath/distance pos next-point) speed)]
         (if (< time-cost time-delta)
           (recur (assoc mob :pos next-point :path path-left)
                  (- time-delta time-cost) chars)
@@ -295,7 +351,7 @@
         get-pos (fn [id] (get-in game-state [:chars id :pos]))
         attacker-pos (get-pos attacker-id)
         target-pos (get-pos target-id)]
-    (> consts/attack-distance (math/distance attacker-pos target-pos))))
+    (> consts/attack-distance (gmath/distance attacker-pos target-pos))))
 
 (defn calculate-new-last-attack [{:keys [last-attack delay]}]
   (let [curr-time (current-time-ms)]
