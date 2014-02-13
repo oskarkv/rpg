@@ -16,7 +16,7 @@
    :s-attack [:target :damage]
    :s-game-state [:game-state]
    :s-login [:id :player]
-   :s-move [:id :positions]
+   :s-move [:positions]
    :s-own-id [:id]
    :s-spawn-mobs [:mobs]
    :s-char-death [:id]
