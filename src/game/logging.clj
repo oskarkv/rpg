@@ -1,13 +1,13 @@
 (ns game.logging
-  (require [robert.hooke :as rh]
-           [clojure.pprint :as pp]
-           [game.server.core :as sv]
-           [game.client.core :as cl]
-           [game.math :as math]
-           (game.common [core-functions :as ccfns]
-                        [graphics :as gfx])
-           (game.server [pathfinding :as pf]))
-  (use [game.utils]))
+  (:require [robert.hooke :as rh]
+            [clojure.pprint :as pp]
+            [game.server.core :as sv]
+            [game.client.core :as cl]
+            [game.math :as math]
+            (game.common [core-functions :as ccfns]
+                         [graphics :as gfx])
+            (game.server [pathfinding :as pf]))
+  (:use [game.utils]))
 
 (defn log-println [name type object]
   (println (str (current-thread-name) " // " name " " type ":\n"
