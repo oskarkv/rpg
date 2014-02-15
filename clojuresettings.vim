@@ -43,7 +43,7 @@ augroup END
 " Indentation
 let g:clojure_fuzzy_indent = 1
 let g:clojure_fuzzy_indent_patterns = ['^with', '^def', '^let', '^while-let$',
-            \'call-update-fns', 'start-new-thread']
+            \'call-update-fns', 'start-new-thread', 'take-at-least-ms']
 let g:clojure_fuzzy_indent_blacklist = ['-fn$', '\v^with-%(meta|out-str|loading-context)$']
 let g:clojure_special_indent_words = 'deftype,defrecord,reify,proxy,extend-type,extend-protocol,letfn,deftype-'
 let g:clojure_align_multiline_strings = 1

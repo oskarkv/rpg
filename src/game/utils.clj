@@ -113,3 +113,14 @@
 
 (defn partial* [f & args]
   (apply partial (flip f) args))
+
+(defmacro take-at-least-ms [ms & body]
+  `(let [start# (current-time-ms)
+         result# (do ~@body)
+         stop# (current-time-ms)
+         took# (- stop# start#)]
+     (if (>= ~ms took#)
+       (Thread/sleep (- ~ms took#))
+       (println "WARNING:" (current-thread-name)
+                "took longer than expected to execute" '~body))
+     result#))

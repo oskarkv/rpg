@@ -384,7 +384,6 @@
         {:new-game-state game-state :new-events new-events}))))
 
 (defn main-update [game-state {:keys [send-msg] :as net-map} key-value-store]
-  (Thread/sleep 50)
   (let [{:keys [new-game-state events]}
         (ccfns/call-update-fns game-state []
           (process-network-msgs net-map key-value-store)
@@ -414,7 +413,8 @@
       ((fn [game-state]
          (if @stop?
            nil
-           (recur (main-update game-state net-map key-value-store))))
+           (recur (take-at-least-ms 100
+                    (main-update game-state net-map key-value-store)))))
        game-state))
     this)
   (stop [this]
