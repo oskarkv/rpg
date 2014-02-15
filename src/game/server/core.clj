@@ -87,8 +87,7 @@
    (-> game-state
        (update-in [:chars id] merge
                   {:recv-pos pos :move-dir (gmath/normalize move-dir)
-                   :recv-time (current-time-ms)})
-       (update-in [:chars id :recv-this-frame] conj pos))})
+                   :recv-time (current-time-ms)}))})
 
 (defmethod process-msg-purely :c-toggle-attack [game-state {:keys [id]}]
   {:new-game-state (update-in game-state [:chars id :attacking] not)})
