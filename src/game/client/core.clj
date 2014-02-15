@@ -28,7 +28,7 @@
 (defmethod process-msg :s-move [game-state {:keys [positions]}]
   (let [positions (dissoc positions (:own-id game-state))]
     {:new-game-state
-     (reduce (fn [gs [id pos]] (assoc-in gs [:chars id :pos] pos))
+     (reduce (fn [gs [id pos]] (assoc-in gs [:chars id :new-pos] pos))
              game-state
              positions)}))
 
