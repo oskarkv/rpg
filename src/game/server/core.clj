@@ -131,8 +131,7 @@
            :last-attack 0
            :max-hp (:hp mob-type)
            :delay 1
-           :level 1
-           :dmg (/ (:dmg mob-type) 10))))
+           :level 1)))
 
 (defmethod process-event :spawn-ids
   [{:keys [to-spawn spawns] :as game-state} {ids :ids}]

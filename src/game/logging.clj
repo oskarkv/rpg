@@ -3,6 +3,7 @@
             [clojure.pprint :as pp]
             [game.server.core :as sv]
             [game.client.core :as cl]
+            [game.client.hud :as hud]
             [game.math :as math]
             (game.common [core-functions :as ccfns]
                          [graphics :as gfx])
