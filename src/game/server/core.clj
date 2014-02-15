@@ -264,7 +264,7 @@
 
 (defmethod produce-client-msgs :attack [game-state event]
   [[(:player-ids game-state) (merge {:type :s-attack}
-                                   (select-keys event [:target :damage]))]])
+                                    (select-keys event [:target :damage]))]])
 
 (defmethod produce-client-msgs :spawn-mobs [game-state {mobs :mobs}]
   [[(:player-ids game-state)
