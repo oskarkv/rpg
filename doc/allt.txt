@@ -41,9 +41,7 @@ olika delar i andra språk, eller köra dem på en annan dator eller i en
 annan tråd. Kan man inte tänka sig det så är saker complectade med
 varandra.
 
-Följande är exempel (specialfall) på principen. De är ofta exempel på
-brott mot principen som vi har begått tidigare, och som vi bör undvika
-i framtiden.
+Följande är exempel (specialfall) på principen.
 
 Jag vill också understryka att man ska sträva efter simplicity på alla
 nivåer: inom en funktion, mellan funktioner, mellan moduler, mellan
@@ -86,7 +84,7 @@ som gör att de nu finns krockar. Är det lätt att ändra från `use` till
 `(some-fn ...)` till `(B/some-fn ...)`, vilket är jobbigt. En annan
 fördel med `require` är att när man läser koden i A, och man ser en
 funktion som man vill veta var den är definierad, så ser man det
-direkt om den är namespace qualified.
+direkt om den är namespace-qualified.
 
 
 ### Sidoeffekter
@@ -199,7 +197,7 @@ X att automatiskt bli bättre mot Z också.
 ### Mutalisks
 
 Jag är ingen expert på detta, men jag har hört det sägas att det var
-svårt att balansera mutaliskt i SC, för det var för all-round. Om de
+svårt att balansera mutalisks i SC, för de var för all-round. Om de
 var för bra mot X, och man försökte göra de sämre mot X, så blev de
 automatisk sämre mot allt annat. Om man i stället har en mer
 specialiserad unit, t.ex. Dark Templar, så kan man göra den bättre på
@@ -308,7 +306,7 @@ det för tillfället. Man ska lära sig vilka funktioner som finns i
 `clojure.core`. Man bör börja med Issue Tracking och Code Reviews tidigt
 så att man kan dra större nytta av dessa. Man bör planera, designa,
 och förenkla innan man börjar koda så att man inte får göra om allt
-senare. Vi (jag och Posti) gjorde inte det så bra sist.
+senare.
 
 
 Hammock-Driven Development
@@ -731,19 +729,19 @@ Läs Steve Yegges artiklar [The Borderlands Gun Collector's
 Club][borderlands] och [The Borderlands 2 Gun Discarders
 Club][borderlands2]. Saker han säger:
 
--   Folk gillar att samla på saker, tex vänner på facebook, points på
+-   Folk gillar att samla på saker, t.ex. vänner på facebook, points på
     hacker news, exp i Tibia, etc.
 
 -   Det ska finnas olika typer av poäng för olika typer av spelare,
-    tex explore-poäng, gear-poäng, pvp-poäng, o.s.v. Man ska gärna få
+    t.ex. explore-poäng, gear-poäng, pvp-poäng, o.s.v. Man ska gärna få
     titlar, typ "PvP Champ" eller "Adventurer".
 
 -   Det ska finnas listor eller andra sätt/platser där man kan
     stoltsera med sina poäng. T.ex. highscorelistor av exp
-    (diablo-laddern) o.s.v.
+    (Diablo-laddern) o.s.v.
 
 -   Det behöver inte vara poäng, utan andra saker i spelet. Vanligt
-    gear är förstås bra, men man kan göra andra grejer med. T.ex.
+    gear är förstås bra, men man kan göra andra grejer med; t.ex.
     skins i Tibia. Man skulle t.ex. kunna göra någon "värdelös" spell
     som ändå är rolig och sällsynt, typ förvandla en annan spelare
     till nått löjeväckande, fast det bara har en visuell effekt. Eller
@@ -808,7 +806,7 @@ döda någon, och om man är ute och expar så har man ett val: gå
 tillbaka till banken och garantera att man inte förlorar sina pengar
 eller stanna och få potentiellt mer exp.
 
-\fraga Ska det finnas ''corpse runs''?
+\fraga Ska det finnas "corpse runs"?
 
 Combat mechanics
 ----------------
@@ -825,7 +823,7 @@ som har sniper vill vara på långt avstånd från fienden och dessutom
 fightas 1 mot 1. Den som har en machine gun vill vara nära och kan
 säkert klara av flera fiender samtidigt. Fightingspel, DotA, o.s.v.
 fungerar alla på liknande sätt. Om man designar klasserna och spellsen
-så att vissa klasser har en viss miljö i vilken, och ett visst avstånd
+så att en viss klass har en viss miljö i vilken, och ett visst avstånd
 på vilket, den trivs bäst så kan det nog bli intressant.
 
 I CS och DoD så används granater för att ta sig till rätt position. På
@@ -876,15 +874,13 @@ en instans i vilken alla hamnar när det går dit.
 Levels och expning
 ------------------
 
-
-Det borde inte ta jättelång tid att bli maxlevel, om det finns en, för
-det är tråkigt att grinda. Levels borde vara jämnt fördelade över
-speltiden, d.v.s. det borde inte ta 20 gånger längre tid att gå från
-40 till 41 än att gå från 10 till 11.  Det blir bara tråkigt längre
-fram, och dessutom blir låga levlar "värdelösa" i den meningen att det
-är ingen idé att skaffa gear på låga levlar för att man ändå kommer
-att levla förbi dem så snabbt.  Zoner till för de med låg level kommer
-också att bli underpopulerade, o.s.v.
+Levels borde vara jämnt fördelade över speltiden, d.v.s. det borde
+inte ta 20 gånger längre tid att gå från 40 till 41 än att gå från 10
+till 11.  Det blir bara tråkigt längre fram, och dessutom blir låga
+levlar "värdelösa" i den meningen att det är ingen idé att skaffa gear
+på låga levlar för att man ändå kommer att levla förbi dem så snabbt.
+Zoner till för de med låg level kommer också att bli underpopulerade,
+o.s.v.
 
 Man borde börja med mycket kroppspoäng och skada jämfört med vad man
 får när man levlar. En level-2-karaktär ska inte vara dubbelt så bra
@@ -895,10 +891,12 @@ När man går upp i level så ska man få mer hp/mana, skada med spells
 och vapen, o.s.v., alltså lite bättre på allt, och såklart kunna
 använda bättre spells och gear.
 
-\fraga Ska det finnas en maxlevel? Nej, dels för att det blir så stor
-skillnad på att vara maxlevel och att inte vara maxlevel; man levelar
-tills man blir maxlevel, sen raidar man. Dessutom är det nice att
-alltid kunna bli bättre. Ett problem utan maxlevel är dock att folk kanske levlar så mycket att ny content sedan inte blir någon utmaning för dem.
+\fraga Ska det finnas en maxlevel? Kanske inte; dels för att det blir
+så stor skillnad på att vara maxlevel och att inte vara maxlevel; man
+levelar tills man blir maxlevel, sen raidar man. Dessutom är det nice
+att alltid kunna bli bättre. Ett problem utan maxlevel är dock att
+folk kanske levlar så mycket att ny content sedan inte blir någon
+utmaning för dem.
 
 Man måste kunna delevla om man dör för annars blir det konstigt. Om
 man precis dingat så kan man pvpa utan att förlora nått. Och det finns
@@ -915,7 +913,7 @@ för vanliga levels. Av AAs kunde man boosta sin karaktär på olika
 sätt, t.ex. movement speed, stats, regen, resistanser, matkrav,
 spellskills, o.s.v. Det fanns både klasspecifika och allmänna AAs.
 
-Man kan fråga sig varför man ska ha AAs när vi sagt att det ska finnas
+Man kan fråga sig varför man ska ha AAs om vi bestämmer oss för att ha
 en maxlevel. Det finns inte oändligt med AAs, då det finns fortfarande
 ett max. Dessutom är AAs inte lika signifikanta som vanliga levels.
 Dessutom är gear en typ av "advancement" som finns utöver vanliga
@@ -986,7 +984,7 @@ spellskills, d.v.s. man blir bättre på att använda svärd om man
 använder svärd. Man kan se det lite som en ytterligare level som ens
 karaktär har. I Tibia finns det ingen maxlevel på vapenskills. I Tibia
 så är vapenskills ganska centrala, och man måste öva på dem (genom att
-stå afk och slåss med en annan spelare). Vapen- och spellskills är för
+stå AFK och slåss med en annan spelare). Vapen- och spellskills är för
 det mesta efterblivet och jobbiga. Det enda som talar för dem är att
 det känns bra när man går upp i skills, precis som när man går upp i
 levels.
@@ -1089,7 +1087,7 @@ dem hela tiden är antagligen orealistiskt, men att ha några quests för
 att få gear är kanske nice. På EQ finns det t.ex. en uppsättning "noob
 armor" man kan få för varje klass, och på Tibia finns det t.ex. ett
 quest för noobs som går ut på att samla döda råttor så man kan få lite
-cash. Det är definitivt någonting man borde försöka ha, för det är
+pengar. Det är definitivt någonting man borde försöka ha, för det är
 roligt. Quests behöver förstås inte bara vara för noobs.
 
 Man kan ha quests bara för att skicka spelaren till nya
@@ -1165,122 +1163,6 @@ för det gör att det är mycket skönare att fightas mot meleemobs om man
 om mobsen är ranged.
 
 Att det är skillnad på in-combat och out-of-combat.
-
-
-Implementation -- frågor och lösningar
-======================================
-
-Lista med features ordnade efter viktighet
-------------------------------------------
-
-### Klass 1
-
-Nätverksfunktionalitet\
-Spelare\
-Karta\
-Mobs\
-Melee-attacker
-
-### Klass 2
-
-HUD/UI\
-Pathfinding\
-Drops/Items
-
-### Klass 3
-
-Exp\
-Pengar\
-Chat
-
-### Klass 4
-
-Spells\
-Friends list\
-Map editor
-Quests
-
-### Klass 5
-
-Factions\
-NPC-vendors\
-Guilder
-
-### Klass 6
-
-Crafting\
-Auktionhouse\
-
-Koda medan spelet körs
-----------------------
-
-Vi borde verkligen fixa så att man kan ändra koden medan spelet körs,
-som [Notch gör här][notch debug]. Det borde vara enklare i Clojure
-eftersom man kan ha en repl uppe medan man kör. Man borde
-kunna bara göra en nrepl och göra mainloopen i den och sedan
-connecta till processen med flera klienter.
-
-Mobs-tabell
------------
-
-För att hålla ordning på alla mobs i spelet så kan man ha en stor
-tabell där man anger hp, skada, exp de ger, o.s.v. Man borde dock ange
-dessa värden som en procentsats av vad ett standardmob på samma level
-har. Notera att om man inte hade procentsatser, utan skrev absoluta
-värden, så hade man complectat varje mob med svårighetsgraden av
-medelmob:en på leveln.
-
-Drops
------
-
-Hur ska man göra för att enkelt kunna ange vad för drops ett mob ska
-ha? Man måste kunna ange specifika items, speciellt för bossmobs, men
-de ska även kunna droppa lite slumpmässiga saker. De borde också kunna
-tillhöra en grupp -- t.ex. alla humanoids på level 1-5 droppar leather
-armor-delar.
-
-Pathfinding
------------
-
-Pathfindingen borde kunna hantera mobs av olika storlekar, för att
-stora mobs är ganska viktigt. Det ger än annan käsla. Man kan inte ha
-drakar o.s.v. som är lika små som spelare, det håller inte.
-Pathfinding borde man dock kunna hålla ganska oberoende av resten av
-spelet, så att man kan göra nått enkelt först.
-
-Sidoeffekter, state, och deltas
--------------------------------
-
-Säg att vi har några olika funktioner i spelet, t.ex. funktioner som
-hanterar attacker, spells, o.s.v., t.ex. `attack(attacker, victim)`,
-`cast-spell(caster, target, spell)`. De ska inte ha sidoeffekter,
-d.v.s. updatera game state:et, skicka nätverksmeddelanden, o.s.v. De
-ska i stället vara pure, d.v.s. ta den data de behöver som indata, och
-returnera något resultat. De borde dock inte returnera *hela* det nya
-game statet, utan något slags delta. Om de skulle returnera hela det
-nya game state:t så skulle man inte kunna köra dem parallellt, för hur
-kombinerar man flera returnvärden (nya states) till ett nytt state?
-Operationen att "apply:a" ett delta till game state:t borde vara
-kommutativ, d.v.s. ordningen av delta:sen borde inte spela någon roll.
-T.ex. betyder det att man inte kan returnera `{:victim`\ `id
-:new-health`\ `hp}` för då blir inte appliceringen kommutativ. Man
-borde i stället returnera `{:victim`\ `id :health-change`\ `amount}`.
-Om man använder `new-health` så complectar man deltat med den gamla
-staten.
-
-Spells
-------
-
-\fraga Hur ska vi implementera spells?
-
-TCP vs. UDP, o.s.v.
--------------------
-
-Ska vi använda TCP eller UDP? Det kanske finns något bibliotek som kan
-använda UDP men har nån typ av reliability också. Vi borde undersöka
-detta lite mer. Dessutom, kan man ha flera TCP-strömmar till en klient
-för oberoende data, är det värt det?
-
 
 Referenser
 ==========
