@@ -27,18 +27,18 @@ augroup clojure_settings
   autocmd Syntax clojure syntax keyword clojureCond if
   autocmd Syntax clojure syntax keyword clojureMacro assert-args
 
-   call CljHL(fn, 'dissoc-in')
-   call CljHL(fn, 'partial\*')
-   call CljHL(fn, 'flip')
-   call CljHL(fn, 'rec==')
-   call CljHL(fn, 'fmap')
-   call CljHL(cond, 'condf')
-   call CljHL(exception, 'throw-error')
-   call CljHL(macro, 'call-update-fns')
-   call CljHL(macro, 'error-printing-future')
-   call CljHL(macro, 'start-new-thread')
-   call CljHL_only_beginning(define, 'def')
-   call CljHL_only_beginning(macro, 'with-')
+  call CljHL(fn, 'dissoc-in')
+  call CljHL(fn, 'partial\*')
+  call CljHL(fn, 'flip')
+  call CljHL(fn, 'rec==')
+  call CljHL(fn, 'fmap')
+  call CljHL(cond, 'condf')
+  call CljHL(exception, 'throw-error')
+  call CljHL(macro, 'call-update-fns')
+  call CljHL(macro, 'error-printing-future')
+  call CljHL(macro, 'start-new-thread')
+  call CljHL_only_beginning(define, 'def')
+  call CljHL_only_beginning(macro, 'with-')
 
   " Remove trailing whitespace
   autocmd BufWritePre *.clj :%s/\s\+$//e
