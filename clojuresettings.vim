@@ -5,6 +5,8 @@ let endq = ''''
 let macro = " clojureMacro "
 let fn = " clojureFunc "
 let define = " clojureDefine "
+let cond = " clojureCond "
+let exception = " clojureException "
 
 function! CljHL(type, name)
   execute g:sm . a:type . g:nsq . a:name . g:endq
@@ -30,6 +32,8 @@ augroup clojure_settings
    call CljHL(fn, 'flip')
    call CljHL(fn, 'rec==')
    call CljHL(fn, 'fmap')
+   call CljHL(cond, 'condf')
+   call CljHL(exception, 'throw-error')
    call CljHL(macro, 'call-update-fns')
    call CljHL(macro, 'error-printing-future')
    call CljHL(macro, 'start-new-thread')
@@ -43,7 +47,7 @@ augroup END
 " Indentation
 let g:clojure_fuzzy_indent = 1
 let g:clojure_fuzzy_indent_patterns = ['^with', '^def', '^let', '^while-let$',
-            \'call-update-fns', 'start-new-thread', 'take-at-least-ms']
+            \'call-update-fns', 'start-new-thread', 'take-at-least-ms', 'condf']
 let g:clojure_fuzzy_indent_blacklist = ['-fn$', '\v^with-%(meta|out-str|loading-context)$']
 let g:clojure_special_indent_words = 'deftype,defrecord,reify,proxy,extend-type,extend-protocol,letfn,deftype-'
 let g:clojure_align_multiline_strings = 1

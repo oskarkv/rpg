@@ -124,3 +124,21 @@
        (println "WARNING:" (current-thread-name)
                 "took longer than expected to execute" '~body))
      result#))
+
+(defmacro def-let [bindings]
+  (let [let-expr (macroexpand `(let ~bindings))
+        vars (filter #(not (.contains (str %) "__"))
+                     (map first (partition 2 (second let-expr))))
+        defs (map (fn [v] `(def ~v ~v)) vars)]
+    (concat let-expr defs)))
+
+(defmacro condf [obj & pairs]
+  (assert-args
+    (even? (count pairs)) "an odd number of arguments")
+  (when pairs
+    `(if (~(first pairs) ~obj)
+       ~(second pairs)
+       (condf ~obj ~@(next (next pairs))))))
+
+(defn throw-error [& msg]
+  (throw (Error. (apply str msg))))
