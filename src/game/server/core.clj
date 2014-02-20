@@ -10,7 +10,8 @@
                   [mobs :as mobs]
                   [constants :as consts])
             (game.server [pathfinding :as pf]
-                         [ai :as ai])
+                         [ai :as ai]
+                         [stats :as stats])
             [clojure.math.numeric-tower :as math])
   (:use game.utils))
 
@@ -129,30 +130,9 @@
                 {:type :death :id target :by id})]
     {:new-game-state new-game-state :event death}))
 
-(defn exp-per-mob [level]
-  (let [level (dec level)]
-    (+ 10 (* 5 level))))
-
-(defn mobs-per-level [level]
-  (let [level (dec level)]
-    (+ 10 (* 5 level) (math/round (math/expt level 1.5)))))
-
-(defn exp-to-level [level]
-  (let [level (dec level)]
-    (* (exp-per-mob level) (mobs-per-level level))))
-
-(defn exp-modifier [mob-level player-level]
-  (let [diff (- mob-level player-level)]
-    (if (< diff -10)
-      0
-      (+ 1 (* 0.1 diff)))))
-
-(defn exp-gained [mob-level player-level]
-  (* (exp-modifier mob-level player-level) (exp-per-mob mob-level)))
-
 (defn give-exp [{:keys [level exp] :as char} new-exp]
   (let [exp-sum (+ exp new-exp)
-        req-exp (exp-to-level (inc level))]
+        req-exp (stats/exp-to-level (inc level))]
     (if (> exp-sum req-exp)
       (-> char
           (update-in [:level] inc)
@@ -163,8 +143,8 @@
   (let [{:keys [damaged-by tagged-by]} mob
         total-damage (apply + (vals damaged-by))
         tagged-damage (damaged-by tagged-by)
-        all-exp (exp-gained (:level mob)
-                            (get-in game-state [:chars tagged-by :level]))
+        all-exp (stats/exp-gained (:level mob)
+                                  (get-in game-state [:chars tagged-by :level]))
         actual-exp (* all-exp (/ tagged-damage total-damage))]
     (update-in game-state [:chars tagged-by] give-exp actual-exp)))
 
