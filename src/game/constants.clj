@@ -30,4 +30,4 @@
   editor-toolbar (str editor-assets "toolbar/")
 
   ;;; TOOLBAR BUTTONS ;;;
-  spawn-button (str editor-toolbar "yellow.png"))
+  spawn-button-icon (str editor-toolbar "red.png"))

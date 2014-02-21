@@ -82,7 +82,7 @@
 
 (defmethod process-tap :target [game-state _]
   (let [id (:own-id game-state)
-        target (gfx/pick-target)]
+        target (gfx/pick-target :chars)]
     (when target
       {:new-game-state (assoc-in game-state [:chars id :target] target)
        :event {:type :target :target target}})))
