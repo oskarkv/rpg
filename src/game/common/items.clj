@@ -1,5 +1,4 @@
 (ns game.common.items
-  (:import (java.util Random))
   (:require [clojure.math.numeric-tower :as math])
   (:use game.utils
         clojure.set))
@@ -29,12 +28,6 @@
   (let [vars (repeatedly num-vars rand)
         vars-mean (/ (apply + vars) num-vars)]
     (map (adjusting-fn vars-mean mean) vars)))
-
-(let [r (Random.)]
-  (defn rand-gaussian
-    ([] (rand-gaussian 1 0))
-    ([sd] (rand-gaussian sd 0))
-    ([sd mean] (+ (* sd (.nextGaussian r)) mean))))
 
 (defn derive-many [hierarchy coll parent]
   (reduce (fn [h elem] (derive h elem parent))

@@ -1,4 +1,5 @@
-(ns game.utils)
+(ns game.utils
+  (:import java.util.Random))
 
 (defmacro assert-args [& pairs]
   `(do (when-not ~(first pairs)
@@ -124,6 +125,14 @@
        (println "WARNING:" (current-thread-name)
                 "took longer than expected to execute" '~body))
      result#))
+
+(let [r (Random.)]
+  (defn rand-gaussian
+    ([] (rand-gaussian 1 0))
+    ([sd] (rand-gaussian sd 0))
+    ([sd mean] (+ (* sd (.nextGaussian r)) mean)))
+  (defn rand-binomial [n p]
+    (apply + (repeatedly n #(if (> p (.nextDouble r)) 1 0)))))
 
 (defmacro def-let [bindings]
   (let [let-expr (macroexpand `(let ~bindings))
