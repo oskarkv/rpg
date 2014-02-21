@@ -12,5 +12,13 @@
    (let [size 5]
      (assoc-in (vectorize (partition size (repeat (* size size) 1)))
                [2 2] 0))
-   :spawns (zipmap (range) [{:pos [3 4] :respawn-time 3 :type 0}
-                            {:pos [4 3] :respawn-time 3 :type 1}])})
+   :spawns (zipmap (range)
+                   [{:pos [3 4] :respawn-time 3
+                     :mobs [{:mob {:type 0 :levels [1 2]
+                                   :drops [{:id 0 :chance 0.5}
+                                           {:id 1 :chance 0.7 :quantity 3}]}
+                             :rel-chance 2}
+                            {:mob {:type 1 :levels [1 2]
+                                   :drops [{:id 2 :chance 1}
+                                           {:id 1 :chance 0.7 :quantity 3}]}
+                             :rel-chance 1}]}])})

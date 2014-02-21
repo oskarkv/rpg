@@ -1,7 +1,10 @@
 (ns game.common.items
-  (:require [clojure.math.numeric-tower :as math])
+  (:require [clojure.math.numeric-tower :as math]
+            [game.constants :as consts])
   (:use game.utils
         clojure.set))
+
+(declare items)
 
 (def-let
   [armor-slots #{:head :face :neck :chest :back :waist :legs :feet
@@ -28,6 +31,37 @@
   (let [vars (repeatedly num-vars rand)
         vars-mean (/ (apply + vars) num-vars)]
     (map (adjusting-fn vars-mean mean) vars)))
+
+(defn random-variables->stats-factors [vars]
+  (map #(+ 1 (* consts/stats-random-part (- (* % 2) 1))) vars))
+
+(defn rolls->stats [base-stats rolls]
+  (into {} (map (fn [[stat magnitude] factor]
+                  [stat (math/round (* factor magnitude))])
+                base-stats
+                (random-variables->stats-factors rolls))))
+
+(defn roll-for-stats [{id :id :as item}]
+  (if-let [stats (get-in items [id :stats])]
+    (let [rolls (random-variables-with-mean (rand) (count stats))
+          actual-stats (rolls->stats stats rolls)]
+      (assoc item :stats actual-stats))
+    item))
+
+(defn stack [n stacksize]
+  (loop [left n stacks []]
+    (if-not (pos? left)
+      stacks
+      (let [this-stack (min stacksize left)]
+        (recur (- left this-stack) (conj stacks this-stack))))))
+
+(defn unstack [{:keys [quantity id] :as item}]
+  (let [allowed (or (get-in items [id :stackable]) 1)
+        stacks (stack (or quantity 1) allowed)]
+    (map (fn [n] (if (= 1 n)
+                   (dissoc item :quantity)
+                   (assoc item :quantity n)))
+         stacks)))
 
 (defn derive-many [hierarchy coll parent]
   (reduce (fn [h elem] (derive h elem parent))
@@ -61,7 +95,9 @@
          (for [e info]
            (condf e
              string? {:name e}
-             map? (make-stats-map e)
+             map? (if (some #{:stackable :price} (keys e))
+                    e
+                    (make-stats-map e))
              vector? {(what-kind (first e)) (set e)}
              number? {:weight e}
              types {:type e}
@@ -80,7 +116,7 @@
              (number? weight)
              (every? stats (keys item-stats))
              (contains? #{true nil false} two-hand)
-             (contains? #{true nil false} stackable)])))
+             (or (not stackable) (number? stackable))])))
 
 (defn report-item [item]
   (if (check-item item)
@@ -99,5 +135,5 @@
 
 (def items (check-items
              [(item "Leather Vest" 5 [:chest] :leather {:armor 4})
-              (item "Snake Skin" 0.1 :stackable)
+              (item "Snake Skin" 0.1 {:stackable 20})
               (item "Rusty Sword" 5 [:main-hand :off-hand])]))

@@ -2,7 +2,8 @@
   (:require [clojure.data.priority-map :as pm]
             [game.networking.core :as net]
             (game.common [core :as cc]
-                         [core-functions :as ccfns])
+                         [core-functions :as ccfns]
+                         [items :as items])
             (game.key-value-store [core :as kvs.core]
                                   [protocols :as kvs])
             (game [math :as gmath]
@@ -86,8 +87,31 @@
 
 (defmulti process-event (fn [game-state event] (:type event)))
 
+(defn roll-for-mob [mobs]
+  (let [total (apply + (map :rel-chance mobs))]
+    (reduce (fn [left mob]
+              (let [new-left (- left (:rel-chance mob))]
+                (if (neg? new-left)
+                  (reduced mob)
+                  new-left)))
+            (rand total)
+            mobs)))
+
+(defn roll-for-drops [drops]
+  (for [item drops
+        :let [q (or (:quantity item) 1)
+              actual (rand-binomial q (:chance item))]
+        :when (< 0 actual)]
+    {:id (:id item) :quantity actual}))
+
 (defn spawn-mob [spawn-id spawns]
-  (let [mob-type (-> spawn-id spawns :type mobs/mobs)]
+  (let [mob (-> spawn-id spawns :mobs roll-for-mob :mob)
+        mob-type (-> mob :type mobs/mobs)
+        [min max] (:levels mob)
+        level (+ min (rand-int (- (inc max) min)))
+        drops (roll-for-drops (:drops mob))
+        drops-with-stats (map items/roll-for-stats drops)
+        unstacked (vec (mapcat items/unstack drops-with-stats))]
     (assoc mob-type
            :type :mob
            :spawn spawn-id
@@ -96,7 +120,8 @@
            :last-attack 0
            :max-hp (:hp mob-type)
            :delay 1
-           :level 1)))
+           :level 1
+           :drops unstacked)))
 
 (defmethod process-event :spawn-ids
   [{:keys [to-spawn spawns] :as game-state} {ids :ids}]
