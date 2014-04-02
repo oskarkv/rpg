@@ -10,8 +10,42 @@
            com.jme3.renderer.queue.RenderQueue$Bucket
            com.jme3.font.BitmapText)
   (:require [game.common.core :as cc]
-            [game.constants :as consts])
+            [game.constants :as consts]
+            [clojure.set :as set])
   (:use game.utils))
+
+(defn get-collisions [objects collidables]
+  (let [results (CollisionResults.)
+        _ (.collideWith objects collidables results)]
+    results))
+
+(defn get-target-ray* [input-manager camera]
+  (let [mouse-coords (.getCursorPosition input-manager)
+        [near far] (map #(.getWorldCoordinates camera mouse-coords %) [0 1])
+        ray (Ray. near (doto far (.subtractLocal near) (.normalizeLocal)))]
+    ray))
+
+(defn get-target-coords* [input-manager camera gamemap-node]
+  (let [ray (get-target-ray* input-manager camera)
+        collisions (get-collisions gamemap-node ray)
+        collision (.getClosestCollision collisions)
+        collision-point (if collision (.getContactPoint collision))
+        pos (if collision-point
+              [(.getX collision-point) (.getY collision-point)])]
+    pos))
+
+(defn pick-target* [input-manager node camera geoms->ids]
+  (let [ray (get-target-ray* input-manager camera)
+        results (get-collisions node ray)
+        picked (loop [results results ret nil dist 1e9]
+                 (if-let [hit (first results)]
+                   (let [id (geoms->ids (.getGeometry hit))
+                         d (.getDistance hit)]
+                     (if (and id (< d dist))
+                       (recur (next results) id d)
+                       (recur (next results) ret dist)))
+                   ret))]
+    picked))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) (+ y %2) 0)
@@ -57,17 +91,8 @@
                           height)
     text))
 
-(defn create-character-geom [color asset-manager]
-  (let [mat (doto (Material. asset-manager "Common/MatDefs/Misc/Unshaded.j3md")
-              (.setColor "Color" color))
-        r consts/player-radius
-        box (Box. (Vector3f. 0 0 r) r r r)
-        geom (doto (Geometry. "character-geom" box)
-               (.setMaterial mat))]
-    geom))
-
 (defn create-geom [assets type]
-  (doto (Geometry. "character-geom" (get-in assets [:meshes type]))
+  (doto (Geometry. (str type "-geom") (get-in assets [:meshes type]))
     (.setMaterial (get-in assets [:materials type]))))
 
 (defn new-group-node [name & children]
@@ -76,14 +101,8 @@
       (.attachChild parent child))
     parent))
 
-(defn update-object [old-object object]
-  (let [[x y] (:pos object)
-        z (.getZ (.getLocalTranslation old-object))]
-    (.setLocalTranslation old-object x y z)
-    old-object))
-
 (defn create-character-node [assets character]
-  (let [geom (create-geom assets :player)
+  (let [geom (create-geom assets (:type character))
         name-text (create-character-name-text
                     (:name character) 1 (:font assets))
         node (new-group-node (:name character) geom name-text)]
@@ -93,73 +112,52 @@
   (let [geom (create-geom assets :spawn)]
     {:geom geom :node geom}))
 
+(defn update-object [old-object object]
+  (let [[x y] (:pos object)
+        z (.getZ (.getLocalTranslation old-object))]
+    (.setLocalTranslation old-object x y z)
+    old-object))
+
 (defn portray-object
-  [spatial type-node game-object assets create-fn update-fn]
-  (if spatial
-    {:node (update-fn spatial game-object)}
-    (let [{:keys [node geom]} (create-fn assets game-object)]
-      (.attachChild type-node node)
-      {:geom geom :node (update-fn node game-object)})))
+  [existing-object game-object create-fn update-fn]
+  (let [object (or existing-object (create-fn game-object))]
+    (update-in object [:node] update-fn game-object)))
 
 (defn portray-objects
-  [objects ids->objects type-node assets create-fn update-fn]
-  (for [[id object] objects]
-    [id (portray-object (@ids->objects id) type-node object
-                        assets create-fn update-fn)]))
+  [game-objects ids->objects create-fn update-fn]
+  (for [[id game-object] game-objects]
+    [id (portray-object (@ids->objects id) game-object create-fn update-fn)]))
 
 (defn update-object-maps [ids->objects geoms->ids ids-and-objects]
-  (let [get-id-node (fn [[id map]] (if-let [node (:node map)] [id node]))
-        get-geom-id (fn [[id map]] (if-let [geom (:geom map)] [geom id]))
-        ids->objects-addition
-        (into {} (map get-id-node ids-and-objects))
-        geoms->ids-addition
-        (into {} (map get-geom-id ids-and-objects))]
-    (swap! ids->objects merge ids->objects-addition)
-    (swap! geoms->ids merge geoms->ids-addition)))
+  (let [get-geom-id (fn [[id obj]] [(:geom obj) id])]
+    (reset! ids->objects (into {} ids-and-objects))
+    (reset! geoms->ids (into {} (map get-geom-id ids-and-objects)))))
 
-(defn get-collisions [objects collidables]
-  (let [results (CollisionResults.)
-        _ (.collideWith objects collidables results)]
-    results))
-
-(defn get-target-ray* [input-manager camera]
-  (let [mouse-coords (.getCursorPosition input-manager)
-        [near far] (map #(.getWorldCoordinates camera mouse-coords %) [0 1])
-        ray (Ray. near (doto far (.subtractLocal near) (.normalizeLocal)))]
-    ray))
-
-(defn get-target-coords* [input-manager camera gamemap-node]
-  (let [ray (get-target-ray* input-manager camera)
-        collisions (get-collisions gamemap-node ray)
-        collision (.getClosestCollision collisions)
-        collision-point (if collision (.getContactPoint collision))
-        pos (if collision-point
-              [(.getX collision-point) (.getY collision-point)])]
-    pos))
-
-(defn pick-target** [input-manager node camera geoms->ids]
-  (let [ray (get-target-ray* input-manager camera)
-        results (get-collisions node ray)
-        picked (loop [results results ret nil dist 1e9]
-                 (if-let [hit (first results)]
-                   (let [id (geoms->ids (.getGeometry hit))
-                         d (.getDistance hit)]
-                     (println "PICKED:" id d)
-                     (if (and id (< d dist))
-                       (recur (next results) id d)
-                       (recur (next results) ret dist)))
-                   ret))]
-    picked))
-
-(defn pick-target* [input-manager nodes camera geoms->ids type]
-  (let [pick-target
-        (fn [node]
-          (when-let [id (pick-target** input-manager (node nodes)
-                                       camera geoms->ids)]
-            {:type node :id id}))]
-    (if (seq? (type nodes))
-      (some pick-target (type nodes))
-      (:id (pick-target type)))))
+(deftype GraphicsSystem
+  [nodes ids->objects geoms->ids game-map assets]
+  cc/Lifecycle
+  (start [this]
+    (portray-game-map assets (:gamemap nodes) game-map)
+    (fmap #(.attachChild (:root-node nodes) %) (dissoc nodes :root-node)))
+  (stop [this])
+  cc/Updatable
+  (update [this game-state]
+    ;;; Not all object types exist in both editor and client.
+    (.detachAllChildren (:chars nodes))
+    (.detachAllChildren (:spawns nodes))
+    (let [portray (fn [objects creation-fn]
+                    (portray-objects objects ids->objects creation-fn
+                                     update-object))
+          chars (portray (:chars game-state) #(create-character-node assets %))
+          spawns (portray (get-in game-state [:game-map :spawns])
+                          #(create-spawn-node assets %))
+          attach-objects (fn [id-objs node]
+                           (doseq [[id obj] id-objs]
+                             (.attachChild node (:node obj))))]
+      (clojure.pprint/pprint chars) (clojure.pprint/pprint spawns)
+      (attach-objects chars (:chars nodes))
+      (attach-objects spawns (:spawns nodes))
+      (update-object-maps ids->objects geoms->ids (concat chars spawns)))))
 
 (defn create-mother-material [asset-manager]
   (Material. asset-manager "Common/MatDefs/Misc/Unshaded.j3md"))
@@ -183,49 +181,30 @@
             (.loadTexture asset-manager tex))]
     {:ground (load-texture "test_ground.jpg")}))
 
-(defn create-mesh-map []
+(defn create-mesh-map [asset-manager]
   {:player (Box. (Vector3f. 0 0 0.3) 0.3 0.3 0.3)
    :mob (Box. (Vector3f. 0 0 0.3) 0.3 0.3 0.3)
    :spawn (Box. (Vector3f. 0 0 0.1) 0.3 0.3 0.1)})
 
-(deftype GraphicsSystem
-  [nodes ids->objects geoms->ids game-map assets]
-  cc/Lifecycle
-  (start [this]
-    (portray-game-map assets (:gamemap-node nodes) game-map)
-    (fmap #(.attachChild (:root-node nodes) %) (dissoc nodes :root-node)))
-  (stop [this])
-  cc/Updatable
-  (update [this game-state]
-    ;;; Not all object types exist in both editor and client.
-    (let [create-fns {:chars create-character-node
-                      :spawns create-spawn-node}
-          portray (fn [objects type node]
-                    (portray-objects objects ids->objects node assets
-                                     (create-fns type) update-object))
-          chars (portray (:chars game-state) :chars (:characters-node nodes))
-          objects (concat (portray (get-in game-state [:game-map :spawns])
-                                   :spawns (:spawns-node nodes))
-                          chars)]
-      (update-object-maps ids->objects geoms->ids objects))))
 
 (defn init-graphics-system [app game-map]
   (let [root-node (.getRootNode app)
         characters-node (Node. "characters-node")
         gamemap-node (Node. "gamemap-node")
         spawns-node (Node. "spawns-node")
-        gamestate-to-node {:chars :characters-node
-                           :spawns :spawns-node}
-        nodes {:characters-node characters-node
-               :gamemap-node gamemap-node
-               :spawns-node spawns-node
+        nodes {:chars characters-node
+               :player characters-node
+               :mob characters-node
+               :spawns spawns-node
+               :gamemap gamemap-node
                :root-node root-node}
         input-manager (.getInputManager app)
         asset-manager (doto (.getAssetManager app)
                         (.registerLocator "assets" FileLocator))
         camera (.getCamera app)
+        ids->objects (atom {})
         geoms->ids (atom {})
-        meshes (create-mesh-map)
+        meshes (create-mesh-map asset-manager)
         mother-material (create-mother-material asset-manager)
         textures (create-texture-map asset-manager)
         materials (create-material-map mother-material textures)
@@ -233,11 +212,9 @@
         assets {:meshes meshes :mother-material mother-material
                 :textures textures :materials materials :font font}]
     (defn pick-target [type]
-      (pick-target* input-manager nodes camera
-                    @geoms->ids (type gamestate-to-node)))
+      (pick-target* input-manager (type nodes) camera @geoms->ids))
     (defn get-target-ray []
       (get-target-ray* input-manager camera))
     (defn get-target-coords []
-      (get-target-coords* input-manager camera (:gamemap-node nodes)))
-    (->GraphicsSystem
-      nodes (atom {}) geoms->ids game-map assets)))
+      (get-target-coords* input-manager camera (:gamemap nodes)))
+    (->GraphicsSystem nodes ids->objects geoms->ids game-map assets)))
