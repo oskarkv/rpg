@@ -44,7 +44,7 @@
 (defn create-tool-bar [game-state-atom]
   (let [tool-bar (JToolBar. (JToolBar/VERTICAL))
         spawn-button
-        (JButton. (ImageIcon. (str consts/spawn-button)))
+        (JButton. (ImageIcon. (str consts/spawn-button-icon)))
         b2 (JButton. (ImageIcon. (str consts/editor-toolbar "red.png")))
         b3 (JButton. (ImageIcon. (str consts/editor-toolbar "blue.png")))
         b4 (JButton. (ImageIcon. (str consts/editor-toolbar "green.png")))]
