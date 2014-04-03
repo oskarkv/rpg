@@ -112,21 +112,16 @@
   (let [geom (create-geom assets :spawn)]
     {:geom geom :node geom}))
 
-(defn update-object [old-object object]
-  (let [[x y] (:pos object)
-        z (.getZ (.getLocalTranslation old-object))]
-    (.setLocalTranslation old-object x y z)
+(defn update-object [old-object game-object]
+  (let [[x y] (:pos game-object)
+        z (.getZ (.getLocalTranslation (:node old-object)))]
+    (.setLocalTranslation (:node old-object) x y z)
     old-object))
 
-(defn portray-object
-  [existing-object game-object create-fn update-fn]
-  (let [object (or existing-object (create-fn game-object))]
-    (update-in object [:node] update-fn game-object)))
-
-(defn portray-objects
-  [game-objects ids->objects create-fn update-fn]
-  (for [[id game-object] game-objects]
-    [id (portray-object (@ids->objects id) game-object create-fn update-fn)]))
+(defn get-graphics-object [[id game-object] ids->objects create-fn update?]
+  (let [update #(update-object % game-object)]
+    [id (or (some-> (ids->objects id) (cond-> update? update))
+            (update (create-fn game-object)))]))
 
 (defn update-object-maps [ids->objects geoms->ids ids-and-objects]
   (let [get-geom-id (fn [[id obj]] [(:geom obj) id])]
@@ -143,23 +138,23 @@
   cc/Updatable
   (update [this game-state]
     ;;; Not all object types exist in both editor and client.
-    (.detachAllChildren (:chars nodes))
-    (.detachAllChildren (:spawns nodes))
-    (.detachAllChildren (:corpses nodes))
-    (let [portray (fn [objects creation-fn]
-                    (portray-objects objects ids->objects creation-fn
-                                     update-object))
+    (let [get-maker (fn [create-fn update?]
+                      #(get-graphics-object % @ids->objects create-fn update?))
           create-char #(create-character-node assets %)
-          chars (portray (:chars game-state) create-char)
-          spawns (portray (get-in game-state [:game-map :spawns])
-                          #(create-spawn-node assets %))
-          corpses (portray (:corpses game-state) create-char)
+          create-spawn #(create-spawn-node assets %)
+          get-char (get-maker create-char true)
+          get-spawn (get-maker create-spawn true)
+          get-corpse (get-maker create-char false)
+          chars (map get-char (:chars game-state))
+          spawns (map get-spawn (get-in game-state [:game-map :spawns]))
+          corpses (map get-char (:corpses game-state))
           attach-objects (fn [id-objs node]
                            (doseq [[id obj] id-objs]
-                             (.attachChild node (:node obj))))]
-      (attach-objects chars (:chars nodes))
-      (attach-objects spawns (:spawns nodes))
-      (attach-objects corpses (:corpses nodes))
+                             (.attachChild node (:node obj))))
+          reattach (fn [k objs]
+                     (.detachAllChildren (k nodes))
+                     (attach-objects objs (k nodes)))]
+      (dorun (map reattach [:chars :spawns :corpses] [chars spawns corpses]))
       (update-object-maps ids->objects geoms->ids
                           (concat chars spawns corpses)))))
 
