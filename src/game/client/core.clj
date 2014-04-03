@@ -35,6 +35,9 @@
 (defmethod process-msg :s-char-death [game-state {:keys [id]}]
   {:new-game-state (dissoc-in game-state [:chars id])})
 
+(defmethod process-msg :s-spawn-corpse [game-state {:keys [id-corpse]}]
+  {:new-game-state (update-in game-state [:corpses] conj id-corpse)})
+
 (defmethod process-msg :s-spawn-player [game-state {:keys [id-char]}]
   {:new-game-state (update-in game-state [:chars] conj id-char)})
 
@@ -43,6 +46,9 @@
 
 (defmethod process-msg :s-spawn-mobs [game-state {:keys [mobs]}]
   {:new-game-state (update-in game-state [:chars] merge mobs)})
+
+(defmethod process-msg :s-decay-corpses [game-state {:keys [ids]}]
+  {:new-game-state (update-in game-state [:corpses] #(apply dissoc % ids))})
 
 (defmethod process-msg :default [game-state msg]
   {:new-game-state game-state})
@@ -245,7 +251,7 @@
         (reset! stop? true)))))
 
 (defn init-client [address port headless]
-  (let [game-state-atom (atom (dissoc (gmap/load-game-map) :spawns))
+  (let [game-state-atom (-> (gmap/load-game-map) (dissoc :spawns) atom)
         {:keys [net-sys get-msg send-msg]}
         (net/construct-client-net-sys address port
                                       cc/connect-msg

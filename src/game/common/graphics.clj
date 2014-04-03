@@ -145,19 +145,23 @@
     ;;; Not all object types exist in both editor and client.
     (.detachAllChildren (:chars nodes))
     (.detachAllChildren (:spawns nodes))
+    (.detachAllChildren (:corpses nodes))
     (let [portray (fn [objects creation-fn]
                     (portray-objects objects ids->objects creation-fn
                                      update-object))
-          chars (portray (:chars game-state) #(create-character-node assets %))
+          create-char #(create-character-node assets %)
+          chars (portray (:chars game-state) create-char)
           spawns (portray (get-in game-state [:game-map :spawns])
                           #(create-spawn-node assets %))
+          corpses (portray (:corpses game-state) create-char)
           attach-objects (fn [id-objs node]
                            (doseq [[id obj] id-objs]
                              (.attachChild node (:node obj))))]
-      (clojure.pprint/pprint chars) (clojure.pprint/pprint spawns)
       (attach-objects chars (:chars nodes))
       (attach-objects spawns (:spawns nodes))
-      (update-object-maps ids->objects geoms->ids (concat chars spawns)))))
+      (attach-objects corpses (:corpses nodes))
+      (update-object-maps ids->objects geoms->ids
+                          (concat chars spawns corpses)))))
 
 (defn create-mother-material [asset-manager]
   (Material. asset-manager "Common/MatDefs/Misc/Unshaded.j3md"))
@@ -192,10 +196,12 @@
         characters-node (Node. "characters-node")
         gamemap-node (Node. "gamemap-node")
         spawns-node (Node. "spawns-node")
+        corpses-node (Node. "corpses-node")
         nodes {:chars characters-node
                :player characters-node
                :mob characters-node
                :spawns spawns-node
+               :corpses corpses-node
                :gamemap gamemap-node
                :root-node root-node}
         input-manager (.getInputManager app)

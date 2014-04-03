@@ -20,7 +20,9 @@
    :s-own-id [:id]
    :s-spawn-mobs [:mobs]
    :s-char-death [:id]
-   :s-spawn-player [:id-char]})
+   :s-spawn-player [:id-char]
+   :s-spawn-corpse [:id-corpse]
+   :s-decay-corpses [:ids]})
 
 (let [types (-> (keys type->keys) sort)]
   (def type->int (zipmap types (range)))

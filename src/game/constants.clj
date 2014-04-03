@@ -15,6 +15,7 @@
   a*-heuristic-factor 1.2
   player-radius 0.3
   stats-random-part 0.1
+  corpse-decay-time 3000 ;ms
   ;;; GRAPHICS
   resolution-x 1024
   resolution-y 768
