@@ -38,12 +38,12 @@
         (stop-fn this)))
     app))
 
-(defn process-taps [state taps process-tap]
-  (loop [[tap & more] taps state state events []]
+(defn process-taps [game-state taps process-tap]
+  (loop [[tap & more] taps game-state game-state events []]
     (if tap
-      (let [{:keys [new-game-state event]} (process-tap state tap)]
-        (recur more (or new-game-state state) (conj events event)))
-      {:new-game-state state
+      (let [{:keys [new-game-state event]} (process-tap game-state tap)]
+        (recur more (or new-game-state game-state) (conj events event)))
+      {:new-game-state game-state
        :events (remove nil? events)})))
 
 (defn process-player-input [game-state key-state process-tap]
