@@ -47,9 +47,7 @@
        :events (remove nil? events)})))
 
 (defn process-player-input [game-state key-state process-tap]
-  (let [{:keys [new-game-state events]}
-        (process-taps game-state (:taps key-state) process-tap)]
-    {:new-game-state new-game-state :events events}))
+  (process-taps game-state (:taps key-state) process-tap))
 
 (defmacro call-update-fns [game-state events & calls]
   (with-gensyms [new-game-state new-events new-event]
