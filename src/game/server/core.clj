@@ -209,7 +209,6 @@
        (update-in [:corpses] assoc corpse-id corpse))}))
 
 (defmethod process-event :decay-corpses [game-state {:keys [ids]}]
-  (println "decaying" ids)
   {:new-game-state
    (update-in game-state [:corpses] #(apply dissoc % ids))})
 
