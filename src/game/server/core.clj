@@ -388,19 +388,23 @@
                  (reduce conj new-events events)))
         {:new-game-state game-state :new-events new-events}))))
 
+(defn send-msgs [sender-fn game-state events]
+  (doseq [[ids msg] (mapcat #(produce-client-msgs game-state %) events)]
+    (sender-fn ids msg)))
+
 (defn main-update [game-state {:keys [send-msg] :as net-map} key-value-store]
   (let [{:keys [new-game-state events]}
-        (ccfns/call-update-fns game-state []
+        (ccfns/call-update-fns game-state [] #(send-msgs send-msg % %2)
           (process-network-msgs net-map key-value-store)
-          (check-spawns)
-          (check-corpses)
           (ccfns/calculate-move-time-delta)
           (move-players)
           (ai/decide-mob-actions)
           (ai/decide-mob-paths)
           (move-mobs)
           (check-if-moved)
-          (let-chars-attack))
+          (let-chars-attack)
+          (check-spawns)
+          (check-corpses))
         {:keys [new-events new-game-state]} (process-events new-game-state
                                                             events)
         all-events (concat events new-events)

@@ -196,7 +196,7 @@
         (fn []
           (Thread/sleep 1)
           (let [{:keys [new-game-state events]}
-                (ccfns/call-update-fns @game-state-atom []
+                (ccfns/call-update-fns @game-state-atom [] nil
                   (process-player-input @key-state-atom)
                   (process-network-msgs net-map)
                   (ccfns/calculate-move-time-delta)

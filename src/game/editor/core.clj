@@ -76,7 +76,7 @@
         (fn []
           (Thread/sleep 50)
           (let [{:keys [new-game-state events]}
-                (ccfns/call-update-fns @game-state-atom []
+                (ccfns/call-update-fns @game-state-atom [] nil
                   (process-player-input @key-state-atom)
                   (process-event-caller key-value-store))]
             (cmn-input/empty-taps key-state-atom)

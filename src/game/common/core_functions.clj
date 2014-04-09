@@ -49,19 +49,24 @@
 (defn process-player-input [game-state key-state process-tap]
   (process-taps game-state (:taps key-state) process-tap))
 
-(defmacro call-update-fns [game-state events & calls]
-  (with-gensyms [new-game-state new-events new-event]
+(defn complete-return-map [game-state result]
+  (let [{:keys [new-game-state events event]} result
+        events (if event (conj events event) events)
+        new-game-state (or new-game-state game-state)]
+    {:new-game-state new-game-state :events events}))
+
+(defmacro call-update-fns [game-state events hook-fn & calls]
+  (with-gensyms [new-game-state new-events all-events]
     (if (seq calls)
-      `(let [{~new-game-state :new-game-state
-              ~new-events :events
-              ~new-event :event}
-             (-> ~game-state ~(first calls))
-             ~new-game-state (or ~new-game-state ~game-state)
-             ~new-events (concat ~events ~new-events)
-             ~new-events (if ~new-event
-                           (conj ~new-events ~new-event)
-                           ~new-events)]
-         (call-update-fns ~new-game-state ~new-events ~@(rest calls)))
+      `(let [{~new-game-state :new-game-state ~new-events :events}
+             (complete-return-map ~game-state (-> ~game-state ~(first calls)))
+             ~all-events (concat ~events ~new-events)
+             ~@(when hook-fn
+                 `[{~new-game-state :new-game-state ~new-events :events}
+                   (complete-return-map ~new-game-state
+                                        (~hook-fn ~new-game-state ~new-events))
+                   ~all-events (concat ~events ~new-events)])]
+         (call-update-fns ~new-game-state ~all-events ~hook-fn ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
 (defn calculate-move-time-delta [{:keys [last-move] :as game-state}]
