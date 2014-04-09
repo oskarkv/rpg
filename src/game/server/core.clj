@@ -350,8 +350,7 @@
   (> (current-time-ms) (+ last-attack (* 1000 delay))))
 
 (defn close-enough? [game-state attacker-id target-id]
-  (let [curr-time (current-time-ms)
-        get-pos (fn [id] (get-in game-state [:chars id :pos]))
+  (let [get-pos (fn [id] (get-in game-state [:chars id :pos]))
         attacker-pos (get-pos attacker-id)
         target-pos (get-pos target-id)]
     (> consts/attack-distance (gmath/distance attacker-pos target-pos))))
