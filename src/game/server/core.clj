@@ -387,13 +387,17 @@
                  (reduce conj new-events events)))
         {:new-game-state game-state :new-events new-events}))))
 
-(defn send-msgs [sender-fn game-state events]
-  (doseq [[ids msg] (mapcat #(produce-client-msgs game-state %) events)]
-    (sender-fn ids msg)))
+(defn process-and-send [sender-fn game-state events]
+  (let [{:keys [new-game-state new-events]} (process-events game-state events)]
+    (doseq [[ids msg] (mapcat #(produce-client-msgs new-game-state %)
+                              (concat events new-events))]
+      (sender-fn ids msg))
+    {:new-game-state new-game-state :events new-events}))
 
 (defn main-update [game-state {:keys [send-msg] :as net-map} key-value-store]
-  (let [{:keys [new-game-state events]}
-        (ccfns/call-update-fns game-state [] #(send-msgs send-msg % %2)
+  (let [send-fn #(process-and-send send-msg % %2)
+        {:keys [new-game-state events]}
+        (ccfns/call-update-fns game-state [] send-fn
           (process-network-msgs net-map key-value-store)
           (ccfns/calculate-move-time-delta)
           (move-players)
@@ -403,14 +407,7 @@
           (check-if-moved)
           (let-chars-attack)
           (check-spawns)
-          (check-corpses))
-        {:keys [new-events new-game-state]} (process-events new-game-state
-                                                            events)
-        all-events (concat events new-events)
-        to-client-msgs (mapcat (partial produce-client-msgs new-game-state)
-                               all-events)]
-    (doseq [[ids to-client-msg] to-client-msgs]
-      (send-msg ids to-client-msg))
+          (check-corpses))]
     new-game-state))
 
 (defrecord Server [net-map key-value-store game-state stop?]
