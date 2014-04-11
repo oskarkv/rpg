@@ -62,8 +62,7 @@
 (defmethod process-msg-purely :c-target [game-state {:keys [id target]}]
   {:new-game-state (assoc-in game-state [:chars id :target] target)})
 
-(defmethod process-msg-purely :default [game-state _]
-  {:new-game-state game-state})
+(defmethod process-msg-purely :default [game-state _])
 
 (defmulti process-msg (fn [game-state msg key-value-store] (:type msg)))
 
@@ -76,11 +75,9 @@
                          (update-in [:player-ids] conj id))
      :event {:type :login :id id}}))
 
-(defmethod process-msg :connect [game-state _ _]
-  {:new-game-state game-state})
+(defmethod process-msg :connect [game-state _ _])
 
-(defmethod process-msg :disconnect [game-state _ _]
-  {:new-game-state game-state})
+(defmethod process-msg :disconnect [game-state _ _])
 
 (defmethod process-msg :default [game-state msg _]
   (process-msg-purely game-state msg))

@@ -50,8 +50,7 @@
 (defmethod process-msg :s-decay-corpses [game-state {:keys [ids]}]
   {:new-game-state (update-in game-state [:corpses] #(apply dissoc % ids))})
 
-(defmethod process-msg :default [game-state msg]
-  {:new-game-state game-state})
+(defmethod process-msg :default [game-state msg])
 
 (defmulti produce-server-msg (fn [_ event] (:type event)))
 

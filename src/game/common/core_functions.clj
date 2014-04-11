@@ -18,7 +18,8 @@
   (loop [msg (get-msg) game-state game-state events []]
     (if msg
       (let [{:keys [new-game-state event]}
-            (apply process-fn game-state msg process-args)]
+            (apply process-fn game-state msg process-args)
+            new-game-state (or new-game-state game-state)]
         (recur (get-msg) new-game-state (conj events event)))
       {:new-game-state game-state :events (remove nil? events)})))
 
