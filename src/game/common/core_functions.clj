@@ -84,3 +84,10 @@
     (if (> dp 0)
       (assoc char :pos updated-pos)
       (assoc char :pos target-pos))))
+
+(defn close-enough? [game-state id-1 id-2 limit]
+  (let [get-pos (fn [id] (or (get-in game-state [:chars id :pos])
+                             (get-in game-state [:corpses id :pos])))
+        pos-1 (get-pos id-1)
+        pos-2 (get-pos id-2)]
+    (> limit (math/distance pos-1 pos-2))))

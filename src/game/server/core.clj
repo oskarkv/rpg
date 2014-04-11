@@ -346,12 +346,6 @@
 (defn cooled-down? [{:keys [last-attack delay]}]
   (> (current-time-ms) (+ last-attack (* 1000 delay))))
 
-(defn close-enough? [game-state attacker-id target-id]
-  (let [get-pos (fn [id] (get-in game-state [:chars id :pos]))
-        attacker-pos (get-pos attacker-id)
-        target-pos (get-pos target-id)]
-    (> consts/attack-distance (gmath/distance attacker-pos target-pos))))
-
 (defn calculate-new-last-attack [{:keys [last-attack delay]}]
   (let [curr-time (current-time-ms)]
     (if (> (+ last-attack (* 1000 (+ delay consts/attack-delay-leeway)))
@@ -365,7 +359,8 @@
           (when (and attacking target
                      (cooled-down? char)
                      (get-in game-state [:chars target])
-                     (close-enough? game-state id target))
+                     (ccfns/close-enough? game-state id target
+                                          consts/attack-distance))
             {:id id :type :attack :target target :damage dmg
              :last-attack (calculate-new-last-attack char)}))]
     {:events (remove nil? (map generate-attack-event (:chars game-state)))}))
