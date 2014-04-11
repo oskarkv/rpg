@@ -50,6 +50,8 @@
 (defmethod process-msg :s-decay-corpses [game-state {:keys [ids]}]
   {:new-game-state (update-in game-state [:corpses] #(apply dissoc % ids))})
 
+(defmethod process-msg :s-loot [game-state {:keys [drops]}])
+
 (defmethod process-msg :default [game-state msg])
 
 (defmulti produce-server-msg (fn [_ event] (:type event)))
@@ -66,6 +68,11 @@
 
 (defmethod produce-server-msg :target [game-state event]
   (assoc event :type :c-target))
+
+(defmethod produce-server-msg :loot [{:keys [own-id] :as game-state} event]
+  (when (ccfns/close-enough? game-state own-id (:corpse event)
+                             consts/loot-distance)
+    (assoc event :type :c-loot-corpse)))
 
 (defn process-network-msgs [game-state net-map]
   (ccfns/process-network-msgs game-state net-map process-msg))
@@ -91,6 +98,10 @@
     (when target
       {:new-game-state (assoc-in game-state [:chars id :target] target)
        :event {:type :target :target target}})))
+
+(defmethod process-tap :loot [game-state _]
+  (when-let [corpse (gfx/pick-target :corpses)]
+    {:event {:type :loot :corpse corpse}}))
 
 (defn process-player-input [game-state key-state]
   (let [id (:own-id game-state)

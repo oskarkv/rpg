@@ -62,6 +62,10 @@
 (defmethod process-msg-purely :c-target [game-state {:keys [id target]}]
   {:new-game-state (assoc-in game-state [:chars id :target] target)})
 
+(defmethod process-msg-purely :c-loot-corpse [game-state {:keys [id corpse]}]
+  (when (ccfns/close-enough? game-state id corpse consts/loot-distance)
+    {:event {:type :loot-corpse :id id :corpse corpse}}))
+
 (defmethod process-msg-purely :default [game-state _])
 
 (defmulti process-msg (fn [game-state msg key-value-store] (:type msg)))
@@ -274,6 +278,9 @@
 
 (defmethod produce-client-msgs :decay-corpses [game-state {:keys [ids]}]
   [[(:player-ids game-state) {:type :s-decay-corpses :ids ids}]])
+
+(defmethod produce-client-msgs :loot-corpse [game-state {:keys [id corpse]}]
+  [[[id] {:type :s-loot :drops (get-in game-state [:corpses corpse :drops])}]])
 
 (defmethod produce-client-msgs :default [_ _]
   nil)

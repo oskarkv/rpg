@@ -10,12 +10,13 @@
 (defconstants
   ;;; GAME
   attack-distance 1
+  loot-distance 1
   attack-delay-leeway 0.3
   attack-nearest-threshold 3
   a*-heuristic-factor 1.2
   player-radius 0.3
   stats-random-part 0.1
-  corpse-decay-time 3000 ;ms
+  corpse-decay-time 10000 ;ms
   ;;; GRAPHICS
   resolution-x 1024
   resolution-y 768

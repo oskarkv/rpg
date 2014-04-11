@@ -13,6 +13,7 @@
    :c-move [:pos :move-dir]
    :c-target [:target]
    :c-toggle-attack []
+   :c-loot-corpse [:corpse]
    :s-attack [:target :damage]
    :s-game-state [:game-state]
    :s-login [:id :player]
@@ -22,6 +23,7 @@
    :s-char-death [:id]
    :s-spawn-player [:id-char]
    :s-spawn-corpse [:id-corpse]
+   :s-loot [:drops]
    :s-decay-corpses [:ids]})
 
 (let [types (-> (keys type->keys) sort)]
