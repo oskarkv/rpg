@@ -15,8 +15,8 @@
   (:use game.utils))
 
 (defn get-collisions [objects collidables]
-  (let [results (CollisionResults.)
-        _ (.collideWith objects collidables results)]
+  (let [results (CollisionResults.)]
+    (.collideWith objects collidables results)
     results))
 
 (defn get-target-ray* [input-manager camera]
