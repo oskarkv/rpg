@@ -36,16 +36,8 @@
 
 (defn pick-target* [input-manager node camera geoms->ids]
   (let [ray (get-target-ray* input-manager camera)
-        results (get-collisions node ray)
-        picked (loop [results results ret nil dist 1e9]
-                 (if-let [hit (first results)]
-                   (let [id (geoms->ids (.getGeometry hit))
-                         d (.getDistance hit)]
-                     (if (and id (< d dist))
-                       (recur (next results) id d)
-                       (recur (next results) ret dist)))
-                   ret))]
-    picked))
+        results (get-collisions node ray)]
+    (some-> results .getClosestCollision .getGeometry geoms->ids)))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) (+ y %2) 0)
