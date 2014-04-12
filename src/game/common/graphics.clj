@@ -26,13 +26,11 @@
     ray))
 
 (defn get-target-coords* [input-manager camera gamemap-node]
-  (let [ray (get-target-ray* input-manager camera)
-        collisions (get-collisions gamemap-node ray)
-        collision (.getClosestCollision collisions)
-        collision-point (if collision (.getContactPoint collision))
-        pos (if collision-point
-              [(.getX collision-point) (.getY collision-point)])]
-    pos))
+  (let [ray (get-target-ray* input-manager camera)]
+    (some-> (get-collisions gamemap-node ray)
+            .getClosestCollision
+            .getContactPoint
+            (juxt #(.getX %) #(.getY %)))))
 
 (defn pick-target* [input-manager node camera geoms->ids]
   (let [ray (get-target-ray* input-manager camera)
