@@ -21,9 +21,8 @@
 
 (defn get-target-ray* [input-manager camera]
   (let [mouse-coords (.getCursorPosition input-manager)
-        [near far] (map #(.getWorldCoordinates camera mouse-coords %) [0 1])
-        ray (Ray. near (doto far (.subtractLocal near) (.normalizeLocal)))]
-    ray))
+        [near far] (map #(.getWorldCoordinates camera mouse-coords %) [0 1])]
+    (Ray. near (doto far (.subtractLocal near) (.normalizeLocal)))))
 
 (defn get-target-coords* [input-manager camera gamemap-node]
   (let [ray (get-target-ray* input-manager camera)]
