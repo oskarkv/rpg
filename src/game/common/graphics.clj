@@ -44,7 +44,6 @@
                     [0 1 0 1] [0 0 1 1])})
 
 (defn portray-game-map [assets gamemap-node game-map]
-  (println game-map)
   (let [w (count game-map)
         h (count (first game-map))
         quads (for [x (range w) y (range h)]
