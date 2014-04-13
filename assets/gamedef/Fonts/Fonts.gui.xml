@@ -2,7 +2,7 @@
 <root>
 	<element name="Font">
 		<font>
-			<property name="defaultFont" type="String" value="gamedef/Fonts/Default.fnt" />
+			<property name="defaultFont" type="String" value="gamedef/Fonts/tonegodGUI.fnt" />
 		</font>
 		<attributes></attributes>
 		<images></images>

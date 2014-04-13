@@ -32,7 +32,7 @@
 
 (defn init-hud-system [app]
   (let [gui-node (.getGuiNode app)
-        screen (Screen. app "gamedef/style_map.xml")
+        screen (Screen. app "gamedef/style_map.gui.xml")
         pw consts/portrait-width
         ph consts/portrait-height
         ry consts/resolution-y

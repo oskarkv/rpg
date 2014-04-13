@@ -20,6 +20,7 @@
 		</attributes>
 		<images>
 			<property name="blankImg" type="String" value="gamedef/Blank.png" />
+			<property name="whiteImg" type="String" value="gamedef/whiteImg.png" />
 			<property name="arrowUp" type="String" value="gamedef/Common/Arrows/arrow_up.png" />
 			<property name="arrowDown" type="String" value="gamedef/Common/Arrows/arrow_down.png" />
 			<property name="arrowLeft" type="String" value="gamedef/Common/Arrows/arrow_left.png" />
