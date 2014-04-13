@@ -4,6 +4,7 @@
            (com.jme3.scene Geometry Mesh VertexBuffer VertexBuffer$Type Node)
            (com.jme3.scene.control BillboardControl BillboardControl$Alignment)
            com.jme3.scene.shape.Box
+           com.jme3.input.ChaseCamera
            com.jme3.collision.CollisionResults
            com.jme3.util.BufferUtils
            com.jme3.material.Material
@@ -175,6 +176,10 @@
    :mob (Box. (Vector3f. 0 0.3 0) 0.3 0.3 0.3)
    :spawn (Box. (Vector3f. 0 0.1 0) 0.3 0.3 0.1)})
 
+(defn set-up-camera* [ids->objects camera input-manager game-state]
+  (let [own-object (-> game-state :own-id ids->objects :node)]
+    (doto (ChaseCamera. camera own-object input-manager)
+      (.setInvertVerticalAxis true))))
 
 (defn init-graphics-system [app game-map]
   (let [root-node (.getRootNode app)
@@ -208,4 +213,6 @@
       (get-target-ray* input-manager camera))
     (defn get-target-coords []
       (get-target-coords* input-manager camera (:gamemap nodes)))
+    (defn set-up-camera [game-state]
+      (set-up-camera* @ids->objects (.getCamera app) input-manager game-state))
     (->GraphicsSystem nodes ids->objects geoms->ids game-map assets)))

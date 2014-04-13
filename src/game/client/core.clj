@@ -201,7 +201,9 @@
             (cc/start @hud-system)
             (reset! game-state-atom
                     (login-and-recv-state @game-state-atom net-map
-                                          "leif" "star" stop?))))
+                                          "leif" "star" stop?))
+            (cc/update @graphics-system @game-state-atom)
+            (gfx/set-up-camera @game-state-atom)))
         simple-update-fn
         (fn []
           (Thread/sleep 1)
