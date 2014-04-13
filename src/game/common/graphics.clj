@@ -8,7 +8,7 @@
            com.jme3.util.BufferUtils
            com.jme3.material.Material
            com.jme3.renderer.queue.RenderQueue$Bucket
-           com.jme3.font.BitmapText)
+           (com.jme3.font BitmapText BitmapFont$Align Rectangle))
   (:require [game.common.core :as cc]
             [game.constants :as consts]
             [clojure.set :as set])
@@ -37,7 +37,7 @@
     (some-> results .getClosestCollision .getGeometry geoms->ids)))
 
 (defn make-quad [x y]
-  {:vertices (map #(Vector3f. (+ x %1) (+ y %2) 0)
+  {:vertices (map #(Vector3f. (+ x %1) 0 (- (+ y %2)))
                   [0 1 0 1] [0 0 1 1])
    :tex-coords (map #(Vector2f. %1 %2)
                     [0 1 0 1] [0 0 1 1])})
@@ -67,18 +67,19 @@
 
 (defn create-character-name-text [name height font]
   (let [name (or name "")
-        text (doto (BitmapText. font false)
+        text (doto (BitmapText. font)
                (.setQueueBucket RenderQueue$Bucket/Transparent)
                (.setSize 0.5)
-               (.setText name)
-               (.addControl
-                 (doto (BillboardControl.)
-                   (.setAlignment BillboardControl$Alignment/Screen))))]
-    (.setLocalTranslation text
-                          (- (/ (.getLineWidth text) 2))
-                          (/ (.getLineHeight text) 2)
-                          height)
-    text))
+               (.setText name))
+        w (.getLineWidth text)
+        h (.getLineHeight text)]
+    (doto text
+      (.setBox (Rectangle. (- w) (/ h 2) (* w 2) h))
+      (.setAlignment BitmapFont$Align/Center)
+      (.addControl
+        (doto (BillboardControl.)
+          (.setAlignment BillboardControl$Alignment/Screen)))
+      (.setLocalTranslation 0 height 0))))
 
 (defn create-geom [assets type]
   (doto (Geometry. (str type "-geom") (get-in assets [:meshes type]))
@@ -103,8 +104,8 @@
 
 (defn update-object [old-object game-object]
   (let [[x y] (:pos game-object)
-        z (.getZ (.getLocalTranslation (:node old-object)))]
-    (.setLocalTranslation (:node old-object) x y z)
+        z (.getY (.getLocalTranslation (:node old-object)))]
+    (.setLocalTranslation (:node old-object) x z (- y))
     old-object))
 
 (defn get-graphics-object [[id game-object] ids->objects create-fn update?]
@@ -170,9 +171,9 @@
     {:ground (load-texture "test_ground.jpg")}))
 
 (defn create-mesh-map [asset-manager]
-  {:player (Box. (Vector3f. 0 0 0.3) 0.3 0.3 0.3)
-   :mob (Box. (Vector3f. 0 0 0.3) 0.3 0.3 0.3)
-   :spawn (Box. (Vector3f. 0 0 0.1) 0.3 0.3 0.1)})
+  {:player (Box. (Vector3f. 0 0.3 0) 0.3 0.3 0.3)
+   :mob (Box. (Vector3f. 0 0.3 0) 0.3 0.3 0.3)
+   :spawn (Box. (Vector3f. 0 0.1 0) 0.3 0.3 0.1)})
 
 
 (defn init-graphics-system [app game-map]
