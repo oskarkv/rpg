@@ -25,6 +25,8 @@
   portrait-width 200
   chat-height 220
   chat-width 330
+  ;;; INPUT
+  camera-rotation-speed 2
   ;;; GENERAL
   zone-folders "zones/"
   ;;; EDITOR

@@ -178,7 +178,8 @@
 (defn set-up-camera* [ids->objects camera input-manager game-state]
   (let [own-object (-> game-state :own-id ids->objects :node)]
     (doto (ChaseCamera. camera own-object input-manager)
-      (.setInvertVerticalAxis true))))
+      (.setInvertVerticalAxis true)
+      (.setRotationSpeed consts/camera-rotation-speed))))
 
 (defn get-camera-dir* [camera]
   (let [dir (-> camera .getDirection (.setY 0))
