@@ -78,12 +78,13 @@
   (ccfns/process-network-msgs game-state net-map process-msg))
 
 (defn calculate-movement-direction [key-state]
-  (letfn [(adder [dx dy] (fn [[x y]] [(+ dx x) (+ dy y)]))]
+  (let [[x y] (gfx/get-camera-dir)
+        adder (fn [dx dy] (fn [[sx sy]] [(+ dx sx) (+ dy sy)]))]
     (cond-> [0 0]
-      (:forward key-state) ((adder 0 1))
-      (:back key-state) ((adder 0 -1))
-      (:left key-state) ((adder -1 0))
-      (:right key-state) ((adder 1 0))
+      (:forward key-state) ((adder x y))
+      (:back key-state) ((adder (- x) (- y)))
+      (:left key-state) ((adder (- y) x))
+      (:right key-state) ((adder y (- x)))
       true (gmath/normalize))))
 
 (defmulti process-tap (fn [_ type] type))

@@ -180,6 +180,13 @@
     (doto (ChaseCamera. camera own-object input-manager)
       (.setInvertVerticalAxis true))))
 
+(defn get-camera-dir* [camera]
+  (let [dir (-> camera .getDirection (.setY 0))
+        to-game-dir (juxt #(.x %) #(- (.z %)))]
+    (if (= 0 (.x dir) (.y dir))
+      (-> camera .getUp to-game-dir)
+      (-> dir .normalizeLocal to-game-dir))))
+
 (defn init-graphics-system [app game-map]
   (let [root-node (.getRootNode app)
         characters-node (Node. "characters-node")
@@ -213,5 +220,7 @@
     (defn get-target-coords []
       (get-target-coords* input-manager camera (:gamemap nodes)))
     (defn set-up-camera [game-state]
-      (set-up-camera* @ids->objects (.getCamera app) input-manager game-state))
+      (set-up-camera* @ids->objects camera input-manager game-state))
+    (defn get-camera-dir []
+      (get-camera-dir* camera))
     (->GraphicsSystem nodes ids->objects geoms->ids game-map assets)))
