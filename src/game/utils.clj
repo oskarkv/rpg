@@ -74,7 +74,8 @@
            (eval `(def ~sym# ~~constructor))))))
 
 (defmacro debug [x]
-  `(do (println '~x "=" ~x) ~x))
+  `(let [x# ~x]
+     (do (println '~x "=") (clojure.pprint/pprint x#) x#)))
 
 (defn dissoc-in [m [k & ks :as keys]]
   (if (seq keys)
