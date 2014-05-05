@@ -116,6 +116,9 @@
 (defn partial* [f & args]
   (apply partial (flip f) args))
 
+(defn conj-some [xs x]
+  (if (some? x) (conj xs x) xs))
+
 (defmacro take-at-least-ms [ms & body]
   `(let [start# (current-time-ms)
          result# (do ~@body)
