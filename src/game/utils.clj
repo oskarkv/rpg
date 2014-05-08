@@ -156,3 +156,8 @@
 
 (defn throw-error [& msg]
   (throw (Error. (apply str msg))))
+
+(defn move-in [m from-path to-path]
+  (-> m
+      (assoc-in to-path (get-in m from-path))
+      (assoc-in from-path nil)))
