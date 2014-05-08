@@ -161,3 +161,8 @@
   (-> m
       (assoc-in to-path (get-in m from-path))
       (assoc-in from-path nil)))
+
+(defn swap-in [m path1 path2]
+  (let [item1 (get-in m path1)
+        item2 (get-in m path2)]
+    (-> m (assoc-in path1 item2) (assoc-in path2 item1))))
