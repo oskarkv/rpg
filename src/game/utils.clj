@@ -75,7 +75,8 @@
 
 (defmacro debug [x]
   `(let [x# ~x]
-     (do (println '~x "=") (clojure.pprint/pprint x#) x#)))
+     (do (println (with-out-str (println '~x "=") (clojure.pprint/pprint x#)))
+         x#)))
 
 (defn dissoc-in [m [k & ks :as keys]]
   (if (seq keys)
