@@ -34,6 +34,7 @@
 		</attributes>
 		<images>
 			<property name="defaultImg" type="String" value="gamedef/Window/panel_x.png" />
+			<property name="invSlot" type="String" value="gamedef/Window/inv_slot.png" />
 		</images>
 		<effects>
 			<property name="event0" type="Effect">
