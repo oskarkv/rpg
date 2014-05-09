@@ -17,6 +17,7 @@
   player-radius 0.3
   stats-random-part 0.1
   corpse-decay-time 10000 ;ms
+  dir-update-interval 50
   ;;; GRAPHICS
   resolution-x 1024
   resolution-y 768

@@ -1,4 +1,6 @@
 (ns game.common.input
+  (:require [game.common.core :as cc]
+            [game.common.core-functions :as ccfns])
   (:use game.utils)
   (:import (com.jme3.input
              KeyInput
@@ -26,28 +28,42 @@
 (defn create-key-state-map [key-bindings]
   (-> (zipmap (map (comp keyword first)
                    (filter (fn [[_ _ type]] (= type :hold)) key-bindings))
-              (repeat false))
-      (assoc :taps [])))
+              (repeat false))))
 
-(defn empty-taps [key-state-atom]
-  (swap! key-state-atom assoc :taps []))
+(deftype InputSystem [event-queue-ref start-fn]
+  cc/Lifecycle
+  (start [this]
+    (start-fn))
+  (stop [this])
+  cc/EventsProducer
+  (get-events [this]
+    (ccfns/reset-queue event-queue-ref))
+  cc/Updatable
+  (update [this args]))
 
-(defn start-input [input-manager key-bindings key-state-atom]
-  (let [keyinput-bindings (create-triggers key-bindings)
+(defn init-input-system [input-manager key-bindings]
+  (let [key-state-atom (atom (create-key-state-map key-bindings))
+        event-queue-ref (ref [])
+        keyinput-bindings (create-triggers key-bindings)
         hold-listener (reify ActionListener
                         (onAction [this name pressed tpf]
-                          (swap! key-state-atom assoc (keyword name) pressed)))
+                          (swap! key-state-atom assoc (keyword name) pressed)
+                          (ccfns/queue-conj event-queue-ref
+                                            {:type :new-key-state
+                                             :key-state @key-state-atom})))
         tap-listener (reify ActionListener
                        (onAction [this name pressed tpf]
                          (when pressed
-                           (swap! key-state-atom
-                                  update-in [:taps] conj (keyword name)))))
+                           (ccfns/queue-conj
+                             event-queue-ref {:type (keyword name)}))))
         filter-fn (fn [type]
                     (into-array
                       (map first (filter #(= type (% 2)) key-bindings))))
         tap-names (filter-fn :tap)
-        hold-names (filter-fn :hold)]
-    (doseq [[name trigger _] keyinput-bindings]
-      (.addMapping input-manager name (into-array [trigger])))
-    (.addListener input-manager hold-listener hold-names)
-    (.addListener input-manager tap-listener tap-names)))
+        hold-names (filter-fn :hold)
+        start-fn (fn []
+                   (doseq [[name trigger _] keyinput-bindings]
+                     (.addMapping input-manager name (into-array [trigger])))
+                   (.addListener input-manager hold-listener hold-names)
+                   (.addListener input-manager tap-listener tap-names))]
+    (->InputSystem event-queue-ref start-fn)))

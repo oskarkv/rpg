@@ -125,6 +125,8 @@
     (portray-game-map assets (:gamemap nodes) game-map)
     (fmap #(.attachChild (:root-node nodes) %) (dissoc nodes :root-node)))
   (stop [this])
+  cc/EventsProducer
+  (get-events [this])
   cc/Updatable
   (update [this game-state]
     ;;; Not all object types exist in both editor and client.
@@ -220,7 +222,10 @@
       (get-target-ray* input-manager camera))
     (defn get-target-coords []
       (get-target-coords* input-manager camera (:gamemap nodes)))
-    (defn set-up-camera [game-state]
+    (defn set-up-camera [graphics-system game-state]
+      ;; We need to update once to make sure that the player exists in the
+      ;; scene graph
+      (cc/update graphics-system game-state)
       (set-up-camera* @ids->objects camera input-manager game-state))
     (defn get-camera-dir []
       (get-camera-dir* camera))

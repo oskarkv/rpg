@@ -5,6 +5,10 @@
             [game.constants :as consts])
   (:use [game.utils :as utils]))
 
+(let [id-counter (atom 0)]
+  (defn get-new-id []
+    (swap! id-counter inc)))
+
 (defn map->msg [{:keys [type] :as m}]
   ((apply juxt #(cc/type->int (:type %)) (type cc/type->keys)) m))
 
@@ -12,16 +16,6 @@
   (let [type (cc/int->type (first msg))]
     (assoc (zipmap (type cc/type->keys) (rest msg))
            :type type)))
-
-(defn process-network-msgs
-  [game-state {:keys [net-sys get-msg send-msg]} process-fn & process-args]
-  (loop [msg (get-msg) game-state game-state events []]
-    (if msg
-      (let [{:keys [new-game-state event]}
-            (apply process-fn game-state msg process-args)
-            new-game-state (or new-game-state game-state)]
-        (recur (get-msg) new-game-state (conj events event)))
-      {:new-game-state game-state :events (remove nil? events)})))
 
 (defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
   (let [app
@@ -39,6 +33,27 @@
         (stop-fn this)))
     app))
 
+(defn complete-return-map [game-state result]
+  (let [{:keys [new-game-state events event msgs msg]} result
+        msgs (conj-some msgs msg)
+        events (conj-some events event)
+        new-game-state (or new-game-state game-state)]
+    {:new-game-state new-game-state :events events :msgs msgs}))
+
+(defn process-events [process-fn game-state input-events]
+  (let [events-q (reduce conj clojure.lang.PersistentQueue/EMPTY input-events)]
+    (loop [game-state game-state events-q events-q new-events [] new-msgs []]
+      (if-let [e (first events-q)]
+        (let [{:keys [new-game-state events msgs]}
+              (complete-return-map
+                game-state (process-fn game-state e))]
+          (recur new-game-state (reduce conj (pop events-q) events)
+                 (reduce conj new-events events)
+                 (reduce conj new-msgs msgs)))
+        {:new-game-state game-state :new-events new-events
+         :new-msgs new-msgs}))))
+
+; de 2 fnsen under är bara kvar pga editorn
 (defn process-taps [game-state taps process-tap]
   (loop [[tap & more] taps game-state game-state events []]
     (if tap
@@ -50,12 +65,6 @@
 (defn process-player-input [game-state key-state process-tap]
   (process-taps game-state (:taps key-state) process-tap))
 
-(defn complete-return-map [game-state result]
-  (let [{:keys [new-game-state events event]} result
-        events (if event (conj events event) events)
-        new-game-state (or new-game-state game-state)]
-    {:new-game-state new-game-state :events events}))
-
 (defmacro call-update-fns [game-state events hook-fn & calls]
   (with-gensyms [new-game-state new-events all-events]
     (if (seq calls)
@@ -66,7 +75,7 @@
                  `[{~new-game-state :new-game-state ~new-events :events}
                    (complete-return-map ~new-game-state
                                         (~hook-fn ~new-game-state ~new-events))
-                   ~all-events (concat ~events ~new-events)])]
+                   ~all-events (concat ~all-events ~new-events)])]
          (call-update-fns ~new-game-state ~all-events ~hook-fn ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
@@ -91,3 +100,12 @@
         pos-1 (get-pos id-1)
         pos-2 (get-pos id-2)]
     (> limit (math/distance pos-1 pos-2))))
+
+(defn reset-queue [event-queue]
+  (dosync
+    (let [q @event-queue]
+      (ref-set event-queue [])
+      q)))
+
+(defn queue-conj [queue item]
+  (dosync (alter queue conj item)))

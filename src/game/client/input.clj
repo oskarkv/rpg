@@ -7,4 +7,5 @@
    ["right" "s" :hold]
    ["toggle-attack" "f" :tap]
    ["target" "m-left" :tap]
-   ["loot" "m-right" :tap]])
+   ["loot" "m-right" :tap]
+   ["open-inv" "c" :tap]])

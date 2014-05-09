@@ -26,11 +26,12 @@
    :attacking false
    :hp 100
    :max-hp 100
-   :dmg 35
+   :dmg 60
    :delay 1
    :last-attack 0
    :level 1
-   :exp 0})
+   :exp 0
+   :inv (vec (repeat 10 nil))})
 
 (let [game-id-counter (atom 0)
       net->game (atom {})
@@ -43,50 +44,97 @@
        (swap! game->net assoc game-id net-id)
        game-id)))
   (defn net-id->game-id [net-id]
-    (@net->game net-id))
+    (if-let [game-id (@net->game net-id)]
+      game-id
+      (new-game-id net-id)))
   (defn game-id->net-id [game-id]
     (@game->net game-id)))
 
-(defmulti process-msg-purely (fn [game-state msg] (:type msg)))
+(defmulti process-event (fn [game-state event] (:type event)))
 
-(defmethod process-msg-purely :c-move [game-state {:keys [id pos move-dir]}]
+(defmethod process-event :default [game-state event])
+
+(defn make-preparation-fn [ks]
+  #(-> % (select-keys ks) (assoc :pos (map float (:pos %)))))
+
+(def keys-about-others [:name :speed :pos :type :hp :max-hp :level])
+
+(def prepare-char-for-owner
+  (make-preparation-fn (concat keys-about-others [:dmg :delay :exp :inv])))
+
+(def prepare-char-for-sending
+  (make-preparation-fn keys-about-others))
+
+(def prepare-corpse-for-sending
+  (make-preparation-fn [:name :pos :type]))
+
+(defn prepare-chars-for-sending [m]
+  (fmap prepare-char-for-sending m))
+
+(defn prepare-corpses-for-sending [m]
+  (fmap prepare-corpse-for-sending m))
+
+(defn prepare-for-sending-to [id game-state]
+  (let [player (prepare-char-for-owner (get-in game-state [:chars id]))]
+    (-> game-state
+        (update-in [:chars] prepare-chars-for-sending)
+        (update-in [:corpses] prepare-corpses-for-sending)
+        (select-keys [:chars :corpses])
+        (assoc-in [:chars id] player))))
+
+(defmethod process-event :c-move [game-state {:keys [id pos move-dir]}]
   {:new-game-state
    (-> game-state
        (update-in [:chars id] merge
                   {:recv-pos pos :move-dir (gmath/normalize move-dir)
                    :recv-time (current-time-ms)}))})
 
-(defmethod process-msg-purely :c-toggle-attack [game-state {:keys [id]}]
+(defmethod process-event :c-toggle-attack [game-state {:keys [id]}]
   {:new-game-state (update-in game-state [:chars id :attacking] not)})
 
-(defmethod process-msg-purely :c-target [game-state {:keys [id target]}]
+(defmethod process-event :c-target [game-state {:keys [id target]}]
   {:new-game-state (assoc-in game-state [:chars id :target] target)})
 
-(defmethod process-msg-purely :c-loot-corpse [game-state {:keys [id corpse]}]
-  (when (ccfns/close-enough? game-state id corpse consts/loot-distance)
-    {:event {:type :loot-corpse :id id :corpse corpse}}))
+(defmethod process-event :c-loot-corpse [game-state {:keys [id corpse-id]}]
+  (when (ccfns/close-enough? game-state id corpse-id consts/loot-distance)
+    {:msg [[id] {:type :s-loot :corpse-id corpse-id
+                 :drops (get-in game-state [:corpses corpse-id :drops])}]}))
 
-(defmethod process-msg-purely :default [game-state _])
-
-(defmulti process-msg (fn [game-state msg key-value-store] (:type msg)))
-
-(defmethod process-msg :c-login [game-state msg key-value-store]
-  (let [{:keys [id username password]} msg
+(defmethod process-event :c-login [game-state event]
+  (let [key-value-store (:kvs game-state)
+        {:keys [id username password]} event
         player (or (kvs/load key-value-store username)
-                   (new-player username))]
-    {:new-game-state (-> game-state
-                         (assoc-in [:chars id] player)
-                         (update-in [:player-ids] conj id))
-     :event {:type :login :id id}}))
+                   (new-player username))
+        old-players (:player-ids game-state)
+        new-game-state (-> game-state
+                           (assoc-in [:chars id] player)
+                           (update-in [:player-ids] conj id))
+        gs-for-entrant (prepare-for-sending-to id new-game-state)]
+    {:new-game-state new-game-state
+     :msgs [[[id] {:type :s-game-state :game-state gs-for-entrant}]
+            [[id] {:type :s-own-id :id id}]
+            [old-players
+             {:type :s-spawn-player :id id
+              :player (prepare-char-for-sending player)}]]}))
 
-(defmethod process-msg :connect [game-state _ _])
+(defn whose-item? [path]
+  (second path))
 
-(defmethod process-msg :disconnect [game-state _ _])
+(defmethod process-event :c-rearrange-inv [game-state {:keys [id paths]}]
+  (let [[path1 path2] (map #(concat [:chars id] %) paths)]
+    {:new-game-state (swap-in game-state path1 path2)}))
 
-(defmethod process-msg :default [game-state msg _]
-  (process-msg-purely game-state msg))
+(defn can-loot? [game-state id path]
+  (when-let [corpse-id (whose-item? path)]
+    (and (some-> (get-in game-state [:corpses corpse-id :tagged-by]) (= id))
+         (ccfns/close-enough? game-state id corpse-id consts/loot-distance))))
 
-(defmulti process-event (fn [game-state event] (:type event)))
+(defmethod process-event :c-loot-item [game-state {:keys [id from-path to-idx]}]
+  (when (and (can-loot? game-state id from-path)
+             (> (count (get-in game-state [:chars id :inv])) to-idx))
+    {:new-game-state
+     (move-in game-state from-path [:chars id :inv to-idx])
+     :msg [[id] {:type :s-loot-item-ok :from-path from-path :to-idx to-idx}]}))
 
 (defn roll-for-mob [mobs]
   (let [total (apply + (map :rel-chance mobs))]
@@ -129,12 +177,13 @@
   (let [new-mobs (map #(spawn-mob % spawns) ids)
         new-mobs-map (zipmap (repeatedly new-game-id) new-mobs)
         num-mobs (count new-mobs-map)
-        event {:type :spawn-mobs :mobs new-mobs-map}]
+        all-players (:player-ids game-state)]
     {:new-game-state
      (-> game-state
          (update-in [:chars] merge new-mobs-map)
          (assoc :to-spawn (call-times num-mobs pop to-spawn)))
-     :event event}))
+     :msg [all-players {:type :s-spawn-mobs
+                        :mobs (prepare-chars-for-sending new-mobs-map)}]}))
 
 (defn register-damage [char id damage]
   (let [tag #(if % % id)
@@ -145,16 +194,19 @@
 
 (defmethod process-event :attack [game-state event]
   (let [{:keys [id target damage last-attack]} event
-        register-damage' #(if (= :mob (:type %))
+        all-players (:player-ids game-state)
+        register-damage* #(if (= :mob (:type %))
                             (register-damage % id damage)
                             %)
         new-game-state (-> game-state
                            (update-in [:chars target :hp] - damage)
                            (assoc-in [:chars id :last-attack] last-attack)
-                           (update-in [:chars target] register-damage'))
+                           (update-in [:chars target] register-damage*))
         death (when (<= (get-in new-game-state [:chars target :hp]) 0)
                 {:type :death :id target :by id :corpse-id (new-game-id)})]
-    {:new-game-state new-game-state :event death}))
+    {:new-game-state new-game-state
+     :event death
+     :msg [all-players {:type :s-attack :target target :damage damage}]}))
 
 (defn give-exp [{:keys [level exp] :as char} new-exp]
   (let [exp-sum (+ exp new-exp)
@@ -174,7 +226,7 @@
         actual-exp (* all-exp (/ tagged-damage total-damage))]
     (update-in game-state [:chars tagged-by] give-exp actual-exp)))
 
-(defn mob-death [game-state {:keys [id by]}]
+(defn mob-death [game-state {:keys [id]}]
   (let [mob (get-in game-state [:chars id])
         spawn-id (:spawn mob)
         respawn-time (get-in game-state [:spawns spawn-id :respawn-time])]
@@ -184,7 +236,7 @@
                    [spawn-id (+ (current-time-ms) (* 1000 respawn-time))])
         (distribute-exp mob))))
 
-(defn player-death [game-state {:keys [id by]}]
+(defn player-death [game-state {:keys [id]}]
   (let [char-set (fn [gs key val] (assoc-in gs [:chars id key] val))
         char-get (fn [key] (get-in game-state [:chars id key]))]
     (-> game-state
@@ -195,95 +247,46 @@
 
 (defn make-corpse [char]
   (-> char
-      (select-keys [:name :type :drops :pos])
+      (select-keys [:name :type :drops :pos :tagged-by])
       (assoc :decay-time (+ (current-time-ms) consts/corpse-decay-time))
       (update-in [:name] #(str % "'s corpse"))))
 
+(defn death-msgs [game-state {:keys [id corpse-id]}]
+  (let [all-players (:player-ids game-state)
+        char (get-in game-state [:chars id])
+        corpse (prepare-corpse-for-sending
+                 (get-in game-state [:corpses corpse-id]))
+        msgs-vec [[all-players {:type :s-char-death :id id}]
+                  [all-players {:type :s-spawn-corpse
+                                :id corpse-id :corpse corpse}]]]
+    (if (= :player (:type char))
+      (conj msgs-vec
+            [all-players {:type :s-spawn-player :id id
+                          :player (prepare-char-for-sending char)}])
+      msgs-vec)))
+
 (defmethod process-event :death [game-state {:keys [id corpse-id] :as event}]
   (let [char (get-in game-state [:chars id])
-        corpse (make-corpse char)]
-    {:new-game-state
-     (->
-       (if (= :mob (:type char))
-         (mob-death game-state event)
-         (player-death game-state event))
-       (update-in [:corpses] assoc corpse-id corpse))}))
+        corpse (make-corpse char)
+        new-game-state (-> (if (= :mob (:type char))
+                             (mob-death game-state event)
+                             (player-death game-state event))
+                           (update-in [:corpses] assoc corpse-id corpse))]
+    {:new-game-state new-game-state
+     :msgs (death-msgs new-game-state event)}))
 
 (defmethod process-event :decay-corpses [game-state {:keys [ids]}]
   {:new-game-state
-   (update-in game-state [:corpses] #(apply dissoc % ids))})
+   (update-in game-state [:corpses] #(apply dissoc % ids))
+   :msg [(:player-ids game-state) {:type :s-decay-corpses :ids ids}]})
 
-(defmethod process-event :default [game-state event]
-  {:new-game-state game-state})
-
-(defn make-preparation-fn [& ks]
-  #(-> % (select-keys ks) (assoc :pos (map float (:pos %)))))
-
-(def prepare-char-for-sending
-  (make-preparation-fn :speed :name :pos :type :hp :max-hp))
-
-(def prepare-corpse-for-sending
-  (make-preparation-fn :name :pos :type))
-
-(defn prepare-chars-for-sending [m]
-  (fmap prepare-char-for-sending m))
-
-(defn prepare-corpses-for-sending [m]
-  (fmap prepare-corpse-for-sending m))
-
-(defn prepare-for-sending [game-state]
-  (-> game-state
-      (update-in [:chars] prepare-chars-for-sending)
-      (update-in [:corpses] prepare-corpses-for-sending)
-      (select-keys [:chars :corpses])))
-
-(defmulti produce-client-msgs (fn [game-state event] (:type event)))
-
-(defmethod produce-client-msgs :login [game-state {id :id}]
-  (let [all-players (:player-ids game-state)
-        game-state-to-send (prepare-for-sending game-state)]
-    [[[id] {:type :s-game-state :game-state game-state-to-send}]
-     [all-players
-      {:type :s-login :id id :player (get-in game-state-to-send [:chars id])}]
-     [[id] {:type :s-own-id :id id}]]))
-
-(defmethod produce-client-msgs :chars-moved [game-state {ids :moved-ids}]
-  [[(:player-ids game-state)
-    {:type :s-move :positions
-     (into {} (for [id ids
-                    :let [pos (get-in game-state [:chars id :pos])]
-                    :when pos]
-                [id (map float pos)]))}]])
-
-(defmethod produce-client-msgs :attack [game-state event]
-  [[(:player-ids game-state) (merge {:type :s-attack}
-                                    (select-keys event [:target :damage]))]])
-
-(defmethod produce-client-msgs :spawn-mobs [game-state {mobs :mobs}]
-  [[(:player-ids game-state)
-    {:type :s-spawn-mobs :mobs (prepare-chars-for-sending mobs)}]])
-
-(defmethod produce-client-msgs :death [game-state {:keys [id by corpse-id]}]
-  (let [all-players (:player-ids game-state)
-        char (get-in game-state [:chars id])
-        corpse (get-in game-state [:corpses corpse-id])
-        msgs-vec [[all-players {:type :s-char-death :id id}]
-                  [all-players {:type :s-spawn-corpse
-                                :id-corpse [corpse-id corpse]}]]]
-    (if (= :player (:type char))
-      (conj msgs-vec
-            [all-players {:type :s-spawn-player
-                          :id-char [id (prepare-char-for-sending char)]}])
-      msgs-vec)))
-
-(defmethod produce-client-msgs :decay-corpses [game-state {:keys [ids]}]
-  [[(:player-ids game-state) {:type :s-decay-corpses :ids ids}]])
-
-(defmethod produce-client-msgs :loot-corpse [game-state {:keys [id corpse]}]
-  [[[id] {:type :s-loot :drops (get-in game-state [:corpses corpse :drops])}]])
-
-(defmethod produce-client-msgs :default [_ _]
-  nil)
+(defmethod process-event :chars-moved [game-state {ids :moved-ids}]
+  {:msg [(:player-ids game-state)
+         {:type :s-move :positions
+          (into {} (for [id ids
+                         :let [pos (get-in game-state [:chars id :pos])]
+                         :when pos]
+                     [id (map float pos)]))}]})
 
 (defn move-player* [char time-delta last-move]
   (let [{:keys [pos move-dir recv-pos recv-time speed]} char]
@@ -372,32 +375,21 @@
              :last-attack (calculate-new-last-attack char)}))]
     {:events (remove nil? (map generate-attack-event (:chars game-state)))}))
 
-(defn process-network-msgs [game-state net-map key-value-store]
-  (ccfns/process-network-msgs game-state net-map process-msg key-value-store))
+(defn get-network-events [_ net-sys]
+  {:events (cc/get-events net-sys)})
 
-(defn process-events [game-state input-events]
-  (let [events-q (reduce conj clojure.lang.PersistentQueue/EMPTY input-events)]
-    (loop [game-state game-state events-q events-q new-events []]
-      (if (seq events-q)
-        (let [{:keys [new-game-state event events]}
-              (process-event game-state (first events-q))
-              events (if event (conj events event) events)]
-          (recur new-game-state (reduce conj (pop events-q) events)
-                 (reduce conj new-events events)))
-        {:new-game-state game-state :new-events new-events}))))
+(defn make-process-and-send-fn [networking-system]
+  (fn [game-state events]
+    (let [{:keys [new-game-state new-msgs]}
+          (ccfns/process-events process-event game-state events)]
+      (cc/update networking-system new-msgs)
+      {:new-game-state new-game-state})))
 
-(defn process-and-send [sender-fn game-state events]
-  (let [{:keys [new-game-state new-events]} (process-events game-state events)]
-    (doseq [[ids msg] (mapcat #(produce-client-msgs new-game-state %)
-                              (concat events new-events))]
-      (sender-fn ids msg))
-    {:new-game-state new-game-state :events new-events}))
-
-(defn main-update [game-state {:keys [send-msg] :as net-map} key-value-store]
-  (let [send-fn #(process-and-send send-msg % %2)
+(defn main-update [game-state net-sys]
+  (let [hook (make-process-and-send-fn net-sys)
         {:keys [new-game-state events]}
-        (ccfns/call-update-fns game-state [] send-fn
-          (process-network-msgs net-map key-value-store)
+        (ccfns/call-update-fns game-state [] hook
+          (get-network-events net-sys)
           (ccfns/calculate-move-time-delta)
           (move-players)
           (ai/decide-mob-actions)
@@ -409,23 +401,23 @@
           (check-corpses))]
     new-game-state))
 
-(defrecord Server [net-map key-value-store game-state stop?]
+(defrecord Server [net-sys key-value-store game-state stop?]
   cc/Lifecycle
   (start [this]
-    (cc/start (:net-sys net-map))
+    (cc/start net-sys)
     (cc/start key-value-store)
     (start-new-thread "server"
       ((fn [game-state]
          (if @stop?
            nil
            (recur (take-at-least-ms 100
-                    (main-update game-state net-map key-value-store)))))
+                    (main-update game-state net-sys)))))
        game-state))
     this)
   (stop [this]
     (reset! stop? true)
     (cc/stop key-value-store)
-    (cc/stop (:net-sys net-map))
+    (cc/stop net-sys)
     this))
 
 (defn create-to-spawn-queue [spawns]
@@ -441,19 +433,8 @@
 (defn init-server [port]
   (let [game-state (create-game-state)
         stop? (atom false)
-        {:keys [net-sys get-msg send-msg]}
-        (net/construct-server-net-sys port cc/connect-msg cc/disconnect-msg)
-        new-get-msg (fn []
-                      (when-let [{:keys [id msg]} (get-msg)]
-                        (let [game-msg (ccfns/msg->map msg)
-                              game-id (if (= cc/connect-msg game-msg)
-                                        (new-game-id id)
-                                        (net-id->game-id id))]
-                          (assoc game-msg :id game-id))))
-        new-send-msg (fn [game-ids msg-map]
-                       (let [net-msg (ccfns/map->msg msg-map)]
-                         (doseq [game-id game-ids]
-                           (send-msg (game-id->net-id game-id) net-msg))))
-        net-map {:net-sys net-sys :get-msg new-get-msg :send-msg new-send-msg}
+        networking-system (net/init-server-net-sys
+                            port net-id->game-id game-id->net-id)
         key-value-store (kvs.core/construct-key-value-store)]
-    (->Server net-map key-value-store game-state stop?)))
+    (->Server networking-system key-value-store
+              (assoc game-state :kvs key-value-store) stop?)))

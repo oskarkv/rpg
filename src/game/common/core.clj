@@ -13,17 +13,19 @@
    :c-move [:pos :move-dir]
    :c-target [:target]
    :c-toggle-attack []
-   :c-loot-corpse [:corpse]
+   :c-loot-corpse [:corpse-id]
+   :c-loot-item [:from-path :to-idx]
+   :c-rearrange-inv [:paths]
    :s-attack [:target :damage]
    :s-game-state [:game-state]
-   :s-login [:id :player]
    :s-move [:positions]
    :s-own-id [:id]
    :s-spawn-mobs [:mobs]
    :s-char-death [:id]
-   :s-spawn-player [:id-char]
-   :s-spawn-corpse [:id-corpse]
-   :s-loot [:drops]
+   :s-spawn-player [:id :player]
+   :s-spawn-corpse [:id :corpse]
+   :s-loot [:corpse-id :drops]
+   :s-loot-item-ok [:from-path :to-idx]
    :s-decay-corpses [:ids]})
 
 (let [types (-> (keys type->keys) sort)]
@@ -36,3 +38,6 @@
 
 (defprotocol Updatable
   (update [this args]))
+
+(defprotocol EventsProducer
+  (get-events [this]))

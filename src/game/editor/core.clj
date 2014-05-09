@@ -49,13 +49,8 @@
   (let [stop? (atom false)
         key-bindings (e-input/load-key-bindings)
         key-state-atom (atom (cmn-input/create-key-state-map key-bindings))
+        input-system (atom nil)
         graphics-system (atom nil)
-        start-input-fn
-        (fn [input-manager]
-          (cmn-input/start-input
-            input-manager
-            key-bindings
-            key-state-atom))
         init-gfx-fn
         (fn [app]
           (gfx/init-graphics-system
@@ -69,7 +64,8 @@
                 root-node (.getRootNode app)]
             (.detach state-manager (.getState state-manager FlyCamAppState))
             (.setCursorVisible input-manager true)
-            (start-input-fn input-manager)
+            (reset! input-system (cmn-input/init-input-system
+                                   input-manager (e-input/load-key-bindings)))
             (reset! graphics-system (init-gfx-fn app))
             (cc/start @graphics-system)))
         simple-update-fn
@@ -79,7 +75,6 @@
                 (ccfns/call-update-fns @game-state-atom [] nil
                   (process-player-input @key-state-atom)
                   (process-event-caller key-value-store))]
-            (cmn-input/empty-taps key-state-atom)
             (.clear event-queue)
             (reset! game-state-atom new-game-state)))
         init-app-settings-fn

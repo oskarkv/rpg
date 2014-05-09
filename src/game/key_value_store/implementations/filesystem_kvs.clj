@@ -5,7 +5,7 @@
 (deftype FilesystemKeyValueStore [dir]
   ;; Since it is concievable that some stores will need to be started and
   ;; stopped, e.g. a database-backed store, all stores must implement the
-  ;; Lifecycle protocol, since code using the store should not have to know
+  ;; Lifecycle protocol, because code using the store should not have to know
   ;; whether or not a particular store actually needs to be started and
   ;; stopped.
   cc/Lifecycle

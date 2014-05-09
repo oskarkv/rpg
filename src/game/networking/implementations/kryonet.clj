@@ -25,7 +25,7 @@
     (.getID this)))
 
 
-(defmacro- defnetworkingsystem- [name args & start-body]
+(defmacro defnetworkingsystem [name args & start-body]
   `(deftype- ~name ~args
      cc/Lifecycle
      (~'start [this#]
@@ -37,13 +37,13 @@
        ; Maybe having a positive timeout is better.
        (.update ~(first args) 0))))
 
-(defnetworkingsystem- KryonetServer [server port]
+(defnetworkingsystem KryonetServer [server port]
   ;; .bind must be called in a thread other than the update thread, but
   ;; update needs to be called at the same time; blocks until bound.
   (.start server)
   (.bind server port))
 
-(defnetworkingsystem- KryonetClient [client address port]
+(defnetworkingsystem KryonetClient [client address port]
   ;; .connect must be called in a thread other than the update thread, but
   ;; update needs to be called at the same time; blocks until connected.
   (.start client)
