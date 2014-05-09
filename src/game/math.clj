@@ -15,3 +15,10 @@
 
 (defn dot-product [v v2]
   (apply + (map * v v2)))
+
+(defn angle-between-vecs [[x1 y1] [x2 y2]]
+  (- (Math/atan2 y2 x2) (Math/atan2 y1 x1)))
+
+(defn rotate-vec [[x y] angle]
+  [(- (* (Math/cos angle) x) (* (Math/sin angle) y))
+   (+ (* (Math/sin angle) x) (* (Math/cos angle) y))])
