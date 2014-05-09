@@ -1,7 +1,9 @@
 (ns game.logging
   (:require [robert.hooke :as rh]
             [clojure.pprint :as pp]
-            [game.server.core :as sv]
+            (game.server [core :as sv]
+                         [pathfinding :as pf]
+                         [ai :as ai])
             [game.client.core :as cl]
             [game.math :as math]
             [game.editor.core :as ec]
@@ -10,10 +12,16 @@
                          [graphics :as gfx]))
   (:use [game.utils]))
 
+(def print-if-thread-name-contains
+  #{"Renderer"
+    "server"})
+
 (defn log-println [name type object]
-  (println (str (current-thread-name) " // " name " " type ":\n"
-                (with-out-str
-                  (pp/pprint object)))))
+  (let [thread-name (current-thread-name)]
+    (when (some #(.contains thread-name %) print-if-thread-name-contains)
+      (println (str (current-thread-name) " // " name " " type ":\n"
+                    (with-out-str
+                      (pp/pprint object)))))))
 
 (defn print-output [name f & args]
   (let [result (apply f args)]
