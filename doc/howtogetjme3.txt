@@ -1,0 +1,6 @@
+Checkout svn
+Fixa project.clj
+Ta alla jars i jme3/engine/libs extracta
+Ta allt lägg i target/classes
+lein install
+
