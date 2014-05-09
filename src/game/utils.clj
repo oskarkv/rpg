@@ -78,15 +78,19 @@
      (do (println (with-out-str (println '~x "=") (clojure.pprint/pprint x#)))
          x#)))
 
-(defn dissoc-in [m [k & ks :as keys]]
-  (if (seq keys)
-    (if ks
-      (let [inner-map (dissoc-in (m k) ks)]
-        (if (seq inner-map)
-          (assoc m k inner-map)
-          (dissoc m k)))
-      (dissoc m k))
-    m))
+(let [polymorphic-dissoc
+      (fn [m k] (if (instance? clojure.lang.IPersistentMap m)
+                  (dissoc m k)
+                  (assoc m k nil)))]
+  (defn dissoc-in [m [k & ks :as keys]]
+    (if (seq keys)
+      (if ks
+        (let [inner-map (dissoc-in (m k) ks)]
+          (if (seq inner-map)
+            (assoc m k inner-map)
+            (polymorphic-dissoc m k)))
+        (polymorphic-dissoc m k))
+      m)))
 
 (defn fmap [f m]
   (into {} (for [[k v] m] [k (f v)])))
@@ -160,7 +164,7 @@
 (defn move-in [m from-path to-path]
   (-> m
       (assoc-in to-path (get-in m from-path))
-      (assoc-in from-path nil)))
+      (dissoc-in from-path)))
 
 (defn swap-in [m path1 path2]
   (let [item1 (get-in m path1)
