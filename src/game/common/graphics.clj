@@ -32,10 +32,18 @@
             .getContactPoint
             (juxt #(.getX %) #(.getY %)))))
 
+(defn get-closest-model-collision [results geoms->ids]
+  (let [iter (.iterator results)]
+    (loop []
+      (if (.hasNext iter)
+        (if-let [id (some-> iter .next .getGeometry geoms->ids)]
+          id
+          (recur))))))
+
 (defn pick-target* [input-manager node camera geoms->ids]
   (let [ray (get-target-ray* input-manager camera)
         results (get-collisions node ray)]
-    (some-> results .getClosestCollision .getGeometry geoms->ids)))
+    (some-> results (get-closest-model-collision geoms->ids))))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) 0 (- (+ y %2)))
