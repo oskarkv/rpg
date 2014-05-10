@@ -15,9 +15,9 @@
             [clojure.set :as set])
   (:use game.utils))
 
-(defn get-collisions [objects collidables]
+(defn get-collisions [objects collidable]
   (let [results (CollisionResults.)]
-    (.collideWith objects collidables results)
+    (.collideWith objects collidable results)
     results))
 
 (defn get-target-ray* [input-manager camera]
