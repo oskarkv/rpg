@@ -51,14 +51,13 @@
          (take n slot-posses))))
 
 (defn create-inventory
-  [screen items cols path enqueue]
+  [screen items cols path pos enqueue]
   (let [n (count items)
         slots (create-slots screen n cols enqueue)
         slot->idx (zipmap slots (map #(conj path %) (range n)))
         items (create-items items screen size enqueue)
-        container (doto (Element. screen (str "inv of " path)
-                                  (Vector2f. 100 100) Vector2f/ZERO
-                                  Vector4f/ZERO nil)
+        container (doto (create-element screen (str "inv of " path)
+                                        pos [0 0] nil)
                     .setAsContainerOnly)]
     (.addElement screen container)
     (dorun (map #(.addChild container %) slots))
@@ -87,12 +86,17 @@
     looting (conj [:corpses looting :drops])))
 
 (defn create-new-inventories [game-state hud-state screen enqueue]
-  (let [invs (open-inventories game-state)
-        new-paths (remove (:invs hud-state) invs)
-        new-invs (map (fn [path]
+  (let [{:keys [inv-pos loot-pos invs]} hud-state
+        open-invs (open-inventories game-state)
+        new-paths (remove invs open-invs)
+        positions (map (fn [path] (if (= (first path) :inv)
+                                    inv-pos
+                                    loot-pos))
+                       new-paths)
+        new-invs (map (fn [path pos]
                         (let [items (get-in game-state path)]
-                          (create-inventory screen items 2 path enqueue)))
-                      new-paths)
+                          (create-inventory screen items 2 path pos enqueue)))
+                      new-paths positions)
         slots->ids (apply merge (map :new-slots new-invs))
         ids->invs (into {} (map #(vector % %2) new-paths (map :inv new-invs)))]
     (-> hud-state
@@ -191,7 +195,8 @@
         screen (Screen. app "gamedef/style_map.gui.xml")
         mouse-slot (create-mouse-slot screen)
         hud-state-atom (atom {:slot->idx {} :idx->slot {}
-                              :invs {} :mouse-slot mouse-slot})
+                              :invs {} :mouse-slot mouse-slot
+                              :inv-pos [800 100] :loot-pos [100 100]})
         event-queue (ref [])
         enqueue-event (fn [event] (ccfns/queue-conj event-queue event))
         lookup (fn [slot] (get-in @hud-state-atom [:slot->idx slot]))
