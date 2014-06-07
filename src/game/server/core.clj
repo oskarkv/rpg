@@ -186,8 +186,8 @@
                         :mobs (prepare-chars-for-sending new-mobs-map)}]}))
 
 (defn register-damage [char id damage]
-  (let [tag #(if % % id)
-        set-damage #(if % (+ % damage) damage)]
+  (let [tag #(or % id)
+        set-damage #(+ (or % 0) damage)]
     (-> char
         (update-in [:tagged-by] tag)
         (update-in [:damaged-by id] set-damage))))
