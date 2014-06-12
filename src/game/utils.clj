@@ -143,7 +143,13 @@
     ([sd] (rand-gaussian sd 0))
     ([sd mean] (+ (* sd (.nextGaussian r)) mean)))
   (defn rand-binomial [n p]
-    (apply + (repeatedly n #(if (> p (.nextDouble r)) 1 0)))))
+    (apply + (repeatedly n #(if (> p (.nextDouble r)) 1 0))))
+  (defn rand-uniform
+    ([max] (* max (.nextDouble r)))
+    ([min max] (+ min (* (- max min) (.nextDouble r)))))
+  (defn rand-uniform-int
+    ([max] (.nextInt (inc max)))
+    ([min max] (+ min (.nextInt (inc (- max min)))))))
 
 (defmacro def-let [bindings]
   (let [let-expr (macroexpand `(let ~bindings))
