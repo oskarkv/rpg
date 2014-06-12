@@ -26,9 +26,9 @@
        key-bindings))
 
 (defn create-key-state-map [key-bindings]
-  (-> (zipmap (map (comp keyword first)
-                   (filter (fn [[_ _ type]] (= type :hold)) key-bindings))
-              (repeat false))))
+  (zipmap (map (comp keyword first)
+               (filter (fn [[_ _ type]] (= type :hold)) key-bindings))
+          (repeat false)))
 
 (deftype InputSystem [event-queue-ref start-fn]
   cc/Lifecycle
