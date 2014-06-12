@@ -115,6 +115,8 @@
      (apply rec== x (first more) (rest more))
      false)))
 
+(def not== (complement ==))
+
 (defn flip [f]
   (comp (partial apply f) reverse list))
 
