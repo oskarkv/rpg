@@ -13,9 +13,10 @@
   ([p] (apply point->tile p))
   ([x y] [(int x) (int y)]))
 
-(defn get-tile [m v]
+(defn get-tile
   "Gets the type of the tile at the point v in
    the grid m. v is a point in R^2, not grid indices."
+  [m v]
   (get-in m (point->tile v)))
 
 (defn integer-points
