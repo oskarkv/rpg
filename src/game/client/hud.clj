@@ -1,5 +1,5 @@
 (ns game.client.hud
-  (:use [game.utils])
+  (:use game.utils)
   (:require [game.common.core :as cc]
             [game.constants :as consts]
             [game.common.core-functions :as ccfns]

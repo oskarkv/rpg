@@ -9,8 +9,9 @@
             [game.editor.core :as ec]
             [game.client.hud :as hud]
             (game.common [core-functions :as ccfns]
-                         [graphics :as gfx]))
-  (:use [game.utils]))
+                         [graphics :as gfx]
+                         [stats :as stats]))
+  (:use game.utils))
 
 (def print-if-thread-name-contains
   #{"Renderer"

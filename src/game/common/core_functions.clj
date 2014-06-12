@@ -3,7 +3,7 @@
   (:require [game.common.core :as cc]
             [game.math :as math]
             [game.constants :as consts])
-  (:use [game.utils :as utils]))
+  (:use game.utils))
 
 (let [id-counter (atom 0)]
   (defn get-new-id []
