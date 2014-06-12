@@ -1,6 +1,8 @@
 (ns game.common.core-functions
   (:import (com.jme3.app SimpleApplication))
-  (:require [game.common.core :as cc]
+  (:require (game.common [core :as cc]
+                         [items :as items]
+                         [stats :as stats])
             [game.math :as math]
             [game.constants :as consts])
   (:use game.utils))
@@ -16,22 +18,6 @@
   (let [type (cc/int->type (first msg))]
     (assoc (zipmap (type cc/type->keys) (rest msg))
            :type type)))
-
-(defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
-  (let [app
-        (init-app-settings-fn
-          (proxy [SimpleApplication] []
-            (simpleInitApp []
-              (init-fn this))
-            (simpleUpdate [tpf]
-              (update-fn))))]
-    (extend-type (type app)
-      cc/Lifecycle
-      (start [this]
-        (start-fn this))
-      (stop [this]
-        (stop-fn this)))
-    app))
 
 (defn complete-return-map [game-state result]
   (let [{:keys [new-game-state events event msgs msg]} result
@@ -85,6 +71,32 @@
     {:new-game-state
      (assoc game-state :last-move curr-time :move-time-delta time-delta)}))
 
+(defn player? [char]
+  (= :player (:type char)))
+
+(defn mob? [char]
+  (= :mob (:type char)))
+
+(defn sum-stats [gear]
+  (merge stats/zero-stats
+         (apply merge-with + (map :stats (vals gear)))))
+
+(defn calculate-stats [gear level]
+  (let [stats (sum-stats gear)
+        {:keys [strength agility stamina wisdom intelligence spirit
+                armor]} stats
+        attack-power (+ strength agility)]
+    {:max-hp (stats/hitpoints stamina level)
+     :hp-regen (stats/hp-regen level)
+     :armor armor
+     :damage (int (stats/bonus-damage-simple attack-power level))}))
+
+(defn update-stats [game-state id]
+  (let [char (get-in game-state [:chars id])
+        gear (or (:gear game-state) (:gear char))]
+    (assoc-in game-state [:chars id]
+              (merge char (calculate-stats gear (:level char))))))
+
 (defn move-toward-pos [{:keys [pos speed] :as char} time-delta target-pos]
   (let [dir (math/norm-diff target-pos pos)
         updated-pos (math/extrapolate-pos pos dir time-delta speed)
@@ -109,3 +121,23 @@
 
 (defn queue-conj [queue item]
   (dosync (alter queue conj item)))
+
+(defn possible-slot? [game-state from to]
+  (let [item (get-in game-state from)]
+    (items/correct-slot? item to)))
+
+(defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
+  (let [app
+        (init-app-settings-fn
+          (proxy [SimpleApplication] []
+            (simpleInitApp []
+              (init-fn this))
+            (simpleUpdate [tpf]
+              (update-fn))))]
+    (extend-type (type app)
+      cc/Lifecycle
+      (start [this]
+        (start-fn this))
+      (stop [this]
+        (stop-fn this)))
+    app))

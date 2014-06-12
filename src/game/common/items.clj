@@ -6,10 +6,29 @@
 
 (declare items)
 
+(defn left-right [slot]
+  (map #(keyword (str % "-" (name slot))) ["left" "right"]))
+
+(defn check-gear-slots [gear-set gear-vector]
+  (if (= gear-set (set gear-vector))
+    gear-vector
+    (throw-error "gear-slots and gear-slots-vector does not match")))
+
 (def-let
   [armor-slots #{:head :face :neck :chest :back :waist :legs :feet
                  :shoulders :arms :wrist :hands :finger :ear}
    held-slots #{:main-hand :off-hand :ranged}
+   left-right-slots [:ear :finger :wrist]
+   gear-slots (-> (union armor-slots held-slots)
+                  (difference left-right-slots)
+                  (union (mapcat left-right left-right-slots)))
+   gear-slots-vector (check-gear-slots
+                       gear-slots
+                       [:left-ear :head :face :right-ear
+                        :arms :shoulders :neck :back
+                        :left-wrist :chest :waist :right-wrist
+                        :left-finger :legs :feet :right-finger
+                        :main-hand :off-hand :ranged :hands])
    equip-slots #{:held :armor}
    melee-weapons #{:sword :staff :club :dagger :spear :axe}
    ranged-weapons #{:crossbow :bow :wand}
@@ -132,6 +151,15 @@
                          (conj name-set name)))
                      #{} (map :name items)))
     items))
+
+(defn correct-slot? [item path]
+  (if (nil? item)
+    true
+    (let [slot (first (rseq path))
+          item-type (items (:id item))]
+      (if (contains? gear-slots slot)
+        (contains? (:slot item-type) slot)
+        true))))
 
 (def items (check-items
              [(item "Leather Vest" 5 [:chest] :leather {:armor 4})

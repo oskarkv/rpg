@@ -20,26 +20,30 @@
    (proxy [Element MouseEventListener]
      [screen id (Vector2f. x y) (Vector2f. w h) Vector4f/ZERO icon-path]
      (onMouseEvent [e])))
-  ([screen id pos dims icon-path click-fn]
-   (update-proxy (create-element screen id pos dims icon-path)
-                 {"onMouseEvent" click-fn})))
+  ([screen id pos dims icon-path {:keys [click-fn tooltip]}]
+   (cond-> (create-element screen id pos dims icon-path)
+     click-fn (update-proxy {"onMouseEvent" click-fn})
+     tooltip (.setToolTipText tooltip))))
 
-(defn create-item [screen size enqueue]
+(defn create-item [screen size enqueue tooltip]
   (create-element
-    screen (str "item " (ccfns/get-new-id)) [0 0] [size size] "fireball.png"
-    (fn [this e]
-      (some-> this .getParent (.onMouseEvent e)))))
+    screen (str "item " (ccfns/get-new-id))
+    [0 0] [size size] "fireball.png"
+    {:click-fn
+     (fn [this e]
+       (some-> this .getParent (.onMouseEvent e)))
+     :tooltip tooltip}))
 
 (defn create-items [items screen size enqueue]
-  (map #(when % (create-item screen size enqueue))
+  (map #(when % (create-item screen size enqueue nil))
        items))
 
 (defn create-slot [screen x y size enqueue]
   (create-element
     screen (str "slot " x ", " y " " (ccfns/get-new-id)) [x y] [size size]
     (-> screen (.getStyle "Window") (.getString "invSlot"))
-    (fn [this e]
-      (enqueue this (.getButtonIndex e) (.isPressed e)))))
+    {:click-fn (fn [this e]
+                 (enqueue this (.getButtonIndex e) (.isPressed e)))}))
 
 (defn create-slots [screen n cols enqueue]
   (let [padded-n (+ n (- cols (mod n cols)))
@@ -51,10 +55,12 @@
          (take n slot-posses))))
 
 (defn create-inventory
-  [screen items cols path pos enqueue]
-  (let [n (count items)
+  [screen items cols paths pos enqueue]
+  (assert (= (count items) (count paths)))
+  (let [path (butlast (first paths))
+        n (count items)
         slots (create-slots screen n cols enqueue)
-        slot->idx (zipmap slots (map #(conj path %) (range n)))
+        slot->idx (zipmap slots paths)
         items (create-items items screen size enqueue)
         container (doto (create-element screen (str "inv of " path)
                                         pos [0 0] nil)
@@ -64,39 +70,31 @@
     (dorun (map #(when %2 (.addChild % %2)) slots items))
     {:inv container :new-slots slot->idx}))
 
-(defn create-hp-text [char]
-  (format "HP: %d/%d" (:hp char) (:max-hp char)))
-
-(defn update-hp [label char]
-  (.setText label (str (:name char) "\n" (create-hp-text char))))
-
-(defn update-hp-bars [game-state self-label target-label]
-  (let [{:keys [own-id chars]} game-state
-        self (chars own-id)
-        target-id (:target self)
-        target (chars target-id)]
-    (if target
-      (update-hp target-label target)
-      (.setText target-label ""))
-    (update-hp self-label self)))
-
 (defn open-inventories [{:keys [own-id looting inv-open?] :as game-state}]
   (cond-> []
-    inv-open? (conj [:inv])
+    inv-open? (conj [:inv] [:gear])
     looting (conj [:corpses looting :drops])))
+
+(defn path->pos [path hud-state]
+  (let [positions (:positions hud-state)]
+    (or ((first path) positions) (:other positions))))
+
+(defn items-paths-pos-cols [path game-state hud-state]
+  (let [items (get-in game-state path)
+        add-to-path (fn [endings] (map #(conj path %) endings))
+        pos (path->pos path hud-state)]
+    (if (map? items)
+      [(vals items) (add-to-path (keys items)) pos 4]
+      [items (add-to-path (range (count items))) pos 2])))
 
 (defn create-new-inventories [game-state hud-state screen enqueue]
   (let [{:keys [inv-pos loot-pos invs]} hud-state
         open-invs (open-inventories game-state)
         new-paths (remove invs open-invs)
-        positions (map (fn [path] (if (= (first path) :inv)
-                                    inv-pos
-                                    loot-pos))
-                       new-paths)
-        new-invs (map (fn [path pos]
-                        (let [items (get-in game-state path)]
-                          (create-inventory screen items 2 path pos enqueue)))
-                      new-paths positions)
+        ippcs (map #(items-paths-pos-cols % game-state hud-state) new-paths)
+        new-invs (map (fn [[items paths pos cols]]
+                        (create-inventory screen items cols paths pos enqueue))
+                      ippcs)
         slots->ids (apply merge (map :new-slots new-invs))
         ids->invs (into {} (map #(vector % %2) new-paths (map :inv new-invs)))]
     (-> hud-state
@@ -107,8 +105,9 @@
 (defn remove-inventories [game-state hud-state screen]
   (let [gone-paths (set/difference (set (keys (:invs hud-state)))
                                    (set (open-inventories game-state)))]
-    (dorun (map (fn [path] (.removeElement screen (get-in hud-state [:invs path])))
-                gone-paths))
+    (dorun
+      (map (fn [path] (.removeElement screen (get-in hud-state [:invs path])))
+           gone-paths))
     (update-in hud-state [:invs] #(apply dissoc % gone-paths))))
 
 (defn update-inventories [game-state hud-state screen enqueue]
@@ -121,7 +120,8 @@
     (.setIgnoreMouse true)))
 
 (defn update-mouse-slot-pos [mouse-slot screen]
-  (.setPosition mouse-slot (.add (.getMouseXY screen) (Vector2f. -20 -20))))
+  (.setPosition mouse-slot (.add (.getMouseXY screen)
+                                 (Vector2f. (/ size -2) (/ size -2)))))
 
 (defn update-mouse-slot-content [mouse-slot screen game-state]
   (if-let [on-mouse (:on-mouse game-state)]
@@ -142,6 +142,22 @@
   (update-mouse-slot-pos mouse-slot screen)
   (update-mouse-slot-content mouse-slot screen game-state))
 
+(defn create-hp-text [char]
+  (format "HP: %d/%d" (:hp char) (:max-hp char)))
+
+(defn update-hp [label char]
+  (.setText label (str (:name char) "\n" (create-hp-text char))))
+
+(defn update-hp-bars [game-state self-label target-label]
+  (let [{:keys [own-id chars]} game-state
+        self (chars own-id)
+        target-id (:target self)
+        target (chars target-id)]
+    (if target
+      (update-hp target-label target)
+      (.setText target-label ""))
+    (update-hp self-label self)))
+
 (defmulti process-event (fn [hud-state event] (:type event)))
 
 (defn swap-slots-contents [{:keys [idx->slot] :as hud-state} from to]
@@ -157,7 +173,7 @@
     (when to-child (transfer to from to-child)))
   hud-state)
 
-(defmethod process-event :inv-swap [hud-state {[from to] :paths}]
+(defmethod process-event :c-rearrange-inv [hud-state {[from to] :paths}]
   (swap-slots-contents hud-state from to))
 
 (defmethod process-event :s-loot-item-ok [hud-state {:keys [from-path to-idx]}]
@@ -196,7 +212,9 @@
         mouse-slot (create-mouse-slot screen)
         hud-state-atom (atom {:slot->idx {} :idx->slot {}
                               :invs {} :mouse-slot mouse-slot
-                              :inv-pos [800 100] :loot-pos [100 100]})
+                              :positions {:inv [700 100]
+                                          :gear [800 100]
+                                          :other [100 100]}})
         event-queue (ref [])
         enqueue-event (fn [event] (ccfns/queue-conj event-queue event))
         lookup (fn [slot] (get-in @hud-state-atom [:slot->idx slot]))
@@ -226,6 +244,7 @@
     (.addElement screen target-label)
     (.addElement screen chat-box)
     (.setGlobalAlpha screen 1)
+    (.setUseToolTips screen true)
     ;(create-inventory screen (range 7) 2 1 enqueue)
     (->HudSystem gui-node hud-state-atom event-queue enqueue screen
                  chat-box self-label target-label)))

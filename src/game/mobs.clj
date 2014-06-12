@@ -1,8 +1,8 @@
 (ns game.mobs)
 
 (def mobs-table
-  [{:hp 100 :speed 1 :dmg 10}
-   {:name "an orc pawn" :hp 110 :dmg 9}
+  [{:hp 100 :speed 1 :damage 10}
+   {:name "an orc pawn" :hp 110 :damage 9}
    {:name "spiderling"}])
 
 (defn complete-maps [table]

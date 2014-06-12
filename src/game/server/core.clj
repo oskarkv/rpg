@@ -3,7 +3,8 @@
             [game.networking.core :as net]
             (game.common [core :as cc]
                          [core-functions :as ccfns]
-                         [items :as items])
+                         [items :as items]
+                         [stats :as stats])
             (game.key-value-store [core :as kvs.core]
                                   [protocols :as kvs])
             (game [math :as gmath]
@@ -11,8 +12,7 @@
                   [mobs :as mobs]
                   [constants :as consts])
             (game.server [pathfinding :as pf]
-                         [ai :as ai]
-                         [stats :as stats])
+                         [ai :as ai])
             [clojure.math.numeric-tower :as math])
   (:use game.utils))
 
@@ -26,12 +26,13 @@
    :attacking false
    :hp 100
    :max-hp 100
-   :dmg 60
+   :damage 60
    :delay 1
    :last-attack 0
    :level 1
    :exp 0
-   :inv (vec (repeat 10 nil))})
+   :inv (assoc-in (vec (repeat 10 nil)) [0] {:stats {:armor 4}, :id 0})
+   :gear (zipmap items/gear-slots (repeat nil))})
 
 (let [game-id-counter (atom 0)
       net->game (atom {})
@@ -55,12 +56,22 @@
 (defmethod process-event :default [game-state event])
 
 (defn make-preparation-fn [ks]
-  #(-> % (select-keys ks) (assoc :pos (map float (:pos %)))))
+  (fn [char]
+    (let [prepared (select-keys char ks)
+          pos (:pos prepared)]
+      (cond-> prepared
+        pos (assoc :pos (map float pos))))))
 
-(def keys-about-others [:name :speed :pos :type :hp :max-hp :level])
+(def update-after-level-up [:max-hp :level])
+
+(def keys-about-others
+  (concat update-after-level-up [:name :speed :pos :type :hp :level]))
+
+(def prepare-char-update (make-preparation-fn update-after-level-up))
 
 (def prepare-char-for-owner
-  (make-preparation-fn (concat keys-about-others [:dmg :delay :exp :inv])))
+  (make-preparation-fn
+    (concat keys-about-others [:damage :delay :exp :inv :gear])))
 
 (def prepare-char-for-sending
   (make-preparation-fn keys-about-others))
@@ -121,8 +132,27 @@
   (second path))
 
 (defmethod process-event :c-rearrange-inv [game-state {:keys [id paths]}]
-  (let [[path1 path2] (map #(concat [:chars id] %) paths)]
-    {:new-game-state (swap-in game-state path1 path2)}))
+  (let [[opath1 opath2] paths
+        [path1 path2] (map #(concat [:chars id] %) paths)]
+    (if (and (ccfns/possible-slot? game-state opath1 opath2)
+             (ccfns/possible-slot? game-state opath2 opath1))
+      (cond-> {:new-game-state (swap-in game-state path1 path2)}
+        (some #{:gear} (map first paths))
+        (conj {:event {:type :changed-gear :id id}})))))
+
+(defn update-player [game-state id]
+  (let [ngs (ccfns/update-stats game-state id)]
+    {:new-game-state ngs
+     :msgs [[(:player-ids game-state)
+             {:id id
+              :type :s-char-update
+              :updated (prepare-char-update (get-in ngs [:chars id]))}]]}))
+
+(defmethod process-event :changed-gear [game-state {:keys [id]}]
+  (update-player game-state id))
+
+(defmethod process-event :level-up [game-state {:keys [id] :as event}]
+  (update-player game-state id))
 
 (defn can-loot? [game-state id path]
   (when-let [corpse-id (whose-item? path)]
@@ -192,21 +222,25 @@
         (update-in [:tagged-by] tag)
         (update-in [:damaged-by id] set-damage))))
 
-(defmethod process-event :attack [game-state event]
+(defn process-hit [game-state event]
   (let [{:keys [id target damage last-attack]} event
-        all-players (:player-ids game-state)
-        register-damage* #(if (= :mob (:type %))
+        register-damage* #(if (ccfns/mob? %)
                             (register-damage % id damage)
-                            %)
-        new-game-state (-> game-state
-                           (update-in [:chars target :hp] - damage)
-                           (assoc-in [:chars id :last-attack] last-attack)
-                           (update-in [:chars target] register-damage*))
-        death (when (<= (get-in new-game-state [:chars target :hp]) 0)
-                {:type :death :id target :by id :corpse-id (new-game-id)})]
-    {:new-game-state new-game-state
-     :event death
-     :msg [all-players {:type :s-attack :target target :damage damage}]}))
+                            %)]
+    (-> game-state
+        (update-in [:chars target :hp] - damage)
+        (update-in [:chars target] register-damage*))))
+
+(defmethod process-event :attack [game-state event]
+  (let [{:keys [id target damage last-attack hit]} event
+        ngs (cond-> game-state
+              true (assoc-in [:chars id :last-attack] last-attack)
+              hit (process-hit event))]
+    {:new-game-state ngs
+     :event (when (<= (get-in ngs [:chars target :hp]) 0)
+              {:type :death :id target :by id :corpse-id (new-game-id)})
+     :msg [(:player-ids game-state)
+           {:type :s-attack :target target :damage damage :hit hit}]}))
 
 (defn give-exp [{:keys [level exp] :as char} new-exp]
   (let [exp-sum (+ exp new-exp)
@@ -217,14 +251,15 @@
           (assoc-in [:exp] (- exp-sum req-exp)))
       (update-in char [:exp] + new-exp))))
 
-(defn distribute-exp [game-state mob]
-  (let [{:keys [damaged-by tagged-by]} mob
+(defn distribute-exp [game-state char]
+  (let [{:keys [damaged-by tagged-by]} char
         total-damage (apply + (vals damaged-by))
         tagged-damage (damaged-by tagged-by)
-        all-exp (stats/exp-gained (:level mob)
+        all-exp (stats/exp-gained (:level char)
                                   (get-in game-state [:chars tagged-by :level]))
         actual-exp (* all-exp (/ tagged-damage total-damage))]
-    (update-in game-state [:chars tagged-by] give-exp actual-exp)))
+    (update-in game-state [:chars tagged-by]
+               give-exp (* consts/exp-bonus-factor actual-exp))))
 
 (defn mob-death [game-state {:keys [id]}]
   (let [mob (get-in game-state [:chars id])
@@ -259,21 +294,27 @@
         msgs-vec [[all-players {:type :s-char-death :id id}]
                   [all-players {:type :s-spawn-corpse
                                 :id corpse-id :corpse corpse}]]]
-    (if (= :player (:type char))
+    (if (ccfns/player? char)
       (conj msgs-vec
             [all-players {:type :s-spawn-player :id id
                           :player (prepare-char-for-sending char)}])
       msgs-vec)))
 
+(defn leveled-up? [old-gs new-gs {:keys [tagged-by] :as killed-char}]
+  (let [get-level (fn [gs] (get-in gs [:chars tagged-by :level]))]
+    (and (ccfns/mob? killed-char) (> (get-level new-gs) (get-level old-gs)))))
+
 (defmethod process-event :death [game-state {:keys [id corpse-id] :as event}]
   (let [char (get-in game-state [:chars id])
         corpse (make-corpse char)
-        new-game-state (-> (if (= :mob (:type char))
+        new-game-state (-> (if (ccfns/mob? char)
                              (mob-death game-state event)
                              (player-death game-state event))
                            (update-in [:corpses] assoc corpse-id corpse))]
-    {:new-game-state new-game-state
-     :msgs (death-msgs new-game-state event)}))
+    (conj-some {:new-game-state new-game-state
+                :msgs (death-msgs new-game-state event)}
+               (when (leveled-up? game-state new-game-state char)
+                 {:event {:type :level-up :id (:tagged-by char)}}))))
 
 (defmethod process-event :decay-corpses [game-state {:keys [ids]}]
   {:new-game-state
@@ -365,14 +406,18 @@
 
 (defn let-chars-attack [game-state]
   (let [generate-attack-event
-        (fn [[id {:keys [target attacking dmg last-attack delay] :as char}]]
-          (when (and attacking target
-                     (cooled-down? char)
-                     (get-in game-state [:chars target])
-                     (ccfns/close-enough? game-state id target
-                                          consts/attack-distance))
-            {:id id :type :attack :target target :damage dmg
-             :last-attack (calculate-new-last-attack char)}))]
+        (fn [[id {:keys [target attacking damage last-attack delay] :as char}]]
+          (let [target-char (get-in game-state [:chars target])
+                event {:id id :type :attack :target target
+                       :last-attack (calculate-new-last-attack char)}]
+            (when (and attacking target
+                       (cooled-down? char)
+                       target-char
+                       (ccfns/close-enough? game-state id target
+                                            consts/attack-distance))
+              (conj event (if (stats/hit? char target-char)
+                            {:hit true :damage (stats/actual-damage damage)}
+                            {:hit false})))))]
     {:events (remove nil? (map generate-attack-event (:chars game-state)))}))
 
 (defn get-network-events [_ net-sys]

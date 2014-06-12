@@ -18,6 +18,8 @@
   stats-random-part 0.1
   corpse-decay-time 10000 ;ms
   dir-update-interval 50
+  damage-random-portion 0.75
+  exp-bonus-factor 15
   ;;; GRAPHICS
   resolution-x 1024
   resolution-y 768

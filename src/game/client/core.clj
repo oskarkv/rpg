@@ -10,7 +10,8 @@
             (game.common [core :as cc]
                          [core-functions :as ccfns]
                          [input :as cmi]
-                         [graphics :as gfx])
+                         [graphics :as gfx]
+                         [items :as items])
             [game.math :as gmath]
             [clojure.math.numeric-tower :as math])
   (:use game.utils))
@@ -49,8 +50,9 @@
 (defmethod process-event :s-spawn-player [game-state {:keys [id player]}]
   {:new-game-state (update-in game-state [:chars id] merge player)})
 
-(defmethod process-event :s-attack [game-state {:keys [target damage]}]
-  {:new-game-state (update-in game-state [:chars target :hp] - damage)})
+(defmethod process-event :s-attack [game-state {:keys [target damage hit]}]
+  (when hit
+    {:new-game-state (update-in game-state [:chars target :hp] - damage)}))
 
 (defmethod process-event :s-spawn-mobs [game-state {:keys [mobs]}]
   {:new-game-state (update-in game-state [:chars] merge mobs)})
@@ -67,6 +69,27 @@
 (defmethod process-event :s-loot-item-ok [game-state {:keys [from-path to-idx]}]
   {:new-game-state
    (move-in game-state from-path [:inv to-idx])})
+
+(defn update-own-stats [{:keys [own-id gear] :as game-state}]
+  (-> game-state
+      (ccfns/update-stats own-id)
+      (update-in [:chars own-id]
+                 merge (ccfns/sum-stats gear))))
+
+(defmethod process-event :s-char-update [game-state {:keys [id updated]}]
+  (let [new-level (:level updated)
+        old-level (get-in game-state [:chars id :level])
+        leveled-up (> new-level old-level)]
+    {:new-game-state
+     (cond-> (update-in game-state [:chars id] merge updated)
+       (== (:own-id game-state) id) update-own-stats)
+     :event (when leveled-up {:type :level-up :id id})}))
+
+(defmethod process-event :changed-gear [game-state event]
+  {:new-game-state (update-own-stats game-state)})
+
+(defmethod process-event :level-up [game-state {:keys [id]}]
+  (println "DING!"))
 
 (defn calculate-base-movement-direction [key-state]
   (letfn [(adder [dx dy] (fn [[x y]] [(+ dx x) (+ dy y)]))]
@@ -127,6 +150,15 @@
 (defmethod process-event :open-inv [game-state _]
   {:new-game-state (update-in game-state [:inv-open?] not)})
 
+(defn my-inv? [path]
+  (= :inv (first path)))
+
+(defn my-gear? [path]
+  (= :gear (first path)))
+
+(defn my-stuff? [path]
+  (or (my-inv? path) (my-gear? path)))
+
 (defn pick-up-or-drop-item [game-state path]
   (if-let [on-mouse (:on-mouse game-state)]
     {:new-game-state (dissoc game-state :on-mouse)
@@ -154,12 +186,18 @@
 
 (defmethod process-event :inv-swap
   [game-state {[from to :as paths] :paths :as event}]
-  (if (apply = :inv (map first paths))
-    {:new-game-state (swap-in game-state from to)
-     :event {:type :c-rearrange-inv :paths paths}}))
+  (when (and (every? my-stuff? paths)
+             (ccfns/possible-slot? game-state from to)
+             (ccfns/possible-slot? game-state to from))
+    (cond-> {:new-game-state (swap-in game-state from to)
+             :events [{:type :c-rearrange-inv :paths paths}]}
+      (some #{:gear} (map first paths))
+      (update-in [:events] conj {:type :changed-gear}))))
 
 (defn move-out-own-inv [{:keys [own-id] :as game-state}]
-  (move-in game-state [:chars own-id :inv] [:inv]))
+  (-> game-state
+      (move-in [:chars own-id :inv] [:inv])
+      (move-in [:chars own-id :gear] [:gear])))
 
 (defn login-and-recv-state [game-state net-sys name password stop?]
   (cc/update net-sys [{:type :c-login :username name :password password}])

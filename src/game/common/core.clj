@@ -16,7 +16,7 @@
    :c-loot-corpse [:corpse-id]
    :c-loot-item [:from-path :to-idx]
    :c-rearrange-inv [:paths]
-   :s-attack [:target :damage]
+   :s-attack [:target :damage :hit]
    :s-game-state [:game-state]
    :s-move [:positions]
    :s-own-id [:id]
@@ -26,7 +26,8 @@
    :s-spawn-corpse [:id :corpse]
    :s-loot [:corpse-id :drops]
    :s-loot-item-ok [:from-path :to-idx]
-   :s-decay-corpses [:ids]})
+   :s-decay-corpses [:ids]
+   :s-char-update [:updated :id]})
 
 (let [types (-> (keys type->keys) sort)]
   (def type->int (zipmap types (range)))
