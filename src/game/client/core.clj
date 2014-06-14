@@ -76,6 +76,13 @@
       (update-in [:chars own-id]
                  merge (ccfns/sum-stats gear))))
 
+(defmethod process-event :s-hp-update
+  [{:keys [chars] :as game-state} {:keys [id-hp-vecs]}]
+  {:new-game-state
+   (assoc-in game-state [:chars]
+             (reduce (fn [cs [id hp]] (assoc-in cs [id :hp] hp))
+                     chars id-hp-vecs))})
+
 (defmethod process-event :s-char-update [game-state {:keys [id updated]}]
   (let [new-level (:level updated)
         old-level (get-in game-state [:chars id :level])

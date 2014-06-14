@@ -3,6 +3,7 @@
   (:require [game.common.core :as cc]
             [game.constants :as consts]
             [game.common.core-functions :as ccfns]
+            [clojure.math.numeric-tower :as math]
             [clojure.set :as set])
   (:import (tonegod.gui.core Screen Element)
            (tonegod.gui.controls.text Label)
@@ -143,7 +144,7 @@
   (update-mouse-slot-content mouse-slot screen game-state))
 
 (defn create-hp-text [char]
-  (format "HP: %d/%d" (:hp char) (:max-hp char)))
+  (apply format "HP: %d/%d" (map math/round [(:hp char) (:max-hp char)])))
 
 (defn update-hp [label char]
   (.setText label (str (:name char) "\n" (create-hp-text char))))

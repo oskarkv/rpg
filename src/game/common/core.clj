@@ -27,6 +27,7 @@
    :s-loot [:corpse-id :drops]
    :s-loot-item-ok [:from-path :to-idx]
    :s-decay-corpses [:ids]
+   :s-hp-update [:id-hp-vecs]
    :s-char-update [:updated :id]})
 
 (let [types (-> (keys type->keys) sort)]

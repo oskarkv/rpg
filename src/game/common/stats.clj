@@ -78,7 +78,7 @@
   (+ (* level 10) (* wisdom 5)))
 
 (defn hp-regen [level]
-  (math/floor (/ level 2)))
+  (/ level 3.0))
 
 (defn base-mana-regen [level]
   level)

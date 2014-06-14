@@ -20,6 +20,7 @@
   dir-update-interval 50
   damage-random-portion 0.75
   exp-bonus-factor 15
+  regen-interval 1
   ;;; GRAPHICS
   resolution-x 1024
   resolution-y 768

@@ -1,6 +1,7 @@
 (ns game.server.core
   (:require [clojure.data.priority-map :as pm]
             [game.networking.core :as net]
+            [clojure.math.numeric-tower :as math]
             (game.common [core :as cc]
                          [core-functions :as ccfns]
                          [items :as items]
@@ -12,8 +13,7 @@
                   [mobs :as mobs]
                   [constants :as consts])
             (game.server [pathfinding :as pf]
-                         [ai :as ai])
-            [clojure.math.numeric-tower :as math])
+                         [ai :as ai]))
   (:use game.utils))
 
 (defn new-player [username]
@@ -62,12 +62,12 @@
       (cond-> prepared
         pos (assoc :pos (map float pos))))))
 
-(def update-after-level-up [:max-hp :level])
+(def char-update-keys [:max-hp :level])
 
 (def keys-about-others
-  (concat update-after-level-up [:name :speed :pos :type :hp :level]))
+  (concat char-update-keys [:name :speed :pos :type :hp :level]))
 
-(def prepare-char-update (make-preparation-fn update-after-level-up))
+(def prepare-char-update (make-preparation-fn char-update-keys))
 
 (def prepare-char-for-owner
   (make-preparation-fn
@@ -316,6 +316,14 @@
                (when (leveled-up? game-state new-game-state char)
                  {:event {:type :level-up :id (:tagged-by char)}}))))
 
+(defn get-id-and-hp [[id char]]
+  [id (:hp char)])
+
+(defmethod process-event :regen-tick
+  [{:keys [chars player-ids] :as game-state} event]
+  {:msg [player-ids {:type :s-hp-update
+                     :id-hp-vecs (map get-id-and-hp chars)}]})
+
 (defmethod process-event :decay-corpses [game-state {:keys [ids]}]
   {:new-game-state
    (update-in game-state [:corpses] #(apply dissoc % ids))
@@ -420,6 +428,19 @@
                             {:hit false})))))]
     {:events (remove nil? (map generate-attack-event (:chars game-state)))}))
 
+(defn regen-char [{:keys [hp-regen hp max-hp] :as char}]
+  (assoc-in char [:hp] (min max-hp (+ hp (or hp-regen 0)))))
+
+(defn regen-chars [{:keys [last-regen] :as game-state}]
+  (let [curr-time (current-time-ms)
+        regen-interval (* 1000 consts/regen-interval)]
+    (when (> curr-time (+ last-regen regen-interval))
+      {:new-game-state
+       (-> game-state
+           (update-in [:chars] #(fmap regen-char %))
+           (update-in [:last-regen] + regen-interval))
+       :event {:type :regen-tick}})))
+
 (defn get-network-events [_ net-sys]
   {:events (cc/get-events net-sys)})
 
@@ -442,6 +463,7 @@
           (move-mobs)
           (check-if-moved)
           (let-chars-attack)
+          (regen-chars)
           (check-spawns)
           (check-corpses))]
     new-game-state))
@@ -470,7 +492,7 @@
 
 (defn create-game-state []
   (-> {:chars {} :player-ids #{} :corpses (pm/priority-map-keyfn :decay-time)
-       :last-move (current-time-ms)}
+       :last-move (current-time-ms) :last-regen (current-time-ms)}
       (merge (gmap/load-game-map))
       (as-> gs
         (assoc gs :to-spawn (create-to-spawn-queue (:spawns gs))))))
