@@ -1,0 +1,102 @@
+\documentclass[a4paper,10pt,titlepage]{article}
+
+
+
+\addtolength{\parskip}{\baselineskip}
+\setlength{\parindent}{0 em}
+
+\usepackage{graphicx}
+\usepackage{tabularx}
+
+\usepackage[swedish]{babel}
+\usepackage[cp1252]{inputenc}
+
+
+
+\begin{document}
+
+\section{Base-stats}
+
+Str - ger skada för warrior, paladin, sk, etc.\\
+Agi - ger skada för rogue, monk, ranger, etc.\\
+Sta - ger hp.\\
+Int - ger skada/healing för casters.\\
+Wis - ger mana pool.\\
+Spi - ger mana/energy regen.
+
+Anledning till ovan nämnda stats är:
+\begin{itemize}
+    \item Varje stat borde bara ge en sak, det är mer simpelt.
+    \item Det känns lite bättre att få strength än pure attack power -- lite mer
+        rpg-känsla.
+    \item Alla klasser borde ha ungefär lika många stats att sträva mot, för det
+        känns bättre så för rpg-känslans skull. Tänk t.ex. en meleeklass som
+        säger ''Jag vill bara ha dexterity, men skiter i agility och strength.''
+        Det skulle kännas lite konstigt.
+\end{itemize}
+
+Man borde dock hitta på nått att ge warrior för agi, och rogue för str. Det
+känns ju konstigt att en meleeklass inte skulle kunna dra nytta av alla
+meleestats. Kanske bara ha attack power / 2 av deras main stat.
+
+Man borde ha ca 10 eller 20 i varje stat på level 1.
+
+Man borde få en konstant bonus av statsen Wis, Spi, Con; d.v.s. formeln för hp
+t.ex. borde vara $HP = LVL*CONST_{LVL} + STAT*CONST_{STAT}$. 
+
+Man borde anta att man har i genomsnitt t.ex. 5 i stats per level, d.v.s.
+på level 10 har man 50 i de stats man bryr sig om. 5 per level verkar lagom, för
+då får man 250 på level 50. Man kan inte ha en för liten increase per level
+dock, för då kan inte items öka så mycket per level; säg att man har ca 15
+slots, och man bryr sig om 3 stats, då kan ett level-10-item ha 1 stat point
+mer än ett level-9-item, i nån av de tre statsen man bryr sig om. i.o.f.s. kan man
+ju också få armor, skada (om det är ett vapen) eller nån annan icke-core stat
+också. I alla fall så borde genomsnittsstatsen vara proportionella mot level.
+
+Om man har $5*LEVEL$ i statsen, så borde man få t.ex. 100\% bonus i skada av
+str/agi, 100\% haste av dex, 100\% spelldamage av int, 100\% mana regen av spi.
+Då skulle melees och spellcasters kunna öka sin skada lika mycket.
+
+Man kanske också ska dela upp det så att t.ex. Str ger en konstant bonus per
+Str, och en bonus som scalear med level. Då kan man få mer ökad skada på slutet,
+och små skillnader i str på låga levlar ger inte lika stor effekt. Man kan också
+dela upp det så att Str ger en \%-bonus och en flat bonus, för annars så spelar
+vapen så stor roll. Man måste dock scalea det med delay på något sätt.
+
+Kanske bör man ha en mindre bonus, t.ex. 50\% i varje. Det är ändå nått att ha,
+men det blir inte lika stor skillnad på nån som har bra gear och nån som har
+dåligt gear. Sen får man ju anta att man får mer stats än $5*LEVEL$ när man har
+varit maxlevel ett tag.
+
+\subsection{Frågor som kvarstår}
+
+Ska agi ge nått för str-klasser, och str nått för agi-klasser?
+
+Ska man kanske få en flat bonus av agi/str också? För annars spelar vapnet så
+stor roll.
+
+Ska stats scalea linjärt, eller ska det vara diminishing returns?
+
+Om det finns dodge/parry, ska det vara en passiv skill? Och hur ska man öka den?
+Med en stat? Eller bara med dodge rating? Det känns OK att ha crit rating, men
+lite mer konstigt att ha dodge/parry rating.
+
+\section{Andra stats}
+
+Man skulle kunna ha:
+\begin{itemize}
+    \item crit rating
+    \item hit rating
+    \item haste
+    \item armor/magicarmor penetration
+    \item spellhaste
+    \item cooldown reduction
+    \item resource reduction
+    \item spell range
+\end{itemize}
+
+Man skulle också kunna ha focusitems, som ger t.ex. mer fire damage, mer dot
+damage, o.s.v. för att få lite variation.
+
+
+\end{document}
