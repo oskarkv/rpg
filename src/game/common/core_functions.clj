@@ -81,21 +81,16 @@
   (merge stats/zero-stats
          (apply merge-with + (map :stats (vals gear)))))
 
-(defn calculate-stats [gear level]
+(defn update-stats [{:keys [gear level] :as char}]
   (let [stats (sum-stats gear)
         {:keys [strength agility stamina wisdom intelligence spirit
                 armor]} stats
         attack-power (+ strength agility)]
-    {:max-hp (stats/hitpoints stamina level)
-     :hp-regen (stats/hp-regen level)
-     :armor armor
-     :damage (int (stats/bonus-damage-simple attack-power level))}))
-
-(defn update-stats [game-state id]
-  (let [char (get-in game-state [:chars id])
-        gear (or (:gear game-state) (:gear char))]
-    (assoc-in game-state [:chars id]
-              (merge char (calculate-stats gear (:level char))))))
+    (merge char
+           {:max-hp (stats/hitpoints stamina level)
+            :hp-regen (stats/hp-regen level)
+            :armor armor
+            :damage (int (stats/bonus-damage-simple attack-power level))})))
 
 (defn move-toward-pos [{:keys [pos speed] :as char} time-delta target-pos]
   (let [dir (math/norm-diff target-pos pos)

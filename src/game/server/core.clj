@@ -17,22 +17,23 @@
   (:use game.utils))
 
 (defn new-player [username]
-  {:name username
-   :speed 2
-   :pos [1 1]
-   :bind-spot [1 1]
-   :move-dir [0 0]
-   :type :player
-   :attacking false
-   :hp 100
-   :max-hp 100
-   :damage 60
-   :delay 1
-   :last-attack 0
-   :level 1
-   :exp 0
-   :inv (assoc-in (vec (repeat 10 nil)) [0] {:stats {:armor 4}, :id 0})
-   :gear (zipmap items/gear-slots (repeat nil))})
+  (ccfns/update-stats
+    {:name username
+     :speed 2
+     :pos [1 1]
+     :bind-spot [1 1]
+     :move-dir [0 0]
+     :type :player
+     :attacking false
+     :hp 100
+     :max-hp 100
+     :damage 60
+     :delay 1
+     :last-attack 0
+     :level 1
+     :exp 0
+     :inv (assoc-in (vec (repeat 10 nil)) [0] {:stats {:armor 4}, :id 0})
+     :gear (zipmap items/gear-slots (repeat nil))}))
 
 (let [game-id-counter (atom 0)
       net->game (atom {})
@@ -141,7 +142,7 @@
         (conj {:event {:type :changed-gear :id id}})))))
 
 (defn update-player [game-state id]
-  (let [ngs (ccfns/update-stats game-state id)]
+  (let [ngs (update-in game-state [:chars id] ccfns/update-stats)]
     {:new-game-state ngs
      :msgs [[(:player-ids game-state)
              {:id id

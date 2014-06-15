@@ -70,11 +70,13 @@
   {:new-game-state
    (move-in game-state from-path [:inv to-idx])})
 
-(defn update-own-stats [{:keys [own-id gear] :as game-state}]
-  (-> game-state
-      (ccfns/update-stats own-id)
-      (update-in [:chars own-id]
-                 merge (ccfns/sum-stats gear))))
+(defn update-own-stats [{:keys [chars own-id gear] :as game-state}]
+  (assoc game-state :chars
+         (-> chars
+             (assoc-in [own-id :gear] gear)
+             (update-in [own-id] ccfns/update-stats)
+             (update-in [own-id] merge (ccfns/sum-stats gear))
+             (dissoc-in [own-id :gear]))))
 
 (defmethod process-event :s-hp-update
   [{:keys [chars] :as game-state} {:keys [id-hp-vecs]}]
