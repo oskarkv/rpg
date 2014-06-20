@@ -98,10 +98,9 @@
 
 (defn what-kind [thing]
   (condf thing
-    classes :class
-    abstract-slots :slot
-    races :race
-    types :type))
+    classes :classes
+    abstract-slots :slots
+    races :races))
 
 (defn make-stats-map [m]
   (let [{:keys [damage delay]} m]
@@ -129,11 +128,11 @@
                  number? {:weight e}
                  types {:type e}
                  keyword? {e true})))
-      (update-in [:slot] concrete-slots)
+      (update-in [:slots] concrete-slots)
       remove-map-nils))
 
 (defn check-item [item]
-  (let [{:keys [name slot type weight race class two-hand stackable]
+  (let [{:keys [name slots type weight race class two-hand stackable]
          item-stats :stats}
         item]
     (every? identity
@@ -141,7 +140,7 @@
              (every? races race)
              (every? classes class)
              (contains? (conj types nil) type)
-             (every? gear-slots slot)
+             (every? gear-slots slots)
              (number? weight)
              (every? stats (keys item-stats))
              (contains? #{true nil false} two-hand)
@@ -168,7 +167,7 @@
     (let [slot (first (rseq path))
           item-type (items (:id item))]
       (if (contains? gear-slots slot)
-        (contains? (:slot item-type) slot)
+        (contains? (:slots item-type) slot)
         true))))
 
 (def items (check-items

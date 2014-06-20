@@ -185,7 +185,7 @@
       {:event {:type :c-loot-item :from-path path :to-idx to-idx}})))
 
 (defn get-slots [{id :id}]
-  (get-in items/items [id :slot]))
+  (get-in items/items [id :slots]))
 
 (defn get-prioritized-slot [{:keys [gear] :as game-state} item]
   (let [slots (get-slots item)
