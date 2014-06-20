@@ -184,9 +184,25 @@
     (when to-idx
       {:event {:type :c-loot-item :from-path path :to-idx to-idx}})))
 
+(defn get-slots [{id :id}]
+  (get-in items/items [id :slot]))
+
+(defn get-prioritized-slot [{:keys [gear] :as game-state} item]
+  (let [slots (get-slots item)
+        empty-slots (remove #(% gear) slots)]
+    (first (concat empty-slots slots))))
+
+(defn equip-item [game-state path]
+  (let [item (get-in game-state path)
+        slot (get-prioritized-slot game-state item)]
+    (when slot
+      {:event {:type :inv-swap :paths [[:gear slot] path]}})))
+
 (defn activate-item [game-state path]
-  (cond
-    (= :corpses (first path)) (loot-item game-state path)))
+  (condp #(= % (first %2)) path
+    :corpses (loot-item game-state path)
+    :inv (equip-item game-state path)
+    nil))
 
 (defmethod process-event :hud-click [game-state {:keys [path button pressed]}]
   (cond
