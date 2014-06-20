@@ -12,7 +12,7 @@
 (defn check-gear-slots [gear-set gear-vector]
   (if (= gear-set (set gear-vector))
     gear-vector
-    (throw-error "gear-slots and gear-slots-vector does not match")))
+    (throw-error "gear-slots and gear-slots-vector do not match")))
 
 (def-let
   [armor-slots #{:head :face :neck :chest :back :waist :legs :feet
