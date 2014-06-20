@@ -32,7 +32,8 @@
      :last-attack 0
      :level 1
      :exp 0
-     :inv (assoc-in (vec (repeat 10 nil)) [0] {:stats {:armor 20}, :id 0})
+     :inv (-> (vec (repeat 10 nil))
+              (assoc-in [0] {:stats {:armor 20}, :id 0}))
      :gear (zipmap items/gear-slots (repeat nil))}))
 
 (let [game-id-counter (atom 0)

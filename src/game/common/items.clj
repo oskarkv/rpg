@@ -18,7 +18,7 @@
   [armor-slots #{:head :face :neck :chest :back :waist :legs :feet
                  :shoulders :arms :wrist :hands :finger :ear}
    held-slots #{:main-hand :off-hand :ranged}
-   left-right-slots [:ear :finger :wrist]
+   left-right-slots #{:ear :finger :wrist}
    gear-slots (-> (union armor-slots held-slots)
                   (difference left-right-slots)
                   (union (mapcat left-right left-right-slots)))
@@ -35,7 +35,7 @@
    armor-types #{:cloth :leather :mail :plate :jewelry}
    weapons #{:ranged :melee}
    non-equip #{:trade :quest :consumable}
-   slots (union armor-slots held-slots)
+   abstract-slots (union armor-slots held-slots)
    types (union melee-weapons ranged-weapons non-equip armor-types)
    classes #{:paladin :druid :warrior :wizard}
    races #{:gnome :dwarf :human :darkelf :troll :ogre}
@@ -99,7 +99,7 @@
 (defn what-kind [thing]
   (condf thing
     classes :class
-    slots :slot
+    abstract-slots :slot
     races :race
     types :type))
 
@@ -109,18 +109,28 @@
       damage (assoc :damage damage)
       delay (assoc :delay delay))))
 
+(defn concrete-slots [abstract-slots]
+  (when abstract-slots
+    (set (mapcat (fn [slot]
+                   (if (left-right-slots slot)
+                     (left-right slot)
+                     [slot]))
+                 abstract-slots))))
+
 (defn item [& info]
-  (apply merge-with union
-         (for [e info]
-           (condf e
-             string? {:name e}
-             map? (if (some #{:stackable :price} (keys e))
-                    e
-                    (make-stats-map e))
-             vector? {(what-kind (first e)) (set e)}
-             number? {:weight e}
-             types {:type e}
-             keyword? {e true}))))
+  (-> (apply merge-with union
+             (for [e info]
+               (condf e
+                 string? {:name e}
+                 map? (if (some #{:stackable :price} (keys e))
+                        e
+                        (make-stats-map e))
+                 vector? {(what-kind (first e)) (set e)}
+                 number? {:weight e}
+                 types {:type e}
+                 keyword? {e true})))
+      (update-in [:slot] concrete-slots)
+      remove-map-nils))
 
 (defn check-item [item]
   (let [{:keys [name slot type weight race class two-hand stackable]
@@ -131,7 +141,7 @@
              (every? races race)
              (every? classes class)
              (contains? (conj types nil) type)
-             (every? slots slot)
+             (every? gear-slots slot)
              (number? weight)
              (every? stats (keys item-stats))
              (contains? #{true nil false} two-hand)
