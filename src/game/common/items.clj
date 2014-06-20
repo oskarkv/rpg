@@ -162,6 +162,6 @@
         true))))
 
 (def items (check-items
-             [(item "Leather Vest" 5 [:chest] :leather {:armor 4})
+             [(item "Leather Vest" 5 [:chest] :leather {:armor 20})
               (item "Snake Skin" 0.1 {:stackable 20})
               (item "Rusty Sword" 5 [:main-hand :off-hand])]))

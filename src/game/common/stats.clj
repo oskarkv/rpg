@@ -30,11 +30,19 @@
 (defn exp-gained [mob-level player-level]
   (* (exp-modifier mob-level player-level) (exp-per-mob mob-level)))
 
-(defn reduction [ac attackers-level]
-  (- 1 (math/expt 0.9502 (/ ac attackers-level))))
+(defn through-armor [ac attackers-level]
+  (math/expt 0.9502 (/ ac attackers-level)))
 
 (defn base-that-gives-reduction [reduction]
   (math/expt (- 1 reduction) 0.1))
+
+(defn random-damage [weapon-damage]
+  (let [modify-damage #(* (% 1 consts/damage-random-portion) weapon-damage)]
+    (math/round (rand-uniform (modify-damage -) (modify-damage +)))))
+
+(defn actual-damage [char target]
+  (* (through-armor (or (:armor target) 0) (:level char))
+     (random-damage (:damage char))))
 
 (defn expected-weapon-damage [level]
   level)
@@ -66,10 +74,6 @@
 
 (defn hit? [attacker target]
   (< (rand-uniform 1) (hit-chance (:level attacker) (:level target))))
-
-(defn actual-damage [weapon-damage]
-  (let [modify-damage #(* (% 1 consts/damage-random-portion) weapon-damage)]
-    (math/round (rand-uniform (modify-damage -) (modify-damage +)))))
 
 (defn hitpoints [stamina level]
   (+ (* level 100) (* stamina 5)))

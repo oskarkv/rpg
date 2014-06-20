@@ -32,7 +32,7 @@
      :last-attack 0
      :level 1
      :exp 0
-     :inv (assoc-in (vec (repeat 10 nil)) [0] {:stats {:armor 4}, :id 0})
+     :inv (assoc-in (vec (repeat 10 nil)) [0] {:stats {:armor 20}, :id 0})
      :gear (zipmap items/gear-slots (repeat nil))}))
 
 (let [game-id-counter (atom 0)
@@ -425,7 +425,8 @@
                        (ccfns/close-enough? game-state id target
                                             consts/attack-distance))
               (conj event (if (stats/hit? char target-char)
-                            {:hit true :damage (stats/actual-damage damage)}
+                            {:hit true
+                             :damage (stats/actual-damage char target-char)}
                             {:hit false})))))]
     {:events (remove nil? (map generate-attack-event (:chars game-state)))}))
 
