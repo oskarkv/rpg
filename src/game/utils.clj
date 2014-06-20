@@ -178,3 +178,6 @@
   (let [item1 (get-in m path1)
         item2 (get-in m path2)]
     (-> m (assoc-in path1 item2) (assoc-in path2 item1))))
+
+(defn remove-map-nils [m]
+  (into {} (filter #(% 1) m)))
