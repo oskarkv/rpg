@@ -16,6 +16,7 @@
    :c-loot-corpse [:corpse-id]
    :c-loot-item [:from-path :to-idx]
    :c-rearrange-inv [:paths]
+   :c-quit-looting [:ids]
    :s-attack [:target :damage :hit]
    :s-game-state [:game-state]
    :s-move [:positions]
@@ -26,6 +27,7 @@
    :s-spawn-corpse [:id :corpse]
    :s-loot [:corpse-id :drops]
    :s-loot-item-ok [:from-path :to-idx]
+   :s-item-looted [:from-path :by]
    :s-decay-corpses [:ids]
    :s-hp-update [:id-hp-vecs]
    :s-char-update [:updated :id]})

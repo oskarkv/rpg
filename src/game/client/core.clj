@@ -13,6 +13,7 @@
                          [graphics :as gfx]
                          [items :as items])
             [game.math :as gmath]
+            [clojure.set :as set]
             [clojure.math.numeric-tower :as math])
   (:use game.utils))
 
@@ -58,17 +59,22 @@
   {:new-game-state (update-in game-state [:chars] merge mobs)})
 
 (defmethod process-event :s-decay-corpses [game-state {:keys [ids]}]
-  {:new-game-state (update-in game-state [:corpses] #(apply dissoc % ids))})
+  {:new-game-state (-> game-state
+                     (update-in [:corpses] #(apply dissoc % ids))
+                     (update-in [:looting] #(apply disj % ids)))})
 
 (defmethod process-event :s-loot [game-state {:keys [corpse-id drops]}]
   {:new-game-state
    (-> game-state
        (assoc-in [:corpses corpse-id :drops] drops)
-       (assoc-in [:looting] corpse-id))})
+       (update-in [:looting] conj corpse-id))})
 
 (defmethod process-event :s-loot-item-ok [game-state {:keys [from-path to-idx]}]
   {:new-game-state
    (move-in game-state from-path [:inv to-idx])})
+
+(defmethod process-event :s-item-looted [game-state {:keys [from-path by]}]
+  {:new-game-state (dissoc-in game-state from-path)})
 
 (defn update-own-stats [{:keys [chars own-id gear] :as game-state}]
   (assoc game-state :chars
@@ -152,8 +158,8 @@
 
 (defmethod process-event :loot [game-state _]
   (when-let [corpse (gfx/pick-target :corpses)]
-    (when (ccfns/close-enough? game-state (:own-id game-state)
-                               corpse consts/loot-distance)
+    (when (ccfns/id-close-enough? game-state (:own-id game-state)
+                                  corpse consts/loot-distance)
       {:event {:type :c-loot-corpse :corpse-id corpse}})))
 
 (defmethod process-event :open-inv [game-state _]
@@ -244,11 +250,23 @@
             (map #(get-in terrain (mapv (comp int math/floor) %))
                  (map adder [[r r] [r -r] [-r r] [-r -r]])))))
 
-(defn move-self [{:keys [own-id chars move-time-delta] :as game-state}]
+(defn update-looting [game-state new-pos]
+  (let [get-pos #(get-in game-state [:corpses % :pos])]
+    (set (filter #(ccfns/pos-close-enough? (get-pos %) new-pos
+                                           consts/loot-distance)
+                 (:looting game-state)))))
+
+(defn move-self [{:keys [looting own-id chars move-time-delta] :as game-state}]
   (let [{:keys [pos move-dir speed] :as self} (chars own-id)
         new-pos (gmath/extrapolate-pos pos move-dir move-time-delta speed)]
     (if (legal-pos? game-state new-pos)
-      {:new-game-state (assoc-in game-state [:chars own-id :pos] new-pos)}
+      (let [new-looting (update-looting game-state new-pos)
+            ngs (-> game-state
+                    (assoc-in [:chars own-id :pos] new-pos)
+                    (assoc :looting new-looting))
+            quitted (set/difference looting new-looting)]
+        {:new-game-state ngs
+         :event (when (seq quitted) {:type :c-quit-looting :ids quitted})})
       {:new-game-state (assoc-in game-state [:chars own-id :move-dir] [0 0])
        :event {:type :new-dir}})))
 
@@ -269,7 +287,7 @@
 
 (defn initial-game-state []
   (-> (gmap/load-game-map) (dissoc :spawns) (assoc :base-move-dir [0 0])
-      (assoc :last-dir-update 0)))
+      (assoc :last-dir-update 0) (assoc :looting #{})))
 
 (defn get-subsystem-events [_ systems]
   {:events (mapcat cc/get-events systems)})

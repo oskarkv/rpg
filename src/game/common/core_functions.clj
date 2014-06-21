@@ -101,12 +101,15 @@
       (assoc char :pos updated-pos)
       (assoc char :pos target-pos))))
 
-(defn close-enough? [game-state id-1 id-2 limit]
+(defn pos-close-enough? [pos-1 pos-2 limit]
+  (>= limit (math/distance pos-1 pos-2)))
+
+(defn id-close-enough? [game-state id-1 id-2 limit]
   (let [get-pos (fn [id] (or (get-in game-state [:chars id :pos])
                              (get-in game-state [:corpses id :pos])))
         pos-1 (get-pos id-1)
         pos-2 (get-pos id-2)]
-    (> limit (math/distance pos-1 pos-2))))
+    (pos-close-enough? pos-1 pos-2 limit)))
 
 (defn reset-queue [event-queue]
   (dosync

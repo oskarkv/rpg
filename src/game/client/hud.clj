@@ -73,9 +73,8 @@
     {:inv container :new-slots slot->idx}))
 
 (defn open-inventories [{:keys [own-id looting inv-open?] :as game-state}]
-  (cond-> []
-    inv-open? (conj [:inv] [:gear])
-    looting (conj [:corpses looting :drops])))
+  (cond-> (map #(vector :corpses % :drops) looting)
+    inv-open? (conj [:inv] [:gear])))
 
 (defn path->pos [path hud-state]
   (let [positions (:positions hud-state)]
@@ -168,15 +167,17 @@
 
 (defmulti process-event (fn [hud-state event] (:type event)))
 
+(defn get-slot-child [slot]
+  (some-> slot .getElements first))
+
 (defn swap-slots-contents [{:keys [idx->slot] :as hud-state} from to]
   (let [from (idx->slot from)
         to (idx->slot to)
-        get-child #(some-> % .getElements first)
         transfer (fn [from-slot to-slot child]
                    (some-> from-slot (.removeChild child))
                    (some-> to-slot (.addChild child)))
-        to-child (get-child to)
-        from-child (get-child from)]
+        to-child (get-slot-child to)
+        from-child (get-slot-child from)]
     (when from-child (transfer from to from-child))
     (when to-child (transfer to from to-child)))
   hud-state)
@@ -186,6 +187,11 @@
 
 (defmethod process-event :s-loot-item-ok [hud-state {:keys [from-path to-idx]}]
   (swap-slots-contents hud-state from-path [:inv to-idx]))
+
+(defmethod process-event :s-item-looted [hud-state {:keys [from-path by]}]
+  (let [slot (-> hud-state :idx->slot (get from-path))]
+    (.removeChild slot (get-slot-child slot)))
+  hud-state)
 
 (defmethod process-event :default [hud-state event]
   hud-state)

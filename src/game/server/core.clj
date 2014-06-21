@@ -109,9 +109,39 @@
   {:new-game-state (assoc-in game-state [:chars id :target] target)})
 
 (defmethod process-event :c-loot-corpse [game-state {:keys [id corpse-id]}]
-  (when (ccfns/close-enough? game-state id corpse-id consts/loot-distance)
-    {:msg [[id] {:type :s-loot :corpse-id corpse-id
+  (when (ccfns/id-close-enough? game-state id corpse-id consts/loot-distance)
+    {:new-game-state (update-in game-state [:corpses corpse-id :looting]
+                                #(or (some-> % (conj id)) #{id}))
+     :msg [[id] {:type :s-loot :corpse-id corpse-id
                  :drops (get-in game-state [:corpses corpse-id :drops])}]}))
+
+(defn whose-item? [path]
+  (second path))
+
+(defn can-loot? [game-state id path]
+  (when-let [corpse-id (whose-item? path)]
+    (and (some-> (get-in game-state [:corpses corpse-id :tagged-by]) (= id))
+         (ccfns/id-close-enough? game-state id corpse-id
+                                 consts/loot-distance))))
+
+(defn update-looting [game-state corpse-id]
+  (->> (get-in game-state [:corpses corpse-id :looting])
+       (filter #(ccfns/id-close-enough? game-state % corpse-id
+                                        consts/loot-distance))
+       set))
+
+(defmethod process-event :c-loot-item [game-state {:keys [id from-path to-idx]}]
+  (when (and (can-loot? game-state id from-path)
+             (> (count (get-in game-state [:chars id :inv])) to-idx))
+    (let [cid (from-path 1)
+          new-looting (update-looting game-state cid)
+          ngs (-> game-state
+                  (assoc-in [:corpses cid :looting] new-looting)
+                  (move-in from-path [:chars id :inv to-idx]))]
+      {:new-game-state ngs
+       :msgs [[[id] {:type :s-loot-item-ok :from-path from-path :to-idx to-idx}]
+              [(disj new-looting id)
+               {:type :s-item-looted :from-path from-path :by id}]]})))
 
 (defmethod process-event :c-login [game-state event]
   (let [key-value-store (:kvs game-state)
@@ -130,9 +160,6 @@
              {:type :s-spawn-player :id id
               :player (prepare-char-for-sending player)}]]}))
 
-(defn whose-item? [path]
-  (second path))
-
 (defmethod process-event :c-rearrange-inv [game-state {:keys [id paths]}]
   (let [[opath1 opath2] paths
         [path1 path2] (map #(concat [:chars id] %) paths)]
@@ -141,6 +168,13 @@
       (cond-> {:new-game-state (swap-in game-state path1 path2)}
         (some #{:gear} (map first paths))
         (conj {:event {:type :changed-gear :id id}})))))
+
+(defmethod process-event :c-quit-looting [game-state {:keys [id ids]}]
+  {:new-game-state
+   (reduce (fn [gs cid]
+             (update-in gs [:corpses cid :looting] disj id))
+           game-state
+           ids)})
 
 (defn update-player [game-state id]
   (let [ngs (update-in game-state [:chars id] ccfns/update-stats)]
@@ -155,18 +189,6 @@
 
 (defmethod process-event :level-up [game-state {:keys [id] :as event}]
   (update-player game-state id))
-
-(defn can-loot? [game-state id path]
-  (when-let [corpse-id (whose-item? path)]
-    (and (some-> (get-in game-state [:corpses corpse-id :tagged-by]) (= id))
-         (ccfns/close-enough? game-state id corpse-id consts/loot-distance))))
-
-(defmethod process-event :c-loot-item [game-state {:keys [id from-path to-idx]}]
-  (when (and (can-loot? game-state id from-path)
-             (> (count (get-in game-state [:chars id :inv])) to-idx))
-    {:new-game-state
-     (move-in game-state from-path [:chars id :inv to-idx])
-     :msg [[id] {:type :s-loot-item-ok :from-path from-path :to-idx to-idx}]}))
 
 (defn roll-for-mob [mobs]
   (let [total (apply + (map :rel-chance mobs))]
@@ -423,8 +445,8 @@
             (when (and attacking target
                        (cooled-down? char)
                        target-char
-                       (ccfns/close-enough? game-state id target
-                                            consts/attack-distance))
+                       (ccfns/id-close-enough? game-state id target
+                                               consts/attack-distance))
               (conj event (if (stats/hit? char target-char)
                             {:hit true
                              :damage (stats/actual-damage char target-char)}
