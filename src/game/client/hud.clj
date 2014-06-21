@@ -1,8 +1,9 @@
 (ns game.client.hud
   (:use game.utils)
-  (:require [game.common.core :as cc]
+  (:require (game.common [core :as cc]
+                         [core-functions :as ccfns]
+                         [items :as items])
             [game.constants :as consts]
-            [game.common.core-functions :as ccfns]
             [clojure.math.numeric-tower :as math]
             [clojure.set :as set])
   (:import (tonegod.gui.core Screen Element)
@@ -80,12 +81,18 @@
   (let [positions (:positions hud-state)]
     (or ((first path) positions) (:other positions))))
 
+(defn get-map-order [game-state path]
+  (if (= path [:gear])
+    items/gear-slots-vector
+    (keys (get-in game-state path))))
+
 (defn items-paths-pos-cols [path game-state hud-state]
   (let [items (get-in game-state path)
         add-to-path (fn [endings] (map #(conj path %) endings))
         pos (path->pos path hud-state)]
     (if (map? items)
-      [(vals items) (add-to-path (keys items)) pos 4]
+      (let [order (get-map-order game-state path)]
+        [(map #(% items) order) (add-to-path order) pos 4])
       [items (add-to-path (range (count items))) pos 2])))
 
 (defn create-new-inventories [game-state hud-state screen enqueue]
