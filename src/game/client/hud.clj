@@ -125,7 +125,7 @@
            gone-paths))
     (update-in hud-state [:invs] #(apply dissoc % gone-paths))))
 
-(defn update-inventories [game-state hud-state screen enqueue]
+(defn update-inventories [hud-state game-state screen enqueue]
   (let [new-hs (create-new-inventories game-state hud-state screen enqueue)]
     (remove-inventories game-state new-hs screen)))
 
@@ -204,12 +204,11 @@
 (defmethod process-event :default [hud-state event]
   hud-state)
 
-(defn process-events [hud-state-atom events]
-  (reset! hud-state-atom
-          (reduce (fn [hud-state event]
-                    (process-event hud-state event))
-                  @hud-state-atom
-                  events)))
+(defn process-events [hud-state events]
+  (reduce (fn [hud-state event]
+            (process-event hud-state event))
+          hud-state
+          events))
 
 (defn clean-slot-maps
   [{:keys [idx->slot slot->idx] :as hud-state} game-state]
@@ -233,10 +232,11 @@
   (update [this {:keys [game-state events]}]
     (update-hp-bars game-state self-label target-label)
     (update-mouse-slot (:mouse-slot @hud-state-atom) screen game-state)
-    (reset! hud-state-atom
-            (update-inventories game-state @hud-state-atom screen enqueue))
-    (process-events hud-state-atom events)
-    (reset! hud-state-atom (clean-slot-maps @hud-state-atom game-state))))
+    (swap! hud-state-atom
+           #(-> %
+                (update-inventories game-state screen enqueue)
+                (process-events events)
+                (clean-slot-maps game-state)))))
 
 (defn init-hud-system [app]
   (let [gui-node (.getGuiNode app)
