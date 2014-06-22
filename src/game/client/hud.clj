@@ -59,8 +59,8 @@
 (defn create-slot-maps [slots paths]
   (let [prefix (pop (first paths))
         suffixes (map peek paths)]
-    {:slot->idx (zipmap slots paths)
-     :idx->slot {prefix (zipmap suffixes slots)}}))
+    {:slot->path (zipmap slots paths)
+     :path->slot {prefix (zipmap suffixes slots)}}))
 
 (defn create-inventory
   [screen items cols paths pos enqueue]
@@ -114,8 +114,8 @@
         ids->invs (zipmap new-paths (map :inv new-invs))]
     (-> hud-state
         (update-in [:invs] merge ids->invs)
-        (update-in [:slot->idx] #(apply merge % (map :slot->idx new-invs)))
-        (update-in [:idx->slot] #(apply merge % (map :idx->slot new-invs))))))
+        (update-in [:slot->path] #(apply merge % (map :slot->path new-invs)))
+        (update-in [:path->slot] #(apply merge % (map :path->slot new-invs))))))
 
 (defn remove-inventories [game-state hud-state screen]
   (let [gone-paths (set/difference (set (keys (:invs hud-state)))
@@ -178,9 +178,9 @@
 (defn get-slot-child [slot]
   (some-> slot .getElements first))
 
-(defn swap-slots-contents [{:keys [idx->slot-fn] :as hud-state} from to]
-  (let [from (idx->slot-fn from)
-        to (idx->slot-fn to)
+(defn swap-slots-contents [{:keys [path->slot-fn] :as hud-state} from to]
+  (let [from (path->slot-fn from)
+        to (path->slot-fn to)
         transfer (fn [from-slot to-slot child]
                    (some-> from-slot (.removeChild child))
                    (some-> to-slot (.addChild child)))
@@ -197,7 +197,7 @@
   (swap-slots-contents hud-state from-path [:inv to-idx]))
 
 (defmethod process-event :s-item-looted [hud-state {:keys [from-path by]}]
-  (let [slot (-> hud-state :idx->slot-fn (get from-path))]
+  (let [slot (-> hud-state :path->slot-fn (get from-path))]
     (.removeChild slot (get-slot-child slot)))
   hud-state)
 
@@ -211,13 +211,13 @@
           events))
 
 (defn clean-slot-maps
-  [{:keys [idx->slot slot->idx] :as hud-state} game-state]
+  [{:keys [path->slot slot->path] :as hud-state} game-state]
   (let [invs (open-inventories game-state)
-        gone (keys (reduce dissoc idx->slot invs))
-        gone-slots (mapcat (comp vals idx->slot) gone)]
+        gone (keys (reduce dissoc path->slot invs))
+        gone-slots (mapcat (comp vals path->slot) gone)]
     (-> hud-state
-        (assoc :idx->slot (reduce dissoc idx->slot gone))
-        (assoc :slot->idx (reduce dissoc slot->idx gone-slots)))))
+        (assoc :path->slot (reduce dissoc path->slot gone))
+        (assoc :slot->path (reduce dissoc slot->path gone-slots)))))
 
 (deftype HudSystem [gui-node hud-state-atom event-queue enqueue
                     screen chat-box self-label target-label]
@@ -242,19 +242,19 @@
   (let [gui-node (.getGuiNode app)
         screen (Screen. app "gamedef/style_map.gui.xml")
         mouse-slot (create-mouse-slot screen)
-        hud-state-atom (atom {:slot->idx {} :idx->slot {}
+        hud-state-atom (atom {:slot->path {} :path->slot {}
                               :invs {} :mouse-slot mouse-slot
                               :positions {:inv [700 100]
                                           :gear [800 100]
                                           :other [100 100]}})
-        idx->slot-fn (fn [path]
-                       (let [idx->slot (:idx->slot @hud-state-atom)
-                             prefix (pop path)
-                             suffix (peek path)]
-                         (some-> (idx->slot prefix) (get suffix))))
+        path->slot-fn (fn [path]
+                        (let [path->slot (:path->slot @hud-state-atom)
+                              prefix (pop path)
+                              suffix (peek path)]
+                          (some-> (path->slot prefix) (get suffix))))
         event-queue (ref [])
         enqueue-event (fn [event] (ccfns/queue-conj event-queue event))
-        lookup (fn [slot] (get-in @hud-state-atom [:slot->idx slot]))
+        lookup (fn [slot] (get-in @hud-state-atom [:slot->path slot]))
         enqueue (fn [slot button pressed]
                   (enqueue-event {:type :hud-click :path (lookup slot)
                                   :button button :pressed pressed}))
@@ -274,7 +274,7 @@
                     (Vector2f. cw ch)]
                    (onSendMsg [msg]
                      (.receiveMsg this msg)))]
-    (swap! hud-state-atom assoc :idx->slot-fn idx->slot-fn)
+    (swap! hud-state-atom assoc :path->slot-fn path->slot-fn)
     (.setTextVAlign self-label BitmapFont$VAlign/Top)
     (.setTextVAlign target-label BitmapFont$VAlign/Top)
     (.addElement screen mouse-slot)
