@@ -164,7 +164,7 @@
 (defn correct-slot? [item path]
   (if (nil? item)
     true
-    (let [slot (first (rseq path))
+    (let [slot (peek path)
           item-type (items (:id item))]
       (if (contains? gear-slots slot)
         (contains? (:slots item-type) slot)
