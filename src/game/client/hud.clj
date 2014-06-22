@@ -56,13 +56,18 @@
     (map (fn [[x y]] (create-slot screen x y size enqueue))
          (take n slot-posses))))
 
+(defn create-slot-maps [slots paths]
+  (let [prefix (pop (first paths))
+        suffixes (map peek paths)]
+    {:slot->idx (zipmap slots paths)
+     :idx->slot {prefix (zipmap suffixes slots)}}))
+
 (defn create-inventory
   [screen items cols paths pos enqueue]
   (assert (= (count items) (count paths)))
   (let [path (butlast (first paths))
         n (count items)
         slots (create-slots screen n cols enqueue)
-        slot->idx (zipmap slots paths)
         items (create-items items screen size enqueue)
         container (doto (create-element screen (str "inv of " path)
                                         pos [0 0] nil)
@@ -70,7 +75,7 @@
     (.addElement screen container)
     (dorun (map #(.addChild container %) slots))
     (dorun (map #(when %2 (.addChild % %2)) slots items))
-    {:inv container :new-slots slot->idx}))
+    {:inv container :new-slots slots}))
 
 (defn open-inventories [{:keys [own-id looting inv-open?] :as game-state}]
   (cond-> (map #(vector :corpses % :drops) looting)
@@ -100,14 +105,17 @@
         new-paths (remove invs open-invs)
         ippcs (map #(items-paths-pos-cols % game-state hud-state) new-paths)
         new-invs (map (fn [[items paths pos cols]]
-                        (create-inventory screen items cols paths pos enqueue))
+                        (let [{:keys [inv new-slots]}
+                              (create-inventory screen items cols
+                                                paths pos enqueue)]
+                          (assoc (create-slot-maps new-slots paths)
+                                 :inv inv)))
                       ippcs)
-        slots->ids (apply merge (map :new-slots new-invs))
-        ids->invs (into {} (map #(vector % %2) new-paths (map :inv new-invs)))]
+        ids->invs (zipmap new-paths (map :inv new-invs))]
     (-> hud-state
         (update-in [:invs] merge ids->invs)
-        (update-in [:slot->idx] merge slots->ids)
-        (update-in [:idx->slot] merge (set/map-invert slots->ids)))))
+        (update-in [:slot->idx] #(apply merge % (map :slot->idx new-invs)))
+        (update-in [:idx->slot] #(apply merge % (map :idx->slot new-invs))))))
 
 (defn remove-inventories [game-state hud-state screen]
   (let [gone-paths (set/difference (set (keys (:invs hud-state)))
@@ -170,9 +178,9 @@
 (defn get-slot-child [slot]
   (some-> slot .getElements first))
 
-(defn swap-slots-contents [{:keys [idx->slot] :as hud-state} from to]
-  (let [from (idx->slot from)
-        to (idx->slot to)
+(defn swap-slots-contents [{:keys [idx->slot-fn] :as hud-state} from to]
+  (let [from (idx->slot-fn from)
+        to (idx->slot-fn to)
         transfer (fn [from-slot to-slot child]
                    (some-> from-slot (.removeChild child))
                    (some-> to-slot (.addChild child)))
@@ -189,7 +197,7 @@
   (swap-slots-contents hud-state from-path [:inv to-idx]))
 
 (defmethod process-event :s-item-looted [hud-state {:keys [from-path by]}]
-  (let [slot (-> hud-state :idx->slot (get from-path))]
+  (let [slot (-> hud-state :idx->slot-fn (get from-path))]
     (.removeChild slot (get-slot-child slot)))
   hud-state)
 
@@ -202,6 +210,15 @@
                     (process-event hud-state event))
                   @hud-state-atom
                   events)))
+
+(defn clean-slot-maps
+  [{:keys [idx->slot slot->idx] :as hud-state} game-state]
+  (let [invs (open-inventories game-state)
+        gone (keys (reduce dissoc idx->slot invs))
+        gone-slots (mapcat (comp vals idx->slot) gone)]
+    (-> hud-state
+        (assoc :idx->slot (reduce dissoc idx->slot gone))
+        (assoc :slot->idx (reduce dissoc slot->idx gone-slots)))))
 
 (deftype HudSystem [gui-node hud-state-atom event-queue enqueue
                     screen chat-box self-label target-label]
@@ -218,7 +235,8 @@
     (update-mouse-slot (:mouse-slot @hud-state-atom) screen game-state)
     (reset! hud-state-atom
             (update-inventories game-state @hud-state-atom screen enqueue))
-    (process-events hud-state-atom events)))
+    (process-events hud-state-atom events)
+    (reset! hud-state-atom (clean-slot-maps @hud-state-atom game-state))))
 
 (defn init-hud-system [app]
   (let [gui-node (.getGuiNode app)
@@ -229,6 +247,11 @@
                               :positions {:inv [700 100]
                                           :gear [800 100]
                                           :other [100 100]}})
+        idx->slot-fn (fn [path]
+                       (let [idx->slot (:idx->slot @hud-state-atom)
+                             prefix (pop path)
+                             suffix (peek path)]
+                         (some-> (idx->slot prefix) (get suffix))))
         event-queue (ref [])
         enqueue-event (fn [event] (ccfns/queue-conj event-queue event))
         lookup (fn [slot] (get-in @hud-state-atom [:slot->idx slot]))
@@ -251,6 +274,7 @@
                     (Vector2f. cw ch)]
                    (onSendMsg [msg]
                      (.receiveMsg this msg)))]
+    (swap! hud-state-atom assoc :idx->slot-fn idx->slot-fn)
     (.setTextVAlign self-label BitmapFont$VAlign/Top)
     (.setTextVAlign target-label BitmapFont$VAlign/Top)
     (.addElement screen mouse-slot)
