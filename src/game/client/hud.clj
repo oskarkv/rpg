@@ -6,11 +6,12 @@
             [game.constants :as consts]
             [clojure.math.numeric-tower :as math]
             [clojure.set :as set])
-  (:import (tonegod.gui.core Screen Element)
+  (:import (tonegod.gui.core Screen Screen$EventCheckType Element)
            (tonegod.gui.controls.text Label)
            (tonegod.gui.listeners MouseEventListener)
-           (com.jme3.math Vector2f Vector4f)
-           (com.jme3.font BitmapFont$VAlign BitmapFont$Align LineWrapMode)
+           (com.jme3.math Vector2f Vector4f ColorRGBA)
+           (com.jme3.font BitmapText BitmapFont$VAlign BitmapFont$Align
+                          LineWrapMode)
            (tonegod.gui.controls.extras ChatBox)))
 
 (def size 40)
@@ -25,7 +26,7 @@
   ([screen id pos dims icon-path {:keys [click-fn tooltip]}]
    (cond-> (create-element screen id pos dims icon-path)
      click-fn (update-proxy {"onMouseEvent" click-fn})
-     tooltip (.setToolTipText tooltip))))
+     tooltip (doto (.setToolTipText tooltip)))))
 
 (defn create-item [screen size enqueue tooltip]
   (create-element
@@ -219,6 +220,61 @@
         (assoc :path->slot (reduce dissoc path->slot gone))
         (assoc :slot->path (reduce dissoc slot->path gone-slots)))))
 
+(defn position-tooltip-text-in-slot [slot text]
+  (let [margin consts/tooltip-margin
+        x (.getWidth text)
+        y (.getHeight text)
+        add-margin #(+ (* 2 margin) %)]
+    (doto slot
+      (.setDimensions (add-margin x) (add-margin y))
+      (.addChild (doto text (.setPosition margin margin))))))
+
+(defn create-tooltip-element [screen text]
+  (let [create-element* #(create-element
+                           screen (str % (ccfns/get-new-id)) [0 0] [0 0] nil)
+        text (doto (create-element* "tooltip text")
+               (.setText text)
+               (.setIgnoreMouse true))
+        slot (doto (create-element* "tooltip slot")
+               (-> .getGeometry .getMaterial
+                   (.setColor "Color" (ColorRGBA. 0.2 0.2 0.2 0.8)))
+               (.setIgnoreMouse true))
+        bt (doto (.getTextElement text) (.setBox nil))
+        tw (.getLineWidth bt)
+        th (.getHeight bt)]
+    (position-tooltip-text-in-slot slot (doto text (.setDimensions tw th)))))
+
+(defn determine-tooltip-location [screen element]
+  (let [v2f (.getMouseXY screen)]
+    [(.x v2f) (.y v2f)]))
+
+(defn get-target-element [screen]
+  (let [mouse (.getMouseXY screen)
+        x (.x mouse) y (.y mouse)]
+    (.getContactElement screen x y Screen$EventCheckType/MouseFocus)))
+
+(defn update-tooltip-element [hud-state screen]
+  (let [{:keys [tooltip-source tooltip]} hud-state
+        target-element (get-target-element screen)]
+    (when (not= target-element tooltip-source)
+      (let [new-tooltip (when (and target-element
+                                   (.getToolTipText target-element))
+                          (create-tooltip-element
+                            screen (.getToolTipText target-element)))]
+        (when tooltip (.removeElement screen tooltip))
+        (when new-tooltip (.addElement screen new-tooltip))
+        {:tooltip new-tooltip
+         :tooltip-source target-element}))))
+
+(defn update-tooltip [hud-state screen]
+  (let [new-tooltip (update-tooltip-element hud-state screen)
+        {:keys [tooltip-source tooltip]} (or new-tooltip hud-state)
+        [x y] (determine-tooltip-location screen tooltip)]
+    (some-> tooltip (.moveTo x y))
+    (if new-tooltip
+      (merge hud-state new-tooltip)
+      hud-state)))
+
 (deftype HudSystem [gui-node hud-state-atom event-queue enqueue
                     screen chat-box self-label target-label]
   cc/Lifecycle
@@ -236,6 +292,7 @@
            #(-> %
                 (update-inventories game-state screen enqueue)
                 (process-events events)
+                (update-tooltip screen)
                 (clean-slot-maps game-state)))))
 
 (defn init-hud-system [app]
@@ -263,7 +320,6 @@
         ry consts/resolution-y
         ch consts/chat-height
         cw consts/chat-width
-        gap 2
         psize (Vector2f. pw ph)
         self-label (Label. screen "self" (Vector2f. gap gap) psize)
         target-label (Label. screen "target" (Vector2f. (+ pw (* 2 gap)) gap)
@@ -281,8 +337,6 @@
     (.addElement screen self-label)
     (.addElement screen target-label)
     (.addElement screen chat-box)
-    (.setGlobalAlpha screen 1)
-    (.setUseToolTips screen true)
     ;(create-inventory screen (range 7) 2 1 enqueue)
     (->HudSystem gui-node hud-state-atom event-queue enqueue screen
                  chat-box self-label target-label)))

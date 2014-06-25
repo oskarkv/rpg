@@ -29,6 +29,7 @@
   portrait-width 200
   chat-height 220
   chat-width 330
+  tooltip-margin 10
   ;;; INPUT
   camera-rotation-speed 2
   ;;; GENERAL
