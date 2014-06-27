@@ -6,7 +6,7 @@
                  [robert/hooke "1.3.0"]
                  [org.clojure/data.priority-map "0.0.5"]
                  [org.clojure/math.numeric-tower "0.0.2"]
-                 [tonegodgui/tonegodgui "0.2.1-SNAPSHOT"]]
+                 [tonegodgui/tonegodgui "0.2.2-SNAPSHOT"]]
   :resource-paths ["assets"]
   :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
   :global-vars {*warn-on-reflection* false})
