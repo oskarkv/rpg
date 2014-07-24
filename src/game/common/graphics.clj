@@ -33,12 +33,7 @@
             (juxt #(.getX %) #(.getY %)))))
 
 (defn get-closest-model-collision [results geoms->ids]
-  (let [iter (.iterator results)]
-    (loop []
-      (if (.hasNext iter)
-        (if-let [id (some-> iter .next .getGeometry geoms->ids)]
-          id
-          (recur))))))
+  (first (remove nil? (map #(-> % .getGeometry geoms->ids) results))))
 
 (defn pick-target* [input-manager node camera geoms->ids]
   (let [ray (get-target-ray* input-manager camera)
