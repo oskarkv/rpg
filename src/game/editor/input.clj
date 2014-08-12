@@ -6,4 +6,5 @@
    ["cam-left" "a" :hold]
    ["cam-right" "d" :hold]
    ["perform-selected-action" "m-left" :tap]
-   ["cancel" "m-right" :tap]])
+   ["edit-target" "m-right" :tap]
+   ["cancel-action" "escape" :tap]])

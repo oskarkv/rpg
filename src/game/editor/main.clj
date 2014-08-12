@@ -1,4 +1,5 @@
 (ns game.editor.main
+  (:import  (java.util LinkedList))
   (:require (game [game-map :as game-map])
             (game.common [core :as cc])
             (game.editor [core :as ec]
@@ -17,8 +18,8 @@
     (cc/stop app)
     this))
 
-(defn create-editor-swing-app [app game-state-atom]
-  (let [j-frame (gui/create-editor-swing-app app game-state-atom)]
+(defn create-editor-swing-app [app game-state-atom event-queue]
+  (let [j-frame (gui/create-editor-swing-app app game-state-atom event-queue)]
     j-frame))
 
 (defn init-editor []
@@ -26,7 +27,9 @@
         key-value-store (kvs.core/construct-key-value-store)
         game-state-atom (atom {:game-map game-map
                                :key-value-store key-value-store})
-        app (ec/create-editor-jme3-app game-state-atom key-value-store)
-        j-frame (create-editor-swing-app app game-state-atom)]
-    (efns/init-spawn-id-counter (apply max (keys (:spawns game-map))))
+        event-queue (LinkedList.)
+        app (ec/create-editor-jme3-app game-state-atom
+                                       event-queue key-value-store)
+        j-frame (create-editor-swing-app app game-state-atom event-queue)]
+    (efns/init-editor (apply max (keys (:spawns game-map))))
     (->Editor app j-frame key-value-store)))

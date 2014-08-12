@@ -1,5 +1,6 @@
 (ns game.game-map
-  (:require [clojure.walk :as walk]))
+  (:require [clojure.walk :as walk]
+            (game [mobs :as mobs])))
 
 (defn walkable-type? [type]
   (= type 1))

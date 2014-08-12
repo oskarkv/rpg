@@ -34,8 +34,10 @@
   camera-rotation-speed 2
   ;;; GENERAL
   zone-folders "zones/"
-  ;;; EDITOR
   editor-assets "assets/editor/"
+  icons (str editor-assets "icons/")
+
+  add-icon (str icons "add.png")
+  delete-icon (str icons "delete.png")
   editor-toolbar (str editor-assets "toolbar/")
-  ;;; TOOLBAR BUTTONS
   spawn-button-icon (str editor-toolbar "red.png"))
