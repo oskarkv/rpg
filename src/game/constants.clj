@@ -30,6 +30,9 @@
   chat-height 220
   chat-width 330
   tooltip-margin 10
+  icon-size 40
+  icon-gap 5
+  header-height 23
   ;;; INPUT
   camera-rotation-speed 2
   ;;; GENERAL

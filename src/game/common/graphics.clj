@@ -10,35 +10,11 @@
            com.jme3.material.Material
            com.jme3.renderer.queue.RenderQueue$Bucket
            (com.jme3.font BitmapText BitmapFont$Align Rectangle))
-  (:require [game.common.core :as cc]
+  (:require (game.common [core :as cc]
+                         [jme-utils :as ju])
             [game.constants :as consts]
             [clojure.set :as set])
   (:use game.utils))
-
-(defn get-collisions [objects collidable]
-  (let [results (CollisionResults.)]
-    (.collideWith objects collidable results)
-    results))
-
-(defn get-target-ray* [input-manager camera]
-  (let [mouse-coords (.getCursorPosition input-manager)
-        [near far] (map #(.getWorldCoordinates camera mouse-coords %) [0 1])]
-    (Ray. near (doto far (.subtractLocal near) (.normalizeLocal)))))
-
-(defn get-target-coords* [input-manager camera gamemap-node]
-  (let [ray (get-target-ray* input-manager camera)]
-    (some-> (get-collisions gamemap-node ray)
-            .getClosestCollision
-            .getContactPoint
-            (juxt #(.getX %) #(.getY %)))))
-
-(defn get-closest-model-collision [results geoms->ids]
-  (first (remove nil? (map #(-> % .getGeometry geoms->ids) results))))
-
-(defn pick-target* [input-manager node camera geoms->ids]
-  (let [ray (get-target-ray* input-manager camera)
-        results (get-collisions node ray)]
-    (some-> results (get-closest-model-collision geoms->ids))))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) 0 (- (+ y %2)))
@@ -222,11 +198,10 @@
     (.lookAtDirection camera (Vector3f. 0 -1 0) (Vector3f. 0 0 1))
     (.setLocation camera (Vector3f. 0 10 0))
     (defn pick-target [type]
-      (pick-target* input-manager (type nodes) camera @geoms->ids))
-    (defn get-target-ray []
-      (get-target-ray* input-manager camera))
+      (let [ray (ju/get-world-ray input-manager camera)]
+        (ju/pick-target ray (type nodes) @geoms->ids)))
     (defn get-target-coords []
-      (get-target-coords* input-manager camera (:gamemap nodes)))
+      (ju/get-target-coords input-manager camera (:gamemap nodes)))
     (defn set-up-camera [graphics-system game-state]
       ;; We need to update once to make sure that the player exists in the
       ;; scene graph
