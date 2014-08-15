@@ -207,8 +207,10 @@
 (deftype HudSystem [gui-node hud-state-atom event-queue enqueue
                     screen self-label target-label]
   cc/Lifecycle
-  (start [this])
-  (stop [this])
+  (start [this]
+    (cc/start screen))
+  (stop [this]
+    (cc/stop screen))
   cc/EventsProducer
   (get-events [this]
     (ccfns/reset-queue event-queue))

@@ -112,10 +112,14 @@
      ~@body))
 
 (defhudrecord Screen [material font node input-manager asset-manager
-                      geoms->elements event-queue children]
+                      geoms->elements event-queue children start-fn]
   cc/EventsProducer
   (get-events [this]
-    (ccfns/reset-queue event-queue)))
+    (ccfns/reset-queue event-queue))
+  cc/Lifecycle
+  (start [this]
+    (when start-fn (start-fn)))
+  (stop [this]))
 
 (defposrecord ContainerElement [node children])
 
@@ -293,9 +297,10 @@
 
 (defn make-click-callback [screen]
   (fn [event]
-    (when-let [e (get-element-under-cursor screen)]
+    (when-let [elem (get-element-under-cursor screen)]
+      (.setConsumed event)
       (ccfns/queue-conj (:event-queue screen)
-                        {:element e
+                        {:element elem
                          :button (.getButtonIndex event)
                          :pressed (.isPressed event)}))))
 
@@ -304,22 +309,24 @@
         input-manager (.getInputManager app)
         event-queue (ref [])
         node (new-node)
-        screen (Screen.
-                 (doto (Material. asset-manager
-                                  "Common/MatDefs/Misc/Unshaded.j3md")
-                   (.. (getAdditionalRenderState)
-                       (setBlendMode RenderState$BlendMode/Alpha)))
-                 (.loadFont asset-manager "Interface/Fonts/Default.fnt")
-                 node
-                 input-manager
-                 asset-manager
-                 (atom {})
-                 event-queue
-                 (atom #{}))]
-    (.setLocalTranslation
-           node (Vector3f. 0 consts/resolution-y 0))
-    (.setQueueBucket node RenderQueue$Bucket/Gui)
-    (.addRawInputListener
-      input-manager (input-listener (make-click-callback screen)))
-    (.attachChild (.getGuiNode app) node)
-    screen))
+        start-fn (fn []
+                   (.setLocalTranslation
+                     node (Vector3f. 0 consts/resolution-y 0))
+                   (.setQueueBucket node RenderQueue$Bucket/Gui)
+                   (.addRawInputListener
+                     input-manager
+                     (input-listener (make-click-callback screen)))
+                   (.attachChild (.getGuiNode app) node))]
+    (Screen.
+      (doto (Material. asset-manager
+                       "Common/MatDefs/Misc/Unshaded.j3md")
+        (.. (getAdditionalRenderState)
+            (setBlendMode RenderState$BlendMode/Alpha)))
+      (.loadFont asset-manager "Interface/Fonts/Default.fnt")
+      node
+      input-manager
+      asset-manager
+      (atom {})
+      event-queue
+      (atom #{})
+      start-fn)))
