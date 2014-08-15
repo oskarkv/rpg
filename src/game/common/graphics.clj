@@ -224,6 +224,8 @@
         font (.loadFont asset-manager "Interface/Fonts/Default.fnt")
         assets {:meshes meshes :mother-material mother-material
                 :textures textures :materials materials :font font}]
+    (.lookAtDirection camera (Vector3f. 0 -1 0) (Vector3f. 0 0 1))
+    (.setLocation camera (Vector3f. 0 10 0))
     (defn pick-target [type]
       (pick-target* input-manager (type nodes) camera @geoms->ids))
     (defn get-target-ray []

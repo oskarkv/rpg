@@ -11,54 +11,49 @@
                          [gui :as gui])
             (game.key-value-store [protocols :as kvs])))
 
-(defmulti process-tap (fn [_ type] type))
+(defmulti process-event (fn [game-state event args-map] (event :type)))
 
-(defmethod process-tap :perform-selected-action [game-state type]
+(defmethod process-event :perform-selected-action [game-state event args-map]
   (if (:current-action game-state)
     (let [{:keys [new-game-state event]}
           ((:current-action game-state) game-state)]
       {:new-game-state new-game-state :event event})))
 
-(defmethod process-tap :cancel-action [game-state type]
+(defmethod process-event :cancel-action [game-state event args-map]
   (if (:current-action game-state)
     (let [{:keys [new-game-state event]}
           (efns/cancel-action game-state)]
       {:new-game-state new-game-state :event event})))
 
-(defmethod process-tap :edit-target [game-state type]
+(defmethod process-event :edit-target [game-state event args-map]
   (when-let [target (gfx/pick-target :spawns)]
     ))
 
-(defn process-player-input [game-state key-state]
-  (let [{:keys [new-game-state events]}
-        (ccfns/process-player-input game-state key-state process-tap)]
-    {:new-game-state new-game-state :events events}))
+(defmethod process-event :save-zone [game-state event args-map]
+  (efns/save-zone game-state (:key-value-store args-map))
+  game-state)
 
-(defmulti process-event (fn [_ event] (event :type)))
-
-(defmethod process-event :save-zone [args-map event]
-  (efns/save-zone (:game-state args-map) (:key-value-store args-map))
-  args-map)
-
-(defmethod process-event :load-zone [args-map event]
+(defmethod process-event :load-zone [game-state event args-map]
   (let [new-game-state
-        (efns/load-zone (:game-state args-map) (:key-value-store args-map))
-        new-args-map (assoc args-map :game-state new-game-state)]
-    new-args-map))
+        (efns/load-zone game-state (:key-value-store args-map))]
+    new-game-state))
 
-
-(defmethod process-event :edit-zone [args-map event]
+(defmethod process-event :edit-zone [game-state event args-map]
   (gui/edit-zone))
 
-(defn- process-event-queue [event-queue args-map]
+(defn- process-event-queue [game-state event-queue args-map]
   (reduce process-event args-map event-queue))
 
-(defn process-event-caller [game-state event-queue key-value-store]
-  (let [args-map {:game-state game-state
-                  :key-value-store key-value-store}
-        new-args-map (process-event-queue event-queue args-map)]
-    {:new-game-state (:game-state new-args-map)
-     :events (:events new-args-map)}))
+(defn process-event* [args-map]
+  (fn [game-state event]
+    (process-event game-state event args-map)))
+
+(defn process-events [game-state event-queue key-value-store]
+  (let [args-map {:key-value-store key-value-store}]
+   (ccfns/process-events (process-event* args-map) game-state event-queue)))
+
+(defn get-subsystem-events [_ systems]
+  {:events (mapcat cc/get-events systems)})
 
 (defn create-editor-jme3-app [game-state-atom event-queue key-value-store]
   (let [stop? (atom false)
@@ -66,6 +61,7 @@
         key-state-atom (atom (cmn-input/create-key-state-map key-bindings))
         input-system (atom nil)
         graphics-system (atom nil)
+        get-subsystems (fn [] [@graphics-system @input-system])
         init-gfx-fn
         (fn [app]
           (gfx/init-graphics-system app (:terrain (:game-map @game-state-atom))))
@@ -80,15 +76,15 @@
             (reset! input-system (cmn-input/init-input-system
                                    input-manager (e-input/load-key-bindings)))
             (reset! graphics-system (init-gfx-fn app))
-            (cc/start @graphics-system)))
+            (dorun (map cc/start (get-subsystems)))))
         simple-update-fn
         (fn []
-          (Thread/sleep 30)
+          (Thread/sleep 100)
           (let [{:keys [new-game-state events]}
                 (ccfns/call-update-fns @game-state-atom [] nil
-                  (process-player-input @key-state-atom)
-                  (process-event-caller event-queue key-value-store))]
-            (cmn-input/empty-taps key-state-atom)
+                  (get-subsystem-events (get-subsystems)))
+                {:keys [new-game-state]}
+                (process-events new-game-state event-queue key-value-store)]
             (.clear event-queue)
             (cc/update @graphics-system new-game-state)
             (reset! game-state-atom new-game-state)))

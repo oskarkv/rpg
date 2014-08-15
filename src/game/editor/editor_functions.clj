@@ -33,7 +33,6 @@
 (defn remove-zone-mob [game-state id]
   (dissoc [:game-map :mob-list] id))
 
-;;; temp fn
 (defn select-spawn [game-state]
   (if-let [spawn
            (get-in game-state [:game-map :spawns (gfx/pick-target :spawns)])]
