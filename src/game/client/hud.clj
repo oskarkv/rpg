@@ -11,12 +11,25 @@
 (def depths (zipmap [:mouse-slot :tooltip]
                     (map #(* 10 %) (drop 1 (range)))))
 
+(defn create-stack-indicator [screen item]
+  (doto (lib/create-text-element screen nil)
+    (lib/set-text (str (:quantity item)))
+    (lib/set-alignment :bottom)
+    (lib/set-alignment :right)
+    (lib/set-font-size 16)))
+
 (defn create-slot [screen item size]
-  (lib/create-element
-    screen [0 0] [size size]
-    (if item
-      {:texture-name "fireball.png" :tooltip "item" :clickable true}
-      {:texture-name "inv_slot.png" :clickable true})))
+  (let [slot (lib/create-element
+               screen
+               (merge
+                 (if item
+                   {:texture-name "fireball.png" :tooltip "item"}
+                   {:texture-name "inv_slot.png"})
+                 {:size size :clickable true}))]
+    (if (:quantity item)
+      (lib/add-child
+        slot (lib/set-size (create-stack-indicator screen item) size))
+      slot)))
 
 (defn slot-positions [n cols size gap]
   (let [padded-n (+ n (- cols (mod n cols)))
@@ -29,10 +42,10 @@
   (let [n (count items)
         slots (map #(create-slot screen % size) items)
         positions (slot-positions n cols size gap)
-        container (doto (lib/create-window screen)
-                    (lib/set-title "nu da something hehehehe?")
+        container (doto (lib/create-window screen nil)
+                    (lib/set-text "nu da something hehehehe?")
                     (lib/set-color [0.2 0.5 0.2 0.5])
-                    (lib/set-header-color [0.2 0.5 0.2 0.8]))]
+                    (#(lib/set-color (:header %) [0.2 0.5 0.2 0.8])))]
     (dorun (map #(lib/set-position %1 %2) slots positions))
     (dorun (map #(lib/add-child container %) slots))
     (lib/auto-size container gap)
@@ -119,8 +132,8 @@
 (defn update-mouse-slot-content [mouse-slot screen game-state size]
   (if-let [on-mouse (:on-mouse game-state)]
     (when (empty? (lib/get-children mouse-slot))
-      (->> {:texture-name "fireball.png"}
-           (lib/create-element screen [0 0] [size size])
+      (->> {:texture-name "fireball.png" :size size}
+           (lib/create-element screen)
            (lib/add-child mouse-slot)))
     (lib/remove-all-children mouse-slot)))
 
@@ -160,10 +173,10 @@
       (lib/add-child (doto text (lib/set-position [margin margin]))))))
 
 (defn create-tooltip-element [screen string]
-  (let [text (doto (lib/create-text-element screen [0 0] [0 0])
+  (let [text (doto (lib/create-text-element screen nil)
                (lib/set-text string)
                (lib/auto-size))
-        slot (doto (lib/create-element screen [0 0] [0 0])
+        slot (doto (lib/create-element screen nil)
                (lib/set-color [0.2 0.2 0.2 0.5])
                (lib/set-depth (:tooltip depths)))]
     (position-tooltip-text-in-slot slot text)))
@@ -247,7 +260,7 @@
         enqueue-event (fn [event] (ccfns/queue-conj event-queue event))
         lookup (fn [slot] (get-in @hud-state-atom [:slot->path slot]))
         enqueue (fn [{:keys [element button pressed]}]
-                  (enqueue-event {:type :hud-click :path (debug (lookup element))
+                  (enqueue-event {:type :hud-click :path (lookup element)
                                   :button button :pressed pressed}))
         pw consts/portrait-width
         ph consts/portrait-height
@@ -255,13 +268,12 @@
         ch consts/chat-height
         cw consts/chat-width
         gap consts/icon-gap
-        self-label (lib/create-text-element screen [gap gap] [pw ph])
+        self-label (lib/create-text-element screen {:pos gap :size [pw ph]})
         target-label (lib/create-text-element
-                       screen [(+ pw (* 2 gap)) gap] [pw ph])]
+                       screen {:pos [(+ pw (* 2 gap)) gap] :size [pw ph]})]
     (swap! hud-state-atom assoc :path->slot-fn path->slot-fn)
     (lib/add-child screen mouse-slot)
     (lib/add-child screen self-label)
     (lib/add-child screen target-label)
     (->HudSystem gui-node hud-state-atom event-queue enqueue screen
                  self-label target-label)))
-

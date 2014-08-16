@@ -77,9 +77,9 @@
 (defn unstack [{:keys [quantity id] :as item}]
   (let [allowed (or (get-in items [id :stackable]) 1)
         stacks (stack (or quantity 1) allowed)]
-    (map (fn [n] (if (= 1 n)
-                   (dissoc item :quantity)
-                   (assoc item :quantity n)))
+    (map (fn [n] (if (< 1 allowed)
+                   (assoc item :quantity n)
+                   (dissoc item :quantity)))
          stacks)))
 
 (defn derive-many [hierarchy coll parent]
