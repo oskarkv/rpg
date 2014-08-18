@@ -135,7 +135,10 @@
 (defmethod process-event :new-key-state [game-state {:keys [key-state]}]
   (let [id (:own-id game-state)
         new-base-dir (map float (calculate-base-movement-direction key-state))
-        new-game-state (assoc game-state :base-move-dir new-base-dir)]
+        modifiers (select-keys key-state [:shift :alt :ctrl])
+        new-game-state (assoc game-state
+                              :base-move-dir new-base-dir
+                              :modifiers modifiers)]
     {:new-game-state new-game-state}))
 
 (defmethod process-event :new-dir [game-state event]

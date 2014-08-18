@@ -41,8 +41,14 @@
   cc/Updatable
   (update [this args]))
 
-(defn init-input-system [input-manager key-bindings]
-  (let [key-state-atom (atom (create-key-state-map key-bindings))
+(def modifier-bindings
+  [["shift" "lshift" :hold]
+   ["ctrl" "lcontrol" :hold]
+   ["alt" "lmenu" :hold]])
+
+(defn init-input-system [input-manager user-key-bindings]
+  (let [key-bindings (into user-key-bindings modifier-bindings)
+        key-state-atom (atom (create-key-state-map key-bindings))
         event-queue-ref (ref [])
         keyinput-bindings (create-triggers key-bindings)
         hold-listener (reify ActionListener
