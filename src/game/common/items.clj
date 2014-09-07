@@ -108,6 +108,9 @@
       damage (assoc :damage damage)
       delay (assoc :delay delay))))
 
+(defn all-info [light-item]
+  (merge (items (:id light-item)) light-item))
+
 (defn concrete-slots [abstract-slots]
   (when abstract-slots
     (set (mapcat (fn [slot]

@@ -139,3 +139,59 @@
       (stop [this]
         (stop-fn this)))
     app))
+
+(defn find-first-nil [v]
+  (first (keep-indexed (fn [idx value] (if (nil? value) idx)) v)))
+
+(defn divide-into-piles
+  ([maxes total] (divide-into-piles maxes total []))
+  ([maxes total acc]
+   (if (seq maxes)
+     (let [curr (first maxes)]
+       (if (> total curr)
+         (recur (rest maxes) (- total curr) (conj acc curr))
+         (conj acc total)))
+     (conj acc total))))
+
+(defn stack-loot-dest [inv {:keys [quantity id] :as item}]
+  (let [size (:stackable (items/all-info item))
+        idx-place (->> (map-indexed vector inv)
+                       (filter (fn [[idx item]]
+                                 (and item
+                                      (== id (:id item))
+                                      (< (:quantity item) size))))
+                       (map (fn [[idx item]] [idx (- size (:quantity item))])))
+        distribution (divide-into-piles (map second idx-place) quantity)
+        will-use (map vector (map first idx-place) distribution)
+        need-extra-slot (< (count will-use) (count distribution))
+        first-nil (find-first-nil inv)]
+    (conj-some {:add-to will-use}
+               (when (and need-extra-slot first-nil)
+                 {:extra-slot [first-nil (peek distribution)]}))))
+
+(defn loot-stack [game-state from-path to-inv-path]
+  (let [{:keys [quantity] :as item} (get-in game-state from-path)
+        {:keys [add-to extra-slot]} (stack-loot-dest
+                                      (get-in game-state to-inv-path) item)
+        [extra-idx extra-n] extra-slot
+        add-to-stack (fn [gs [idx n]]
+                       (update-in gs (conj to-inv-path idx :quantity) + n))
+        ngs (reduce add-to-stack game-state add-to)
+        total-looted (+ (reduce + (map second add-to))
+                        (if extra-slot extra-n 0))]
+    (cond-> (update-in ngs from-path
+                       (if (= total-looted quantity)
+                         (constantly nil)
+                         #(update-in % [:quantity] - total-looted)))
+      extra-slot (assoc-in (conj to-inv-path extra-idx)
+                           (assoc item :quantity extra-n)))))
+
+(defn loot-nonstack [game-state from-path to-inv-path]
+  (when-let [to-idx (find-first-nil (get-in game-state to-inv-path))]
+    (move-in game-state from-path (conj to-inv-path to-idx))))
+
+(defn loot-item [game-state from-path to-inv-path]
+  ((if (:quantity (get-in game-state from-path))
+     loot-stack
+     loot-nonstack)
+   game-state from-path to-inv-path))

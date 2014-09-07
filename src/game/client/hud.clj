@@ -153,7 +153,7 @@
   (add-needs-update hud-state [(pop from-path) [:inv]]))
 
 (defmethod process-event :s-item-looted [hud-state {:keys [from-path by]}]
-  (add-needs-update hud-state [(pop from-path) [:inv]]))
+  (add-needs-update hud-state [(pop from-path)]))
 
 (defmethod process-event :default [hud-state event]
   hud-state)

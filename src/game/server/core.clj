@@ -116,7 +116,7 @@
                  :drops (get-in game-state [:corpses corpse-id :drops])}]}))
 
 (defn whose-item? [path]
-  (second path))
+  (path 1))
 
 (defn can-loot? [game-state id path]
   (when-let [corpse-id (whose-item? path)]
@@ -130,18 +130,21 @@
                                         consts/loot-distance))
        set))
 
-(defmethod process-event :c-loot-item [game-state {:keys [id from-path to-idx]}]
-  (when (and (can-loot? game-state id from-path)
-             (> (count (get-in game-state [:chars id :inv])) to-idx))
-    (let [cid (from-path 1)
-          new-looting (update-looting game-state cid)
-          ngs (-> game-state
-                  (assoc-in [:corpses cid :looting] new-looting)
-                  (move-in from-path [:chars id :inv to-idx]))]
-      {:new-game-state ngs
-       :msgs [[[id] {:type :s-loot-item-ok :from-path from-path :to-idx to-idx}]
-              [(disj new-looting id)
-               {:type :s-item-looted :from-path from-path :by id}]]})))
+(defn loot-item [game-state id from-path]
+  (let [ngs (ccfns/loot-item game-state from-path [:chars id :inv])
+        looting (get-in ngs [:corpses (from-path 1) :looting])]
+    {:new-game-state ngs
+     :msgs [[[id] {:type :s-loot-item-ok :from-path from-path}]
+            [(disj looting id)
+             {:type :s-item-looted :path from-path
+              :left (:quantity (get-in ngs from-path))}]]}))
+
+(defmethod process-event :c-loot-item [game-state {:keys [id from-path]}]
+  (when (can-loot? game-state id from-path)
+    (let [corpse-id (from-path 1)
+          ngs (assoc-in game-state [:corpses corpse-id :looting]
+                        (update-looting game-state corpse-id))]
+      (loot-item ngs id from-path))))
 
 (defmethod process-event :c-login [game-state event]
   (let [key-value-store (:kvs game-state)

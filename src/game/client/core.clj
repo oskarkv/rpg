@@ -69,12 +69,14 @@
        (assoc-in [:corpses corpse-id :drops] drops)
        (update-in [:looting] conj corpse-id))})
 
-(defmethod process-event :s-loot-item-ok [game-state {:keys [from-path to-idx]}]
-  {:new-game-state
-   (move-in game-state from-path [:inv to-idx])})
+(defmethod process-event :s-loot-item-ok [game-state {:keys [from-path]}]
+  {:new-game-state (ccfns/loot-item game-state from-path [:inv])})
 
-(defmethod process-event :s-item-looted [game-state {:keys [from-path by]}]
-  {:new-game-state (dissoc-in game-state from-path)})
+(defmethod process-event :s-item-looted [game-state {:keys [from-path by left]}]
+  {:new-game-state
+   (if left
+     (assoc-in game-state (conj from-path :quantity) left)
+     (dissoc-in game-state from-path))})
 
 (defn update-own-stats [{:keys [chars own-id gear] :as game-state}]
   (assoc game-state :chars
@@ -185,19 +187,11 @@
       {:new-game-state (assoc game-state :on-mouse path)}
       {:new-game-state game-state})))
 
-(defn find-first-nil [v]
-  (first (keep-indexed (fn [idx value] (if (nil? value) idx)) v)))
-
-(defn loot-item [{:keys [own-id chars] :as game-state} path]
-  (let [to-idx (find-first-nil (:inv game-state))]
-    (when to-idx
-      {:event {:type :c-loot-item :from-path path :to-idx to-idx}})))
-
-(defn get-slots [{id :id}]
-  (get-in items/items [id :slots]))
+(defn loot-item [game-state path]
+  {:event {:type :c-loot-item :from-path path}})
 
 (defn get-prioritized-slot [{:keys [gear] :as game-state} item]
-  (let [slots (get-slots item)
+  (let [slots (:slots (items/all-info item))
         empty-slots (remove #(% gear) slots)]
     (first (concat empty-slots slots))))
 
@@ -208,7 +202,7 @@
       {:event {:type :inv-swap :paths [[:gear slot] path]}})))
 
 (defn activate-item [game-state path]
-  (condp #(= % (first %2)) path
+  (condp #(= %1 (first %2)) path
     :corpses (loot-item game-state path)
     :inv (equip-item game-state path)
     nil))
