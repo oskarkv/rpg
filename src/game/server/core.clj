@@ -174,7 +174,7 @@
 
 (defmethod process-event :c-move-quantity
   [game-state {:keys [id from-path to-path quantity] :as event}]
-  (let [[from to] (map #(vec (concat [:chars id] %)) [from-path to-path])]
+  (let [[from to] (map #(into [:chars id] %) [from-path to-path])]
     {:new-game-state (ccfns/move-quantity game-state from to quantity)}))
 
 (defmethod process-event :c-quit-looting [game-state {:keys [id ids]}]
