@@ -195,3 +195,21 @@
      loot-stack
      loot-nonstack)
    game-state from-path to-inv-path))
+
+(defn ensure-to-stack [game-state from-path to-path]
+  (if-not (get-in game-state to-path)
+    (let [fake-item (assoc (get-in game-state from-path)
+                           :quantity 0)]
+      (assoc-in game-state to-path fake-item))
+    game-state))
+
+(defn move-quantity [game-state from-path to-path quantity]
+  (let [game-state (ensure-to-stack game-state from-path to-path)
+        [from-q-path to-q-path] (map #(conj % :quantity) [from-path to-path])
+        [from-q to-q] (map #(get-in game-state %) [from-q-path to-q-path])
+        max-stack (:stackable (items/all-info (get-in game-state to-path)))
+        moved-q (min quantity from-q (- max-stack to-q))
+        ngs (update-in game-state to-q-path + moved-q)]
+    (if (<= from-q moved-q)
+      (dissoc-in ngs from-path)
+      (update-in ngs from-q-path - moved-q))))

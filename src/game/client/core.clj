@@ -179,13 +179,45 @@
 (defn my-stuff? [path]
   (or (my-inv? path) (my-gear? path)))
 
-(defn pick-up-or-drop-item [game-state path]
-  (if-let [on-mouse (:on-mouse game-state)]
+(defn drop-stack-onto-stack [game-state path]
+  (let [{:keys [on-mouse on-mouse-quantity]} game-state]
+    {:new-game-state (dissoc game-state :on-mouse :on-mouse-quantity)
+     :event {:type :c-move-quantity :from-path on-mouse :to-path path
+             :quantity on-mouse-quantity}}))
+
+(defn swap-places [game-state path]
     {:new-game-state (dissoc game-state :on-mouse)
-     :event {:type :inv-swap :paths [on-mouse path]}}
-    (if (get-in game-state path)
-      {:new-game-state (assoc game-state :on-mouse path)}
-      {:new-game-state game-state})))
+     :event {:type :inv-swap :paths [(:on-mouse game-state) path]}})
+
+(defn pick-up-quantity [game-state path quantity]
+  {:new-game-state
+   (-> game-state (assoc :on-mouse path) (assoc :on-mouse-quantity quantity))})
+
+(defn pick-up-stack [game-state path]
+  ;;; on-mouse-quantity should be positive
+  (let [{:keys [ctrl]} (:modifiers game-state)
+        quantity (:quantity (get-in game-state path))]
+    {:new-game-state
+     (-> game-state (assoc :on-mouse path)
+         (assoc :on-mouse-quantity (if ctrl 1 quantity)))}))
+
+(defn pick-up-item [game-state path]
+  {:new-game-state (assoc game-state :on-mouse path)})
+
+(defn pick-up-or-drop-item [game-state path]
+  (let [{:keys [quantity id] :as clicked} (get-in game-state path)
+        {:keys [on-mouse on-mouse-quantity]} game-state
+        mouse-item (get-in game-state on-mouse)
+        mouse-id (:id mouse-item)]
+    (if on-mouse
+      (if (and on-mouse-quantity
+               (or (nil? clicked) (= id mouse-id)))
+        (drop-stack-onto-stack game-state path)
+        (swap-places game-state path))
+      (when clicked
+        (if quantity
+          (pick-up-stack game-state path)
+          (pick-up-item game-state path))))))
 
 (defn loot-item [game-state path]
   {:event {:type :c-loot-item :from-path path}})
@@ -221,6 +253,10 @@
              :events [{:type :c-rearrange-inv :paths paths}]}
       (some #{:gear} (map first paths))
       (update-in [:events] conj {:type :changed-gear}))))
+
+(defmethod process-event :c-move-quantity
+  [game-state {:keys [from-path to-path quantity] :as event}]
+  {:new-game-state (ccfns/move-quantity game-state from-path to-path quantity)})
 
 (defn move-out-own-inv [{:keys [own-id] :as game-state}]
   (-> game-state

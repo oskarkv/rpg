@@ -155,6 +155,10 @@
 (defmethod process-event :s-item-looted [hud-state {:keys [from-path by]}]
   (add-needs-update hud-state [(pop from-path)]))
 
+(defmethod process-event :c-move-quantity
+  [hud-state {:keys [from-path to-path]}]
+  (add-needs-update hud-state (map pop [from-path to-path])))
+
 (defmethod process-event :default [hud-state event]
   hud-state)
 
