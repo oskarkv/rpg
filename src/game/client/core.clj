@@ -181,13 +181,11 @@
 
 (defn drop-stack-onto-stack [game-state path]
   (let [{:keys [on-mouse on-mouse-quantity]} game-state]
-    {:new-game-state (dissoc game-state :on-mouse :on-mouse-quantity)
-     :event {:type :c-move-quantity :from-path on-mouse :to-path path
+    {:event {:type :move-quantity :from-path on-mouse :to-path path
              :quantity on-mouse-quantity}}))
 
 (defn swap-places [game-state path]
-    {:new-game-state (dissoc game-state :on-mouse)
-     :event {:type :inv-swap :paths [(:on-mouse game-state) path]}})
+  {:event {:type :inv-swap :paths [(:on-mouse game-state) path]}})
 
 (defn pick-up-quantity [game-state path quantity]
   {:new-game-state
@@ -210,10 +208,12 @@
         mouse-item (get-in game-state on-mouse)
         mouse-id (:id mouse-item)]
     (if on-mouse
-      (if (and on-mouse-quantity
-               (or (nil? clicked) (= id mouse-id)))
-        (drop-stack-onto-stack game-state path)
-        (swap-places game-state path))
+      (-> (if (and on-mouse-quantity
+                   (or (nil? clicked) (= id mouse-id)))
+            (drop-stack-onto-stack game-state path)
+            (swap-places game-state path))
+          (assoc :new-game-state
+                 (dissoc game-state :on-mouse :on-mouse-quantity)))
       (when clicked
         (if quantity
           (pick-up-stack game-state path)
@@ -229,7 +229,7 @@
 
 (defn equip-item [game-state path]
   (when-let [item (get-in game-state path)]
-    (let [slot (get-prioritized-slot game-state item)]
+    (when-let [slot (get-prioritized-slot game-state item)]
       {:event {:type :inv-swap :paths [[:gear slot] path]}})))
 
 (defn activate-item [game-state path]
@@ -243,19 +243,25 @@
     (and pressed (= button 0)) (pick-up-or-drop-item game-state path)
     (and pressed (= button 1)) (activate-item game-state path)))
 
+(defn possible-move? [game-state from to]
+  (and (my-stuff? from) (my-stuff? to)
+       (ccfns/possible-slot? game-state from to)
+       (ccfns/possible-slot? game-state to from)))
+
 (defmethod process-event :inv-swap
   [game-state {[from to :as paths] :paths :as event}]
-  (when (and (every? my-stuff? paths)
-             (ccfns/possible-slot? game-state from to)
-             (ccfns/possible-slot? game-state to from))
+  (when (possible-move? game-state from to)
     (cond-> {:new-game-state (swap-in game-state from to)
              :events [{:type :c-rearrange-inv :paths paths}]}
       (some #{:gear} (map first paths))
       (update-in [:events] conj {:type :changed-gear}))))
 
-(defmethod process-event :c-move-quantity
+(defmethod process-event :move-quantity
   [game-state {:keys [from-path to-path quantity] :as event}]
-  {:new-game-state (ccfns/move-quantity game-state from-path to-path quantity)})
+  (when (and (possible-move? game-state from-path to-path)
+             (not= from-path to-path))
+    {:new-game-state (ccfns/move-quantity game-state from-path to-path quantity)
+     :event (assoc event :type :c-move-quantity)}))
 
 (defn move-out-own-inv [{:keys [own-id] :as game-state}]
   (-> game-state
