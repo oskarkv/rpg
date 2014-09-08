@@ -119,11 +119,11 @@
                      [slot]))
                  abstract-slots))))
 
-(defn item [& info]
+(defn item [name icon & info]
   (-> (apply merge-with union
+             {:name name :icon icon}
              (for [e info]
                (condf e
-                 string? {:name e}
                  map? (if (some #{:stackable :price} (keys e))
                         e
                         (make-stats-map e))
@@ -173,7 +173,8 @@
         (contains? (:slots item-type) slot)
         true))))
 
-(def items (check-items
-             [(item "Leather Vest" 5 [:chest] :leather {:armor 20})
-              (item "Snake Skin" 0.1 {:stackable 20})
-              (item "Rusty Sword" 5 [:main-hand :off-hand])]))
+(def items
+  (check-items
+    [(item "Leather Vest" "leather_armor.png" 5 [:chest] :leather {:armor 20})
+     (item "Snake Skin" "snakeskin.png" 0.1 {:stackable 20})
+     (item "Rusty Sword" "longsword.png" 5 [:main-hand :off-hand])]))

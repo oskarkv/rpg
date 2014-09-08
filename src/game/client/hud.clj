@@ -18,14 +18,14 @@
     (lib/set-alignment :right)
     (lib/set-font-size 16)))
 
-(defn create-slot [screen item size]
+(defn create-slot [screen item size clickable]
   (let [slot (lib/create-element
                screen
                (merge
                  (if item
-                   {:texture-name "fireball.png" :tooltip "item"}
+                   {:texture-name (:icon (items/all-info item)) :tooltip "item"}
                    {:texture-name "inv_slot.png"})
-                 {:size size :clickable true}))]
+                 {:size size :clickable clickable}))]
     (if (:quantity item)
       (lib/add-child
         slot (lib/set-size (create-stack-indicator screen item) size))
@@ -40,7 +40,7 @@
 
 (defn create-inventory-element [screen items cols size gap]
   (let [n (count items)
-        slots (map #(create-slot screen % size) items)
+        slots (map #(create-slot screen % size true) items)
         positions (slot-positions n cols size gap)
         container (doto (lib/create-window screen nil)
                     (lib/set-text "nu da something hehehehe?")
@@ -130,12 +130,14 @@
        (lib/set-position mouse-slot)))
 
 (defn update-mouse-slot-content [mouse-slot screen game-state size]
-  (if-let [on-mouse (:on-mouse game-state)]
-    (when (empty? (lib/get-children mouse-slot))
-      (->> {:texture-name "fireball.png" :size size}
-           (lib/create-element screen)
-           (lib/add-child mouse-slot)))
-    (lib/remove-all-children mouse-slot)))
+  (let [{:keys [on-mouse on-mouse-quantity]} game-state
+        item (cond-> (get-in game-state on-mouse)
+               on-mouse-quantity (assoc :quantity on-mouse-quantity))]
+    (if on-mouse
+      (when (empty? (lib/get-children mouse-slot))
+        (->> (create-slot screen item size false)
+             (lib/add-child mouse-slot)))
+      (lib/remove-all-children mouse-slot))))
 
 (defn update-mouse-slot [mouse-slot screen game-state size]
   (update-mouse-slot-pos mouse-slot screen size)

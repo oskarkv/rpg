@@ -228,9 +228,8 @@
     (first (concat empty-slots slots))))
 
 (defn equip-item [game-state path]
-  (let [item (get-in game-state path)
-        slot (get-prioritized-slot game-state item)]
-    (when slot
+  (when-let [item (get-in game-state path)]
+    (let [slot (get-prioritized-slot game-state item)]
       {:event {:type :inv-swap :paths [[:gear slot] path]}})))
 
 (defn activate-item [game-state path]
