@@ -1,5 +1,6 @@
 (ns game.common.items
   (:require [clojure.math.numeric-tower :as math]
+            [clojure.string :as str]
             [game.constants :as consts])
   (:use game.utils
         clojure.set))
@@ -47,9 +48,10 @@
     #(+ % (* (- 1 %) (/ (- target mean) (- 1 mean))))))
 
 (defn random-variables-with-mean [mean num-vars]
-  (let [vars (repeatedly num-vars rand)
-        vars-mean (/ (apply + vars) num-vars)]
-    (map (adjusting-fn vars-mean mean) vars)))
+  (when (pos? num-vars)
+    (let [vars (repeatedly num-vars rand)
+          vars-mean (/ (apply + vars) num-vars)]
+      (map (adjusting-fn vars-mean mean) vars))))
 
 (defn random-variables->stats-factors [vars]
   (map #(+ 1 (* consts/stats-random-part (- (* % 2) 1))) vars))
@@ -103,10 +105,12 @@
     races :races))
 
 (defn make-stats-map [m]
-  (let [{:keys [damage delay]} m]
-    (cond-> {:stats (dissoc m :damage :delay)}
+  (let [{:keys [damage delay]} m
+        stats (dissoc m :damage :delay)]
+    (cond-> {:stats stats}
       damage (assoc :damage damage)
-      delay (assoc :delay delay))))
+      delay (assoc :delay delay)
+      (zero? (count stats)) (dissoc :stats))))
 
 (defn all-info [light-item]
   (merge (items (:id light-item)) light-item))
@@ -173,8 +177,26 @@
         (contains? (:slots item-type) slot)
         true))))
 
+(defn get-tooltip [item]
+  (let [{:keys [type damage delay stats] :as item}
+        (all-info item)
+        n "\n"
+        list-fn (fn [k] (when (k item)
+                          (str (name k) ": "
+                               (str/join ", " (map name (k item))))))]
+    (->>
+      [(:name item)
+       (when type (name type))
+       (when damage (str "damage / delay: " damage " / " delay))]
+      (#(into % (for [[s v] stats]
+                  (str (name s) ": " v))))
+      (#(into % (map list-fn [:classes :slots :races])))
+      (remove nil?)
+      (str/join n))))
+
 (def items
   (check-items
     [(item "Leather Vest" "leather_armor.png" 5 [:chest] :leather {:armor 20})
      (item "Snake Skin" "snakeskin.png" 0.1 {:stackable 20})
-     (item "Rusty Sword" "longsword.png" 5 [:main-hand :off-hand])]))
+     (item "Rusty Sword" "longsword.png" 5 {:damage 3 :delay 20}
+           [:main-hand :off-hand] [:paladin :warrior])]))

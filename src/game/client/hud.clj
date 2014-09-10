@@ -23,7 +23,8 @@
                screen
                (merge
                  (if item
-                   {:texture-name (:icon (items/all-info item)) :tooltip "item"}
+                   {:texture-name (:icon (items/all-info item))
+                    :tooltip (items/get-tooltip item)}
                    {:texture-name "inv_slot.png"})
                  {:size size :clickable clickable}))]
     (if (:quantity item)
@@ -180,6 +181,7 @@
 
 (defn create-tooltip-element [screen string]
   (let [text (doto (lib/create-text-element screen nil)
+               (lib/set-font-size consts/tooltip-text-size)
                (lib/set-text string)
                (lib/auto-size))
         slot (doto (lib/create-element screen nil)
@@ -191,8 +193,7 @@
   (let [{:keys [tooltip-source tooltip]} hud-state
         target-element (lib/get-element-under-cursor screen)]
     (when (not= target-element tooltip-source)
-      (let [new-tooltip (when-let [text (and target-element
-                                             (lib/get-tooltip target-element))]
+      (let [new-tooltip (when-let [text (some-> target-element lib/get-tooltip)]
                           (create-tooltip-element screen text))]
         (some->> tooltip (lib/remove-child screen))
         (some->> new-tooltip (lib/add-child screen))
