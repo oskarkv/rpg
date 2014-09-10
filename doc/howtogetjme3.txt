@@ -1,6 +1,7 @@
-Checkout svn
+Checkout från github
+Gå till branch 3.0
 Fixa project.clj
-Ta alla jars i jme3/engine/libs extracta
+Ta alla jars i jme3/engine/lib extracta
 Ta allt lägg i target/classes
 lein install
 
