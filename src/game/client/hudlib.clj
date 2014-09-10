@@ -325,7 +325,7 @@
                        "Common/MatDefs/Misc/Unshaded.j3md")
         (.. (getAdditionalRenderState)
             (setBlendMode RenderState$BlendMode/Alpha)))
-      (.loadFont asset-manager "Interface/Fonts/Default.fnt")
+      (.loadFont asset-manager "fonts/droid24_outline.fnt")
       node
       input-manager
       asset-manager

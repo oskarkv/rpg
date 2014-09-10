@@ -277,6 +277,7 @@
         self-label (lib/create-text-element screen {:pos gap :size [pw ph]})
         target-label (lib/create-text-element
                        screen {:pos [(+ pw (* 2 gap)) gap] :size [pw ph]})]
+    (mapv lib/set-font-size [self-label target-label] (repeat 24))
     (swap! hud-state-atom assoc :path->slot-fn path->slot-fn)
     (lib/add-child screen mouse-slot)
     (lib/add-child screen self-label)
