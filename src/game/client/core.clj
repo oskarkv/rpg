@@ -240,7 +240,8 @@
 
 (defmethod process-event :hud-click [game-state {:keys [path button pressed]}]
   (cond
-    (and pressed (= button 0)) (pick-up-or-drop-item game-state path)
+    (and pressed (= button 0)
+         (#{:inv :gear} (path 0))) (pick-up-or-drop-item game-state path)
     (and pressed (= button 1)) (activate-item game-state path)))
 
 (defn possible-move? [game-state from to]
