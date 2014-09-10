@@ -31,6 +31,7 @@
   chat-width 330
   tooltip-margin 10
   tooltip-text-size 20
+  tooltip-opacity 0.6
   icon-size 40
   icon-gap 5
   header-height 23

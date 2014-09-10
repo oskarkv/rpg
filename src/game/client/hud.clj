@@ -185,7 +185,7 @@
                (lib/set-text string)
                (lib/auto-size))
         slot (doto (lib/create-element screen nil)
-               (lib/set-color [0.2 0.2 0.2 0.5])
+               (lib/set-color [0.2 0.2 0.2 consts/tooltip-opacity])
                (lib/set-depth (:tooltip depths)))]
     (position-tooltip-text-in-slot slot text)))
 
