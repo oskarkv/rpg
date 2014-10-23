@@ -2,6 +2,7 @@
   (:use game.utils)
   (:require [game.constants :as consts]
             [clojure.math.numeric-tower :as math]
+            [clojure.walk :as walk]
             [game.common.core :as cc]
             [game.common.core-functions :as ccfns]
             [game.common.jme-utils :as ju])
@@ -18,7 +19,10 @@
   (add-child [this child])
   (remove-child [this child])
   (get-children [this])
-  (remove-all-children [this]))
+  (remove-all-children [this])
+  (get-parent [this])
+  (set-parent [this parent])
+  (is-focusable [this]))
 
 (defprotocol Sized
   (set-size [this size])
@@ -46,7 +50,7 @@
 (defn assert-vector [n]
   (if (number? n) [n n] n))
 
-(defn hudnode-code [node-name children-name]
+(defn hudnode-code [node-name children-name parent-name focusable]
   `(HudNode
      (add-child
        [this# child#]
@@ -62,7 +66,13 @@
      (remove-all-children
        [this#]
        (dorun (map (fn [child#] (remove-child this# child#)) @~children-name))
-       this#)))
+       this#)
+     (set-parent
+       [this# parent#]
+        (reset! ~parent-name parent#)
+        this#)
+     (get-parent [this#] @~parent-name)
+     (is-focusable [this#] ~focusable)))
 
 (defn positioned-code [node-name]
   `(Positioned
@@ -100,18 +110,20 @@
 (defn set-height [element h]
   (set-size element [(get-width element) h]))
 
-(defmacro defhudrecord [name args & body]
+(defmacro defhudrecord [name args focusable & body]
   `(defrecord ~name ~args
-     ~@(hudnode-code 'node 'children)
+     ~@(hudnode-code 'node 'children 'parent focusable)
      ~@body))
 
-(defmacro defposrecord [name args & body]
-  `(defhudrecord ~name ~args
+(defmacro defposrecord [name args focusable & body]
+  `(defhudrecord ~name ~args ~focusable
      ~@(positioned-code (first args))
      ~@body))
 
 (defhudrecord Screen [material font node input-manager asset-manager
-                      geoms->elements event-queue children start-fn]
+                      geoms->elements event-queue start-fn
+                      children parent]
+  false
   cc/EventsProducer
   (get-events [this]
     (ccfns/reset-queue event-queue))
@@ -120,9 +132,9 @@
     (when start-fn (start-fn this)))
   (stop [this]))
 
-(defposrecord ContainerElement [node children])
+(defposrecord ContainerElement [node children parent] false)
 
-(defposrecord PictureElement [node geom tooltip-atom children]
+(defposrecord PictureElement [node geom tooltip-atom children parent] false
   Sized
   (set-size [this size]
     (let [[w h] (assert-vector size)]
@@ -184,7 +196,7 @@
                   :bottom BitmapFont$VAlign/Bottom
                   :vcenter BitmapFont$VAlign/Center})
 
-(defposrecord TextElement [node geom children]
+(defposrecord TextElement [node geom children parent] false
   Sized
   (set-size [this size]
     (let [[w h] (assert-vector size)]
@@ -209,6 +221,22 @@
     (if (align alignments)
       (.setAlignment node (align alignments))
       (.setVerticalAlignment node (align valignments)))))
+
+(defn string-contains-any? [s & others]
+  (some #(.contains s %) others))
+
+(defmacro with-children-and-parent [& body]
+  (with-gensyms [children parent]
+    `(let [~children (atom #{})
+           ~parent (atom nil)]
+       ~@(walk/postwalk
+           (fn [x]
+             (if (and (seq? x)
+                      (symbol? (first x))
+                      (re-matches #"->(.+Element|Screen)" (name (first x))))
+               (concat x [children parent])
+               x))
+           body))))
 
 (defn new-node []
   (Node. (str (ccfns/get-new-id))))
@@ -235,28 +263,30 @@
       (set-depth 0.1)))
 
 (defn create-element [screen {:keys [texture-name] :as options}]
-  (let [{:keys [material geoms->elements]} screen
-        mesh (Quad. 0 0 true)
-        geom (new-geom mesh)
-        node (new-node)
-        element (->PictureElement node geom (atom nil) (atom #{}))]
-    (set-material element
-                  (if texture-name
-                    (get-material screen texture-name)
-                    (.clone material)))
-    (.attachChild node geom)
-    (set-element-defaults element options)
-    (add-general-functionality screen element options)
-    element))
+  (with-children-and-parent
+    (let [{:keys [material geoms->elements]} screen
+          mesh (Quad. 0 0 true)
+          geom (new-geom mesh)
+          node (new-node)
+          element (->PictureElement node geom (atom nil))]
+      (set-material element
+                    (if texture-name
+                      (get-material screen texture-name)
+                      (.clone material)))
+      (.attachChild node geom)
+      (set-element-defaults element options)
+      (add-general-functionality screen element options)
+      element)))
 
 (defn create-text-element [screen options]
-  (let [{:keys [font geoms->elements]} screen
-        node (BitmapText. font)
-        geom (first (.getChildren node))
-        element (->TextElement node geom (atom #{}))]
-    (set-element-defaults element options)
-    (add-general-functionality screen element options)
-    element))
+  (with-children-and-parent
+    (let [{:keys [font geoms->elements]} screen
+          node (BitmapText. font)
+          geom (first (.getChildren node))
+          element (->TextElement node geom)]
+      (set-element-defaults element options)
+      (add-general-functionality screen element options)
+      element)))
 
 (defn create-window [screen options]
   (let [hh consts/header-height
@@ -274,7 +304,8 @@
     element))
 
 (defn create-container [pos]
-  (doto (->ContainerElement (new-node) (atom #{})) (set-position pos)))
+  (with-children-and-parent
+    (doto (->ContainerElement (new-node)) (set-position pos))))
 
 (defn input-listener [callback]
   (let [listener (proxy [RawInputListener] [])
@@ -308,28 +339,28 @@
                          :pressed (.isPressed event)}))))
 
 (defn create-screen [app]
-  (let [asset-manager (.getAssetManager app)
-        input-manager (.getInputManager app)
-        event-queue (ref [])
-        node (new-node)
-        start-fn (fn [screen]
-                   (.setLocalTranslation
-                     node (Vector3f. 0 consts/resolution-y 0))
-                   (.setQueueBucket node RenderQueue$Bucket/Gui)
-                   (.addRawInputListener
-                     input-manager
-                     (input-listener (make-click-callback screen)))
-                   (.attachChild (.getGuiNode app) node))]
-    (Screen.
-      (doto (Material. asset-manager
-                       "Common/MatDefs/Misc/Unshaded.j3md")
-        (.. (getAdditionalRenderState)
-            (setBlendMode RenderState$BlendMode/Alpha)))
-      (.loadFont asset-manager "fonts/droid24_outline.fnt")
-      node
-      input-manager
-      asset-manager
-      (atom {})
-      event-queue
-      (atom #{})
-      start-fn)))
+  (with-children-and-parent
+    (let [asset-manager (.getAssetManager app)
+          input-manager (.getInputManager app)
+          event-queue (ref [])
+          node (new-node)
+          start-fn (fn [screen]
+                     (.setLocalTranslation
+                       node (Vector3f. 0 consts/resolution-y 0))
+                     (.setQueueBucket node RenderQueue$Bucket/Gui)
+                     (.addRawInputListener
+                       input-manager
+                       (input-listener (make-click-callback screen)))
+                     (.attachChild (.getGuiNode app) node))]
+      (->Screen
+        (doto (Material. asset-manager
+                         "Common/MatDefs/Misc/Unshaded.j3md")
+          (.. (getAdditionalRenderState)
+              (setBlendMode RenderState$BlendMode/Alpha)))
+        (.loadFont asset-manager "fonts/droid24_outline.fnt")
+        node
+        input-manager
+        asset-manager
+        (atom {})
+        event-queue
+        start-fn))))
