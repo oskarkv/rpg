@@ -187,3 +187,7 @@
 
 (defn runmap [& args]
   (dorun (apply map args)))
+
+(defmacro defmemoized [& body]
+  `(do (defn ~@body)
+       (alter-var-root (var ~(first body)) memoize)))
