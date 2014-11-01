@@ -181,3 +181,9 @@
 
 (defn remove-map-nils [m]
   (into {} (filter #(% 1) m)))
+
+(defn domap [& args]
+  (doall (apply map args)))
+
+(defn runmap [& args]
+  (dorun (apply map args)))
