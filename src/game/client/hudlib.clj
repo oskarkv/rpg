@@ -244,12 +244,10 @@
 (defn new-geom [mesh]
   (Geometry. (str (ccfns/get-new-id)) mesh))
 
-(defn get-material [screen texture-name]
+(defmemoized get-material [screen texture-name]
   (let [{:keys [material asset-manager]} screen]
     (doto (.clone material)
       (.setTexture "ColorMap" (.loadTexture asset-manager texture-name)))))
-
-(def get-material (memoize get-material))
 
 (defn add-general-functionality
   [{:keys [geoms->elements]} element {:keys [clickable tooltip]}]
