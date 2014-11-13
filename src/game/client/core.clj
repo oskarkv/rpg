@@ -192,7 +192,6 @@
    (-> game-state (assoc :on-mouse path) (assoc :on-mouse-quantity quantity))})
 
 (defn pick-up-stack [game-state path]
-  ;;; on-mouse-quantity should be positive
   (let [{:keys [ctrl]} (:modifiers game-state)
         quantity (:quantity (get-in game-state path))]
     {:new-game-state
