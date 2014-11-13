@@ -18,6 +18,7 @@
    :c-rearrange-inv [:paths]
    :c-move-quantity [:from-path :to-path :quantity]
    :c-quit-looting [:ids]
+   :c-destroy-item [:path :quantity]
    :s-attack [:target :damage :hit]
    :s-game-state [:game-state]
    :s-move [:positions]

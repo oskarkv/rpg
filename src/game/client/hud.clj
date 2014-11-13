@@ -21,11 +21,12 @@
            (com.jme3.material Material)
            (com.jme3x.jfx.cursor ICursorDisplayProvider)
            (javafx.embed.swing SwingFXUtils)
-           (javafx.event EventHandler EventType Event)
+           (javafx.event EventHandler EventType Event ActionEvent)
            (javafx.geometry Point3D Rectangle2D)
            (javafx.scene Scene)
            (javafx.scene.input MouseEvent MouseButton)
-           (javafx.scene.control TextField Label LabelBuilder ProgressBar)
+           (javafx.scene.control Button TextField Label LabelBuilder
+                                 ProgressBar)
            (javafx.scene.image Image ImageView)
            (javafx.scene.layout Region Pane StackPane HBox VBox GridPane
                                 TilePane)
@@ -76,43 +77,57 @@
     MouseButton/SECONDARY consts/mouse-right
     MouseButton/MIDDLE consts/mouse-middle))
 
+(defmulti tree->jfx (fn [tree hud-state] (:type tree)))
+
+(defmulti concrete-event (fn [abstract-event jfx-event] (:type abstract-event)))
+
+(defmethod concrete-event :hud-click [abstract-event jfx-event]
+  {:type :hud-click :pressed true
+   :button (mouse-event->button-int jfx-event)
+   :path (:path abstract-event)})
+
+(defmethod concrete-event :destroy-item [abstract-event jfx-event]
+  (dissoc abstract-event :trigger))
+
+(def triggers-map
+  {:pressed MouseEvent/MOUSE_PRESSED
+   :clicked MouseEvent/MOUSE_CLICKED
+   :action ActionEvent/ACTION
+   :entered MouseEvent/MOUSE_ENTERED_TARGET
+   :exited MouseEvent/MOUSE_EXITED_TARGET})
+
 (defmacro event-handler [argsv & body]
   `(reify EventHandler (~'handle ~argsv ~@body)))
 
-(defmulti event->adder (fn [event hud-state] (:type event)))
+(defmacro add-event-handler [node trigger argsv & body]
+  `(.addEventHandler
+     ~node
+     (triggers-map ~trigger)
+     (event-handler ~argsv ~@body)))
 
-(defmethod event->adder :hud-click [event {:keys [event-queue]}]
-  (let [handler (fn [pressed]
-                  (event-handler
-                    [this e]
-                    (ccfns/queue-conj
-                      event-queue
-                      {:type :hud-click :pressed pressed
-                       :button (mouse-event->button-int e)
-                       :path (:path event)})))]
-    (fn [node]
-      (.addEventHandler node MouseEvent/MOUSE_PRESSED (handler true))
-      node)))
-
-(defmulti tree->jfx (fn [tree hud-state] (:type tree)))
+(defn add-game-event-maker [node event {:keys [event-queue]}]
+  (add-event-handler
+    node (:trigger event) [this e]
+    (ccfns/queue-conj
+      event-queue
+      (concrete-event event e)))
+  node)
 
 (defn add-tooltip-stuff [node hud-state tooltip]
   (let [ttpane (get-in hud-state [:panes :tooltip])
         tt {:type :label :id "tooltip" :text tooltip}
-        add-handler (fn [et f]
-                      (.addEventHandler
-                        node et
-                        (event-handler
-                          [this e]
-                          (when (= (.getTarget e) node)
-                            (f)))))]
+        add-handler (fn [trigger f]
+                      (add-event-handler
+                        node trigger [this e]
+                        (when (= (.getTarget e) node)
+                          (f))))]
     (add-handler
-      MouseEvent/MOUSE_ENTERED_TARGET
+      :entered
       #(let [p (.localToScene node consts/icon-size 0)]
          (add-children ttpane [(doto (tree->jfx tt nil)
                                  (relocate (.getX p) (.getY p)))])))
     (add-handler
-      MouseEvent/MOUSE_EXITED_TARGET
+      :exited
       #(clear-children ttpane)))
   node)
 
@@ -120,12 +135,17 @@
   [node hud-state {:keys [pos size id children event classes tooltip]}]
   (cond-> node
     classes (doto (-> .getStyleClass (.addAll (into-array classes))))
-    event ((event->adder event hud-state))
+    event (add-game-event-maker event hud-state)
     tooltip (add-tooltip-stuff hud-state tooltip)
     id (doto (.setId id))
     pos (relocate pos)
     size (set-size size)
     children (add-children (map #(tree->jfx % hud-state) children))))
+
+(defmacro tree->jfx-method [class-name cargs kword]
+  `(defmethod tree->jfx ~kword [~'tree ~'hud-state]
+     (doto (new ~class-name ~@cargs)
+       (fix-common-things ~'hud-state ~'tree))))
 
 (defmethod tree->jfx :image [tree hud-state]
   (let [image (ImageView. (:texture tree))
@@ -136,21 +156,19 @@
       (add-children [image])
       (fix-common-things hud-state tree))))
 
-(defmethod tree->jfx :label [tree hud-state]
-  (doto (Label. (str (:text tree)))
-    (fix-common-things hud-state tree)))
+(tree->jfx-method Label [(str (:text tree))] :label)
 
-(defmethod tree->jfx :pane [tree hud-state]
-  (doto (Pane.)
-    (fix-common-things hud-state tree)))
+(tree->jfx-method Pane nil :pane)
 
-(defmethod tree->jfx :tile-pane [tree hud-state]
-  (doto (TilePane.)
-    (fix-common-things hud-state tree)))
+(tree->jfx-method TilePane nil :tile-pane)
 
-(defmethod tree->jfx :progress-bar [tree hud-state]
-  (doto (ProgressBar. (:progress tree))
-    (fix-common-things hud-state tree)))
+(tree->jfx-method ProgressBar [(:progress tree)] :progress-bar)
+
+(tree->jfx-method HBox nil :hbox)
+
+(tree->jfx-method VBox nil :vbox)
+
+(tree->jfx-method Button [(str (:text tree))] :button)
 
 (defn get-texture-name [item]
   (:icon (items/all-info item)))
@@ -167,7 +185,7 @@
           :else nil)]
     {:type :image :id "inv-slot" :size consts/icon-size
      :texture (if item (get-texture-name item) "inv_slot.png")
-     :event {:type :hud-click :path path}
+     :event {:type :hud-click :trigger :pressed :path path}
      :tooltip (when item (items/get-tooltip item))
      :children children}))
 
@@ -283,7 +301,7 @@
   (update-mouse-slot-pos hud-state)
   (update-mouse-slot-content hud-state game-state))
 
-(defn create-char-pane [char]
+(defn make-char-pane-tree [char]
   (let [{:keys [name hp max-hp level]} char
         w 170 nh 22 th 22 bh 12]
     {:type :pane
@@ -310,7 +328,7 @@
 
 (defn create-char-node [char pos]
   (when char
-    (relocate (tree->jfx (create-char-pane char) nil)
+    (relocate (tree->jfx (make-char-pane-tree char) nil)
               (pos 0) (pos 1))))
 
 (defn create-and-remove-panes [hud-state game-state changed]
@@ -339,6 +357,45 @@
                        [own-id (get-in chars [own-id :target])])]
     (create-and-remove-panes hud-state game-state changed)))
 
+(defn make-destroy-dialog-tree [game-state]
+  (let [{:keys [on-mouse on-mouse-quantity]} game-state
+        omq on-mouse-quantity
+        item (get-in game-state on-mouse)
+        name (:name (items/all-info item))
+        text (str "Destroy " name (when omq (str " (" omq ")")) "?")
+        make-event (fn [a] {:type :destroy-item :trigger :action :destroy a})
+        make-button (fn [t a] {:type :button :size [60 25] :text t
+                               :event (make-event a)})]
+    {:type :vbox
+     :id "destroy-dialog"
+     :children
+     [{:type :label :text text}
+      {:type :hbox
+       :children
+       [(make-button "Yes" true) (make-button "No" false)]}]}))
+
+(defn create-destroy-item-dialog [hud-state game-state]
+  (let [node (doto (tree->jfx (make-destroy-dialog-tree game-state) hud-state)
+               (relocate 400 400))]
+    (fx-run-later (add-children (get-in hud-state [:panes :chars]) [node]))
+    (assoc-in hud-state [:dialogs :destroying-item] node)))
+
+(defn remove-destroy-item-dialog [hud-state]
+  (let [node (get-in hud-state [:dialogs :destroying-item])]
+    (fx-run-later (remove-children (get-in hud-state [:panes :chars]) [node]))
+    (dissoc-in hud-state [:dialogs :destroying-item])))
+
+(defn update-destroy-dialog [hud-state game-state]
+  (let [di :destroying-item
+        destroying (di game-state)
+        dialog (get-in hud-state [:dialogs di])]
+    (cond
+      (and destroying (not dialog))
+      (create-destroy-item-dialog hud-state game-state)
+      (and (not destroying) dialog)
+      (remove-destroy-item-dialog hud-state)
+      :else hud-state)))
+
 (defn update-javafx [{:keys [jfx-changes] :as hud-state}]
   (fx-run-later (doseq [f jfx-changes] (f)))
   (assoc hud-state :jfx-changes []))
@@ -359,6 +416,7 @@
            #(-> %
                 (update-inventories game-state)
                 (update-char-panes game-state)
+                (update-destroy-dialog game-state)
                 (update-javafx)))))
 
 (defn random-string [length]
@@ -394,6 +452,7 @@
                               :chars-poses {:self [10 10] :target [200 10]}
                               :chars-state {:self {:old-hash (hash nil)}
                                             :target {:old-hash (hash nil)}}
+                              :dialogs {}
                               :input-manager input-manager
                               :event-queue (ref [])
                               :mouse-texture-atom (atom nil)

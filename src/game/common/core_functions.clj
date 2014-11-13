@@ -213,3 +213,12 @@
     (if (<= from-q moved-q)
       (dissoc-in ngs from-path)
       (update-in ngs from-q-path - moved-q))))
+
+(defn destroy-item [game-state path destroy-quantity]
+  (if destroy-quantity
+    (let [quant-path (conj path :quantity)
+          quantity (get-in game-state quant-path)]
+      (if (> quantity destroy-quantity)
+        (update-in game-state quant-path - destroy-quantity)
+        (dissoc-in game-state path)))
+    (dissoc-in game-state path)))

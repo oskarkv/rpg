@@ -50,7 +50,7 @@
 (defn bonus-damage-simple [power level]
   (let [scaled 0.5
         max-stats (* 50 stats-per-level)]
-    (* 50 (+ 1
+    (* 200 (+ 1
              (/ power max-stats (/ (- 1 scaled)))
              (/ power level stats-per-level (/ scaled))))))
 

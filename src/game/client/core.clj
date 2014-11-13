@@ -137,14 +137,38 @@
   {:new-game-state (update-in game-state [:chars id :attacking] not)
    :event {:type :c-toggle-attack}})
 
-(defmethod process-event :target [game-state _]
+(defn init-destroy-item [game-state]
+  {:new-game-state
+   (assoc game-state :destroying-item true)})
+
+(defn new-target [game-state]
   (let [id (:own-id game-state)
         target (gfx/pick-target :chars)]
     (when target
       {:new-game-state (assoc-in game-state [:chars id :target] target)
        :event {:type :c-target :target target}})))
 
-(defmethod process-event :loot [game-state _]
+(defmethod process-event :left-click [game-state _]
+  (if (:on-mouse game-state)
+    (init-destroy-item game-state)
+    (new-target game-state)))
+
+(defn destroy-item [game-state]
+  (let [{:keys [on-mouse on-mouse-quantity]} game-state]
+    {:new-game-state
+     (-> (ccfns/destroy-item game-state on-mouse on-mouse-quantity)
+         (dissoc :on-mouse :on-mouse-quantity))
+     :event {:type :c-destroy-item :path on-mouse
+             :quantity on-mouse-quantity}}))
+
+(defmethod process-event :destroy-item [game-state {:keys [destroy]}]
+  (dissoc-in
+    (if destroy
+      (destroy-item game-state)
+      {:new-game-state game-state})
+    [:new-game-state :destroying-item]))
+
+(defmethod process-event :right-click [game-state _]
   (when-let [corpse (gfx/pick-target :corpses)]
     (when (ccfns/id-close-enough? game-state (:own-id game-state)
                                   corpse consts/loot-distance)
@@ -221,11 +245,15 @@
     nil))
 
 (defmethod process-event :hud-click [game-state {:keys [path button pressed]}]
-  (cond
-    (and pressed (= button consts/mouse-left)
-         (#{:inv :gear} (path 0))) (pick-up-or-drop-item game-state path)
-    (and pressed (= button consts/mouse-right)) (activate-item game-state
-                                                               path)))
+  (-> (cond
+        (and pressed (= button consts/mouse-left)
+             (#{:inv :gear} (path 0))) (pick-up-or-drop-item game-state path)
+        (and pressed (= button consts/mouse-right)) (activate-item game-state
+                                                                   path))
+      (#(if (:new-game-state %)
+          (dissoc-in % [:new-game-state :destroying-item])
+          (assoc % :new-game-state (dissoc game-state :destroying-item))))))
+
 
 (defn possible-move? [game-state from to]
   (and (my-stuff? from) (my-stuff? to)

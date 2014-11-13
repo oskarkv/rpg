@@ -1,14 +1,18 @@
-.label > LabeledText {
+.label > LabeledText, .button > LabeledText {
     -fx-effect: dropshadow(gaussian, #000000, 5, 0.5, 0, 0);
 }
 
-.label {
+.label, .button {
     -fx-font-family: "Droid Serif";
     -fx-text-fill: white;
     -fx-font-size: 16;
 }
 
-#tooltip {
+.button {
+    -fx-font-size: 14;
+}
+
+#tooltip, #destroy-dialog {
     -fx-padding: 10;
     -fx-background-color: rgba(50, 50, 50, 0.6);
     -fx-background-radius: 5;
@@ -16,6 +20,20 @@
     -fx-border-style: solid;
     -fx-border-color: rgba(200, 200, 200, 0.7);
     -fx-border-radius: 5;
+}
+
+#destroy-dialog {
+    -fx-spacing: 10;
+}
+
+#destroy-dialog .label {
+    -fx-max-width: 10000;
+    -fx-alignment: center;
+}
+
+#destroy-dialog HBox {
+    -fx-alignment: center;
+    -fx-spacing: 20;
 }
 
 .inventory {

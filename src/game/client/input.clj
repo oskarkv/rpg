@@ -6,6 +6,6 @@
    ["left" "a" :hold]
    ["right" "s" :hold]
    ["toggle-attack" "f" :tap]
-   ["target" "m-left" :tap]
-   ["loot" "m-right" :tap]
+   ["left-click" "m-left" :tap]
+   ["right-click" "m-right" :tap]
    ["open-inv" "c" :tap]])

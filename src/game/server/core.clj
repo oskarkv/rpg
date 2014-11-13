@@ -177,6 +177,10 @@
   (let [[from to] (map #(into [:chars id] %) [from-path to-path])]
     {:new-game-state (ccfns/move-quantity game-state from to quantity)}))
 
+(defmethod process-event :c-destroy-item [game-state {:keys [id path quantity]}]
+  (let [sv-path (into [:chars id] path)]
+    {:new-game-state (ccfns/destroy-item game-state sv-path quantity)}))
+
 (defmethod process-event :c-quit-looting [game-state {:keys [id ids]}]
   {:new-game-state
    (reduce (fn [gs cid]
