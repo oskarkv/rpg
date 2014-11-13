@@ -1,107 +1,219 @@
+(ns game.client.hud)
+
+(defonce force-toolkit-init (javafx.embed.swing.JFXPanel.))
+
+(javafx.application.Platform/setImplicitExit false)
+
 (ns game.client.hud
   (:use game.utils)
   (:require (game.common [core :as cc]
                          [core-functions :as ccfns]
                          [items :as items])
             [game.constants :as consts]
-            [game.client.hudlib :as lib]
+            [game.common.jme-utils :as ju]
             [clojure.math.numeric-tower :as math]
-            [clojure.set :as set]))
+            [clojure.set :as set])
+  (:import (com.jme3x.jfx GuiManager AbstractHud)
+           (com.jme3.texture.plugins AWTLoader)
+           (com.jme3.texture Texture2D)
+           (com.jme3.scene Node Geometry)
+           (com.jme3.scene.shape Quad)
+           (com.jme3.material Material)
+           (com.jme3x.jfx.cursor ICursorDisplayProvider)
+           (javafx.embed.swing SwingFXUtils)
+           (javafx.event EventHandler EventType Event)
+           (javafx.geometry Point3D Rectangle2D)
+           (javafx.scene Scene)
+           (javafx.scene.input MouseEvent MouseButton)
+           (javafx.scene.control TextField Label LabelBuilder ProgressBar)
+           (javafx.scene.image Image ImageView)
+           (javafx.scene.layout Region Pane StackPane HBox VBox GridPane
+                                TilePane)
+           (javafx.scene.shape Arc ArcType Rectangle)
+           (javafx.scene.transform Scale)
+           (javafx.application Platform)))
 
-(def depths (zipmap [:mouse-slot :tooltip]
-                    (map #(* 10 %) (drop 1 (range)))))
+(defmacro defsetter [name & methods]
+  (with-gensyms [obj x y]
+    `(defn ~name
+       ([obj# arg#] (if (vector? arg#)
+                      (~name obj# (arg# 0) (arg# 1))
+                      (~name obj# arg# arg#)))
+       ([~obj ~x ~y] (doto ~obj  ~@(for [m methods] (list m x y)))))))
 
-(defn create-stack-indicator [screen item]
-  (doto (lib/create-text-element screen nil)
-    (lib/set-text (str (:quantity item)))
-    (lib/set-alignment :bottom)
-    (lib/set-alignment :right)
-    (lib/set-font-size 16)))
+(defsetter set-size .setMaxSize .setMinSize)
 
-(defn create-slot [screen item size clickable]
-  (let [slot (lib/create-element
-               screen
-               (merge
-                 (if item
-                   {:texture-name (:icon (items/all-info item))
-                    :tooltip (items/get-tooltip item)}
-                   {:texture-name "inv_slot.png"})
-                 {:size size :clickable clickable}))]
-    (if (:quantity item)
-      (lib/add-child
-        slot (lib/set-size (create-stack-indicator screen item) size))
-      slot)))
+(defsetter relocate .relocate)
 
-(defn slot-positions [n cols size gap]
-  (let [padded-n (+ n (- cols (mod n cols)))
-        rows (/ padded-n cols)
-        calc-pos #(+ gap (* % (+ size gap)))]
-    (for [y (range rows) x (range cols)]
-      (mapv calc-pos [x y]))))
+(defn gridpane-add [gridpane & children]
+  (runmap (fn [[e x y]] (.add gridpane e x y)) children)
+  gridpane)
 
-(defn create-inventory-element [screen items cols size gap]
-  (let [n (count items)
-        slots (map #(create-slot screen % size true) items)
-        positions (slot-positions n cols size gap)
-        container (doto (lib/create-window screen nil)
-                    (lib/set-text "nu da something hehehehe?")
-                    (lib/set-color [0.2 0.5 0.2 0.5])
-                    (#(lib/set-color (:header %) [0.2 0.5 0.2 0.8])))]
-    (dorun (map #(lib/set-position %1 %2) slots positions))
-    (dorun (map #(lib/add-child container %) slots))
-    (lib/auto-size container gap)
-    (lib/add-child screen container)
-    {:element container :slots slots}))
+(let [children-fn (fn [f] (fn [parent children]
+                            (let [children-list (.getChildren parent)]
+                              (runmap #(f children-list %) children)
+                              parent)))]
+  (def add-children (children-fn (memfn add child)))
+  (def remove-children (children-fn (memfn remove child))))
 
-(defn path->pos [path hud-state]
-  (let [positions (:positions hud-state)]
-    (or ((first path) positions) (:other positions))))
+(defn clear-children [parent]
+  (-> parent .getChildren .clear))
+
+(defmemoized load-image [path]
+  (Image. path true))
+
+(defmacro fx-run-later [& body]
+  `(Platform/runLater (fn [] ~@body)))
+
+(defmacro do-every-ms [last-time ms & body]
+  `(let [curr-time# (current-time-ms)]
+     (when (> curr-time# (+ ~last-time ~ms))
+       ~@body)))
+
+(defn mouse-event->button-int [e]
+  (condp = (.getButton e)
+    MouseButton/PRIMARY consts/mouse-left
+    MouseButton/SECONDARY consts/mouse-right
+    MouseButton/MIDDLE consts/mouse-middle))
+
+(defmacro event-handler [argsv & body]
+  `(reify EventHandler (~'handle ~argsv ~@body)))
+
+(defmulti event->adder (fn [event hud-state] (:type event)))
+
+(defmethod event->adder :hud-click [event {:keys [event-queue]}]
+  (let [handler (fn [pressed]
+                  (event-handler
+                    [this e]
+                    (ccfns/queue-conj
+                      event-queue
+                      {:type :hud-click :pressed pressed
+                       :button (mouse-event->button-int e)
+                       :path (:path event)})))]
+    (fn [node]
+      (.addEventHandler node MouseEvent/MOUSE_PRESSED (handler true))
+      node)))
+
+(defmulti tree->jfx (fn [tree hud-state] (:type tree)))
+
+(defn add-tooltip-stuff [node hud-state tooltip]
+  (let [ttpane (get-in hud-state [:panes :tooltip])
+        tt {:type :label :id "tooltip" :text tooltip}
+        add-handler (fn [et f]
+                      (.addEventHandler
+                        node et
+                        (event-handler
+                          [this e]
+                          (when (= (.getTarget e) node)
+                            (f)))))]
+    (add-handler
+      MouseEvent/MOUSE_ENTERED_TARGET
+      #(let [p (.localToScene node consts/icon-size 0)]
+         (add-children ttpane [(doto (tree->jfx tt nil)
+                                 (relocate (.getX p) (.getY p)))])))
+    (add-handler
+      MouseEvent/MOUSE_EXITED_TARGET
+      #(clear-children ttpane)))
+  node)
+
+(defn fix-common-things
+  [node hud-state {:keys [pos size id children event classes tooltip]}]
+  (cond-> node
+    classes (doto (-> .getStyleClass (.addAll (into-array classes))))
+    event ((event->adder event hud-state))
+    tooltip (add-tooltip-stuff hud-state tooltip)
+    id (doto (.setId id))
+    pos (relocate pos)
+    size (set-size size)
+    children (add-children (map #(tree->jfx % hud-state) children))))
+
+(defmethod tree->jfx :image [tree hud-state]
+  (let [image (ImageView. (:texture tree))
+        pane (Pane.)]
+    (-> image .fitHeightProperty (.bind (.heightProperty pane)))
+    (-> image .fitWidthProperty (.bind (.widthProperty pane)))
+    (doto pane
+      (add-children [image])
+      (fix-common-things hud-state tree))))
+
+(defmethod tree->jfx :label [tree hud-state]
+  (doto (Label. (str (:text tree)))
+    (fix-common-things hud-state tree)))
+
+(defmethod tree->jfx :pane [tree hud-state]
+  (doto (Pane.)
+    (fix-common-things hud-state tree)))
+
+(defmethod tree->jfx :tile-pane [tree hud-state]
+  (doto (TilePane.)
+    (fix-common-things hud-state tree)))
+
+(defmethod tree->jfx :progress-bar [tree hud-state]
+  (doto (ProgressBar. (:progress tree))
+    (fix-common-things hud-state tree)))
+
+(defn get-texture-name [item]
+  (:icon (items/all-info item)))
+
+(defn create-slot [item path]
+  (let [children
+        (cond
+          (:quantity item) [{:type :label :text (:quantity item)
+                             :id "stack-indicator" :size consts/icon-size}]
+          (and (not item)
+               (= :gear (path 0))) [{:type :label :text (name (path 1))
+                                     :id "slot-description"
+                                     :size consts/icon-size}]
+          :else nil)]
+    {:type :image :id "inv-slot" :size consts/icon-size
+     :texture (if item (get-texture-name item) "inv_slot.png")
+     :event {:type :hud-click :path path}
+     :tooltip (when item (items/get-tooltip item))
+     :children children}))
 
 (defn get-map-order [game-state path]
   (if (= path [:gear])
     items/gear-slots-vector
     (keys (get-in game-state path))))
 
-(defn items-paths-pos-cols [path game-state hud-state]
+(defn items-paths [game-state path]
   (let [items (get-in game-state path)
-        add-to-path (fn [endings] (map #(conj path %) endings))
-        pos (path->pos path hud-state)]
+        add-to-path (fn [endings] (map #(conj path %) endings))]
     (if (map? items)
       (let [order (get-map-order game-state path)]
-        [(map #(% items) order) (add-to-path order) pos 4])
-      [items (add-to-path (range (count items))) pos 2])))
+        [(map #(% items) order) (add-to-path order)])
+      [items (add-to-path (range (count items)))])))
 
-(defn create-element-maps [element slots path item-paths]
-  (let [suffixes (map peek item-paths)]
-    {:invs {path element}
-     :slot->path (zipmap slots item-paths)
-     :path->slot {path (zipmap suffixes slots)}}))
+(defn create-inventory [game-state path]
+  (let [[items paths] (items-paths game-state path)
+        slots (map create-slot items paths)
+        id (if (= path [:gear]) "gear-pane" "inv-pane")
+        container {:type :tile-pane :children slots :id id
+                   :classes ["inventory"]}]
+    container))
 
-(defn create-inventory [game-state screen hud-state path]
-  (let [[items paths pos cols] (items-paths-pos-cols path game-state hud-state)
-        {:keys [size gap]} hud-state
-        {:keys [element slots]} (create-inventory-element
-                                  screen items cols size gap)]
-    (lib/set-position element pos)
-    (create-element-maps element slots path paths)))
+(defn create-inventories [hud-state game-state new-paths]
+  (let [invs-pane (get-in hud-state [:panes :invs])
+        nodes (map (comp #(tree->jfx % hud-state)
+                         #(create-inventory game-state %))
+                   new-paths)
+        hashes (map #(hash (get-in game-state %)) new-paths)
+        hud-changes #(add-children invs-pane nodes)]
+    (runmap #(relocate % (or (get-in hud-state [:positions (%2 0)])
+                             (get-in hud-state [:positions :other])))
+            nodes new-paths)
+    (-> (apply update-in hud-state [:invs] merge
+               (map (fn [p n h]
+                      [p {:node n :old-hash h}])
+                    new-paths nodes hashes))
+        (update-in [:jfx-changes] conj hud-changes))))
 
-(defn create-inventories [hud-state game-state screen new-paths]
-  (let [maps (map #(create-inventory game-state screen hud-state %) new-paths)]
-    (merge-with merge hud-state (apply merge-with merge maps))))
-
-(defn clean-slot-maps [{:keys [path->slot slot->path] :as hud-state} gone-paths]
-  (let [gone-slots (mapcat (comp vals path->slot) gone-paths)
-        remove-from (fn [m k objects]
-                      (update-in m [k] #(apply dissoc % objects)))]
-    (-> hud-state
-        (remove-from :invs gone-paths)
-        (remove-from :path->slot gone-paths)
-        (remove-from :slot-path gone-slots))))
-
-(defn remove-inventories [hud-state game-state screen gone-paths]
-  (dorun (map #(lib/remove-child screen %)
-              (map #(get-in hud-state [:invs %]) gone-paths)))
-  (clean-slot-maps hud-state gone-paths))
+(defn remove-inventories [hud-state gone-paths]
+  (let [invs-pane (get-in hud-state [:panes :invs])
+        gone-nodes (map #(get-in hud-state [:invs % :node]) gone-paths)
+        hud-changes #(remove-children invs-pane gone-nodes)]
+    (-> (apply update-in hud-state [:invs] dissoc gone-paths)
+        (update-in [:jfx-changes] conj hud-changes))))
 
 (defn open-inventories [{:keys [looting inv-open?] :as game-state}]
   (set (cond-> (map #(vector :corpses % :drops) looting)
@@ -110,178 +222,200 @@
 (defn existing-inventories [hud-state]
   (set (keys (:invs hud-state))))
 
+(defn same-hash [[path {:keys [old-hash]}] game-state]
+  (== (hash (get-in game-state path)) old-hash))
+
 (defn new-and-gone-inventories [hud-state game-state]
-  (let [open (open-inventories game-state)
-        existing (existing-inventories hud-state)]
-    [(set/difference open existing)
-     (set/difference existing open)]))
+  (let [x-same-hash (fn [x]
+                      (set (keys (x #(same-hash % game-state)
+                                    (:invs hud-state)))))
+        not-changed (x-same-hash filter)
+        changed (x-same-hash remove)
+        existing (existing-inventories hud-state)
+        open (open-inventories game-state)]
+    [(set/difference open not-changed)
+     (set/union changed (set/difference existing open))]))
 
-(defn update-inventories [hud-state game-state screen]
-  (let [needs-update (set/intersection (:needs-update hud-state)
-                                       (existing-inventories hud-state))
-        [news gones] (map #(into needs-update %)
-                          (new-and-gone-inventories hud-state game-state))]
+(defn update-inventories [hud-state game-state]
+  (let [[news gones] (new-and-gone-inventories hud-state game-state)]
     (-> hud-state
-        (remove-inventories game-state screen gones)
-        (create-inventories game-state screen news)
-        (assoc-in [:needs-update] #{}))))
+        (remove-inventories gones)
+        (create-inventories game-state news))))
 
-(defn update-mouse-slot-pos [mouse-slot screen size]
-  (->> screen lib/get-mouse-pos (map #(+ % (/ size -2)))
-       (lib/set-position mouse-slot)))
+(defn update-mouse-slot-pos [{:keys [input-manager mouse-slot]}]
+  (let [[x y] (->> input-manager ju/get-real-mouse-pos
+                   (map #(+ % (/ consts/icon-size -2))))]
+    (.setLocalTranslation
+      mouse-slot x y (.z (.getLocalTranslation mouse-slot)))))
 
-(defn update-mouse-slot-content [mouse-slot screen game-state size]
+(defn create-mouse-texture
+  [{:keys [mouse-texture-atom mtm-pane mtm-scene] :as hud-state} item]
+  (when mtm-scene
+    (reset! mouse-texture-atom :waiting)
+    (fx-run-later
+      (clear-children mtm-pane)
+      (add-children mtm-pane
+                    [(tree->jfx (dissoc (create-slot item nil) :event) nil)])
+      (let [image (-> mtm-scene
+                      (.snapshot nil)
+                      (SwingFXUtils/fromFXImage nil))
+            texture (Texture2D. (.load (AWTLoader.) image false))]
+        (reset! mouse-texture-atom texture)))))
+
+(defn update-mouse-slot-content [hud-state game-state]
   (let [{:keys [on-mouse on-mouse-quantity]} game-state
+        {:keys [mouse-texture-atom mouse-slot mouse-node]} hud-state
         item (cond-> (get-in game-state on-mouse)
                on-mouse-quantity (assoc :quantity on-mouse-quantity))]
     (if on-mouse
-      (when (empty? (lib/get-children mouse-slot))
-        (->> (create-slot screen item size false)
-             (lib/add-child mouse-slot)))
-      (lib/remove-all-children mouse-slot))))
+      (do
+        (when (not @mouse-texture-atom)
+          (create-mouse-texture hud-state item))
+        (when (and (empty? (.getChildren mouse-slot))
+                   (not= @mouse-texture-atom :waiting)
+                   @mouse-texture-atom)
+          (-> mouse-node .getMaterial (.setTexture "ColorMap"
+                                                   @mouse-texture-atom))
+          (.attachChild mouse-slot mouse-node)))
+      (do (reset! mouse-texture-atom nil) (.detachAllChildren mouse-slot)))))
 
-(defn update-mouse-slot [mouse-slot screen game-state size]
-  (update-mouse-slot-pos mouse-slot screen size)
-  (update-mouse-slot-content mouse-slot screen game-state size))
+(defn update-mouse-slot [hud-state game-state]
+  (update-mouse-slot-pos hud-state)
+  (update-mouse-slot-content hud-state game-state))
 
-(defmulti process-event (fn [hud-state event] (:type event)))
+(defn create-char-pane [char]
+  (let [{:keys [name hp max-hp level]} char
+        w 170 nh 22 th 22 bh 12]
+    {:type :pane
+     :children
+     [{:type :label :text name :id "name-label" :size [w nh]}
+      {:type :label :text level :id "level-label"
+       :pos [(- w (/ th 2)) -5] :size th}
+      {:type :progress-bar :progress (/ hp max-hp) :id "hp-bar"
+       :pos [0 (+ nh (/ (- th bh) 2))] :size [w bh]}
+      {:type :label :text (str (int hp) "/" (int max-hp)) :id "hp-label"
+       :pos [0 nh] :size [w th]}]}))
 
-(defn add-needs-update [hud-state paths]
-  (update-in hud-state [:needs-update] into paths))
+(defn hash-char [char]
+  (hash (select-keys char [:level :hp :max-hp])))
 
-(defmethod process-event :c-rearrange-inv [hud-state {:keys [paths]}]
-  (add-needs-update hud-state (map pop paths)))
+(defn changed-char-panes [hud-state game-state ckeys ids]
+  (let [keys-ids (map vector ckeys ids)
+        chars (:chars game-state)
+        changed (filterv (fn [[k i]]
+                          (not= (get-in hud-state [:chars-state k :old-hash])
+                                (hash-char (chars i))))
+                        keys-ids)]
+    changed))
 
-(defmethod process-event :s-loot-item-ok [hud-state {:keys [from-path to-idx]}]
-  (add-needs-update hud-state [(pop from-path) [:inv]]))
+(defn create-char-node [char pos]
+  (when char
+    (relocate (tree->jfx (create-char-pane char) nil)
+              (pos 0) (pos 1))))
 
-(defmethod process-event :s-item-looted [hud-state {:keys [from-path by]}]
-  (add-needs-update hud-state [(pop from-path)]))
+(defn create-and-remove-panes [hud-state game-state changed]
+  (let [chars (:chars game-state)
+        chars-pane (get-in hud-state [:panes :chars])
+        poses (:chars-poses hud-state)
+        changed+nodes (map (fn [[k id :as ki]]
+                             (conj ki (create-char-node (chars id) (poses k))))
+                           changed)]
+    (fx-run-later
+      (remove-children chars-pane
+                       (map #(get-in hud-state [:chars-state (first %) :node])
+                            changed))
+      (add-children chars-pane (remove nil? (map #(% 2) changed+nodes))))
+    (reduce (fn [hs [k id node]]
+              (assoc-in hs [:chars-state k]
+                        {:node node :old-hash (hash-char (chars id))}))
+            hud-state
+            changed+nodes)))
 
-(defmethod process-event :c-move-quantity
-  [hud-state {:keys [from-path to-path]}]
-  (add-needs-update hud-state (map pop [from-path to-path])))
-
-(defmethod process-event :default [hud-state event]
-  hud-state)
-
-(defn process-events [hud-state events]
-  (reduce (fn [hud-state event]
-            (process-event hud-state event))
-          hud-state
-          events))
-
-(defn position-tooltip-text-in-slot [slot text]
-  (let [margin consts/tooltip-margin
-        size (lib/get-size text)
-        add-margin #(+ (* 2 margin) %)]
-    (doto slot
-      (lib/set-size (map add-margin size))
-      (lib/add-child (doto text (lib/set-position [margin margin]))))))
-
-(defn create-tooltip-element [screen string]
-  (let [text (doto (lib/create-text-element screen nil)
-               (lib/set-font-size consts/tooltip-text-size)
-               (lib/set-text string)
-               (lib/auto-size))
-        slot (doto (lib/create-element screen nil)
-               (lib/set-color [0.2 0.2 0.2 consts/tooltip-opacity])
-               (lib/set-depth (:tooltip depths)))]
-    (position-tooltip-text-in-slot slot text)))
-
-(defn update-tooltip-element [hud-state screen]
-  (let [{:keys [tooltip-source tooltip]} hud-state
-        target-element (lib/get-element-under-cursor screen)]
-    (when (not= target-element tooltip-source)
-      (let [new-tooltip (when-let [text (some-> target-element lib/get-tooltip)]
-                          (create-tooltip-element screen text))]
-        (some->> tooltip (lib/remove-child screen))
-        (some->> new-tooltip (lib/add-child screen))
-        {:tooltip new-tooltip
-         :tooltip-source target-element}))))
-
-(defn update-tooltip [hud-state screen]
-  (let [new-tooltip (update-tooltip-element hud-state screen)
-        {:keys [tooltip-source tooltip]} (or new-tooltip hud-state)]
-    (some-> tooltip (lib/set-position (lib/get-mouse-pos screen)))
-    (if new-tooltip
-      (merge hud-state new-tooltip)
-      hud-state)))
-
-(defn create-hp-text [char]
-  (apply format "HP: %d/%d" (map math/round [(:hp char) (:max-hp char)])))
-
-(defn update-hp [label char]
-  (lib/set-text label (str (:name char) "\n" (create-hp-text char))))
-
-(defn update-hp-bars [game-state self-label target-label]
+(defn update-char-panes [hud-state game-state]
   (let [{:keys [own-id chars]} game-state
-        self (chars own-id)
-        target-id (:target self)
-        target (chars target-id)]
-    (if target
-      (update-hp target-label target)
-      (lib/set-text target-label ""))
-    (update-hp self-label self)))
+        changed (changed-char-panes
+                       hud-state game-state
+                       [:self :target]
+                       [own-id (get-in chars [own-id :target])])]
+    (create-and-remove-panes hud-state game-state changed)))
 
-(deftype HudSystem [gui-node hud-state-atom event-queue enqueue
-                    screen self-label target-label]
+(defn update-javafx [{:keys [jfx-changes] :as hud-state}]
+  (fx-run-later (doseq [f jfx-changes] (f)))
+  (assoc hud-state :jfx-changes []))
+
+(deftype HudSystem [hud-state-atom gui-manager fxhud]
   cc/Lifecycle
   (start [this]
-    (cc/start screen))
+    (.attachHudAsync gui-manager fxhud))
   (stop [this]
-    (cc/stop screen))
+    (.detatchHudAsync gui-manager (first (.getAttachedHuds gui-manager))))
   cc/EventsProducer
   (get-events [this]
-    (ccfns/reset-queue event-queue))
+    (ccfns/reset-queue (:event-queue @hud-state-atom)))
   cc/Updatable
   (update [this {:keys [game-state events]}]
-    (let [{:keys [mouse-slot size]} @hud-state-atom]
-      (update-hp-bars game-state self-label target-label)
-      (update-mouse-slot mouse-slot screen game-state size)
-      (dorun (map enqueue (cc/get-events screen)))
-      (swap! hud-state-atom
-             #(-> %
-                  (process-events events)
-                  (update-inventories game-state screen)
-                  (update-tooltip screen))))))
+    (update-mouse-slot @hud-state-atom game-state)
+    (swap! hud-state-atom
+           #(-> %
+                (update-inventories game-state)
+                (update-char-panes game-state)
+                (update-javafx)))))
+
+(defn random-string [length]
+  (->> #(rand-nth "abcdefghijklmnopqrstuvxyz0123456789")
+       (repeatedly length)
+       (apply str)))
+
+(defn random-rename [file]
+  (let [rname (str "tmp/" (random-string 20) ".css")
+        contents (slurp file)]
+    (spit (str "assets/" rname) contents)
+    rname))
+
+(defn add-stylesheet [node]
+  (-> node .getStylesheets (.add (random-rename "assets/gui_style.css"))))
 
 (defn init-hud-system [app]
   (let [gui-node (.getGuiNode app)
-        screen (lib/create-screen app)
-        mouse-slot (doto (lib/create-container [0 0])
-                     (lib/set-depth (:mouse-slot depths)))
-        hud-state-atom (atom {:size consts/icon-size :gap consts/icon-gap
-                              :needs-update #{}
-                              :slot->path {} :path->slot {}
-                              :invs {} :mouse-slot mouse-slot
+        asset-manager (.getAssetManager app)
+        input-manager (.getInputManager app)
+        mouse-slot (doto (Node. "mouse-slot") (.setLocalTranslation 0 0 1))
+        mouse-node (doto (Geometry.
+                           "mouse-node"
+                           (Quad. consts/icon-size consts/icon-size true))
+                     (.setMaterial
+                       (Material. asset-manager
+                                  "Common/MatDefs/Misc/Unshaded.j3md")))
+        mtm-pane (doto (Pane.) add-stylesheet)
+        panes [(Pane.) (Pane.) (doto (Pane.) (.setMouseTransparent true))]
+        panes-map (zipmap [:chars :invs :tooltip] panes)
+        hud-state-atom (atom {:jfx-changes []
+                              :panes panes-map
+                              :chars-poses {:self [10 10] :target [200 10]}
+                              :chars-state {:self {:old-hash (hash nil)}
+                                            :target {:old-hash (hash nil)}}
+                              :input-manager input-manager
+                              :event-queue (ref [])
+                              :mouse-texture-atom (atom nil)
+                              :mtm-pane mtm-pane
+                              :invs {}
+                              :mouse-slot mouse-slot
+                              :mouse-node mouse-node
                               :positions {:inv [700 100]
                                           :gear [800 100]
                                           :other [100 100]}})
-        path->slot-fn (fn [path]
-                        (let [path->slot (:path->slot @hud-state-atom)
-                              prefix (pop path)
-                              suffix (peek path)]
-                          (some-> (path->slot prefix) (get suffix))))
-        event-queue (ref [])
-        enqueue-event (fn [event] (ccfns/queue-conj event-queue event))
-        lookup (fn [slot] (get-in @hud-state-atom [:slot->path slot]))
-        enqueue (fn [{:keys [element button pressed]}]
-                  (enqueue-event {:type :hud-click :path (lookup element)
-                                  :button button :pressed pressed}))
-        pw consts/portrait-width
-        ph consts/portrait-height
-        ry consts/resolution-y
-        ch consts/chat-height
-        cw consts/chat-width
-        gap consts/icon-gap
-        self-label (lib/create-text-element screen {:pos gap :size [pw ph]})
-        target-label (lib/create-text-element
-                       screen {:pos [(+ pw (* 2 gap)) gap] :size [pw ph]})]
-    (mapv lib/set-font-size [self-label target-label] (repeat 24))
-    (swap! hud-state-atom assoc :path->slot-fn path->slot-fn)
-    (lib/add-child screen mouse-slot)
-    (lib/add-child screen self-label)
-    (lib/add-child screen target-label)
-    (->HudSystem gui-node hud-state-atom event-queue enqueue screen
-                 self-label target-label)))
+        gui-manager (GuiManager.
+                      gui-node asset-manager app false
+                      (proxy [ICursorDisplayProvider] []
+                        (setup [_])
+                        (showCursor [_])))
+        root-pane  (doto (Pane.)
+                     add-stylesheet
+                     (add-children panes))
+        fxhud (proxy [AbstractHud] []
+                (innerInit []
+                  root-pane))]
+    (fx-run-later (swap! hud-state-atom assoc :mtm-scene
+                         (Scene. mtm-pane consts/icon-size consts/icon-size)))
+    (.attachChild gui-node mouse-slot)
+    (->HudSystem hud-state-atom gui-manager fxhud)))

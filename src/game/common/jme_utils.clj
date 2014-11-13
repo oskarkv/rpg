@@ -1,6 +1,9 @@
 (ns game.common.jme-utils
   (:refer-clojure :exclude [vec])
+  (:require [game.constants :as consts]
+            (game.common [core-functions :as ccfns]))
   (:import (com.jme3.math Vector2f Vector3f Ray)
+           (com.jme3.scene Node)
            (com.jme3.collision CollisionResults)))
 
 (defprotocol Vecable
@@ -11,6 +14,15 @@
   (vec [this] (vector (.x this) (.y this)))
   Vector3f
   (vec [this] (vector (.x this) (.y this) (.z this))))
+
+(defn new-node []
+  (Node. (str (ccfns/get-new-id))))
+
+(defn get-real-mouse-pos [input-manager]
+  (-> input-manager .getCursorPosition vec))
+
+(defn get-mouse-pos [input-manager]
+  (update-in (get-real-mouse-pos input-manager) [1] #(- consts/resolution-y %)))
 
 (defn get-collisions [objects collidable]
   (let [results (CollisionResults.)]

@@ -1,5 +1,6 @@
 (ns game.constants
-  (:use game.utils))
+  (:use game.utils)
+  (:import (com.jme3.input MouseInput)))
 
 (defmacro defconstants [& pairs]
   (assert-args (even? (count pairs)) "an even number of arguments")
@@ -37,11 +38,13 @@
   header-height 23
   ;;; INPUT
   camera-rotation-speed 2
+  mouse-left MouseInput/BUTTON_LEFT
+  mouse-middle MouseInput/BUTTON_MIDDLE
+  mouse-right MouseInput/BUTTON_RIGHT
   ;;; GENERAL
   zone-folders "zones/"
   editor-assets "assets/editor/"
   icons (str editor-assets "icons/")
-
   add-icon (str icons "add.png")
   delete-icon (str icons "delete.png")
   editor-toolbar (str editor-assets "toolbar/")

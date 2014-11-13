@@ -238,9 +238,6 @@
                x))
            body))))
 
-(defn new-node []
-  (Node. (str (ccfns/get-new-id))))
-
 (defn new-geom [mesh]
   (Geometry. (str (ccfns/get-new-id)) mesh))
 
@@ -265,7 +262,7 @@
     (let [{:keys [material geoms->elements]} screen
           mesh (Quad. 0 0 true)
           geom (new-geom mesh)
-          node (new-node)
+          node (ju/new-node)
           element (->PictureElement node geom (atom nil))]
       (set-material element
                     (if texture-name
@@ -288,7 +285,7 @@
 
 (defn create-window [screen options]
   (let [hh consts/header-height
-        node (new-node)
+        node (ju/new-node)
         body (create-element screen {:pos [0 hh]})
         header (create-element screen {:size [0 hh]})
         title (create-text-element screen {:size [0 hh]})
@@ -303,7 +300,7 @@
 
 (defn create-container [pos]
   (with-children-and-parent
-    (doto (->ContainerElement (new-node)) (set-position pos))))
+    (doto (->ContainerElement (ju/new-node)) (set-position pos))))
 
 (defn input-listener [callback]
   (let [listener (proxy [RawInputListener] [])
@@ -317,14 +314,8 @@
                          (make-map not-used (fn [this e]))
                          (make-map not-used-one-arg (fn [this]))))))
 
-(defn get-real-mouse-pos [screen]
-  (-> screen :input-manager .getCursorPosition ju/vec))
-
-(defn get-mouse-pos [screen]
-  (update-in (get-real-mouse-pos screen) [1] #(- consts/resolution-y %)))
-
 (defn get-element-under-cursor [{:keys [geoms->elements node] :as screen}]
-  (let [ray (ju/get-screen-ray (get-real-mouse-pos screen))]
+  (let [ray (ju/get-screen-ray (ju/get-real-mouse-pos (:input-manager screen)))]
     (ju/pick-target ray node @geoms->elements)))
 
 (defn make-click-callback [screen]
@@ -341,7 +332,7 @@
     (let [asset-manager (.getAssetManager app)
           input-manager (.getInputManager app)
           event-queue (ref [])
-          node (new-node)
+          node (ju/new-node)
           start-fn (fn [screen]
                      (.setLocalTranslation
                        node (Vector3f. 0 consts/resolution-y 0))
