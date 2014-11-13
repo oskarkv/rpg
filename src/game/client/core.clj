@@ -78,6 +78,13 @@
      (assoc-in game-state (conj from-path :quantity) left)
      (dissoc-in game-state from-path))})
 
+(defmethod process-event :s-hp-update
+  [{:keys [chars] :as game-state} {:keys [id-hp-vecs]}]
+  {:new-game-state
+   (assoc-in game-state [:chars]
+             (reduce (fn [cs [id hp]] (assoc-in cs [id :hp] hp))
+                     chars id-hp-vecs))})
+
 (defn update-own-stats [{:keys [chars own-id gear] :as game-state}]
   (assoc game-state :chars
          (-> chars
@@ -85,13 +92,6 @@
              (update-in [own-id] ccfns/update-stats)
              (update-in [own-id] merge (ccfns/sum-stats gear))
              (dissoc-in [own-id :gear]))))
-
-(defmethod process-event :s-hp-update
-  [{:keys [chars] :as game-state} {:keys [id-hp-vecs]}]
-  {:new-game-state
-   (assoc-in game-state [:chars]
-             (reduce (fn [cs [id hp]] (assoc-in cs [id :hp] hp))
-                     chars id-hp-vecs))})
 
 (defmethod process-event :s-char-update [game-state {:keys [id updated]}]
   (let [new-level (:level updated)
@@ -116,23 +116,6 @@
       (:left key-state) ((adder -1 0))
       (:right key-state) ((adder 1 0))
       true (gmath/normalize))))
-
-(defn update-looking-direction [{:keys [last-dir-update] :as game-state}]
-  (when (> (current-time-ms) (+ last-dir-update consts/dir-update-interval))
-    {:new-game-state
-     (-> game-state
-         (assoc :looking-dir (gfx/get-camera-dir))
-         (assoc :last-dir-update (current-time-ms)))}))
-
-(defn calculate-movement-direction
-  [{:keys [base-move-dir own-id looking-dir] :as game-state}]
-  (let [angle (gmath/angle-between-vecs [0 1] looking-dir)
-        new-move-dir (map float (gmath/rotate-vec base-move-dir angle))
-        old-move-dir (map float (get-in game-state [:chars own-id :move-dir]))]
-    (when-not (rec== new-move-dir old-move-dir)
-      {:new-game-state (assoc-in game-state [:chars own-id :move-dir]
-                                 new-move-dir)
-       :event {:type :new-dir}})))
 
 (defmethod process-event :new-key-state [game-state {:keys [key-state]}]
   (let [id (:own-id game-state)
@@ -264,22 +247,21 @@
     {:new-game-state (ccfns/move-quantity game-state from-path to-path quantity)
      :event (assoc event :type :c-move-quantity)}))
 
-(defn move-out-own-inv [{:keys [own-id] :as game-state}]
-  (-> game-state
-      (move-in [:chars own-id :inv] [:inv])
-      (move-in [:chars own-id :gear] [:gear])))
-
 (defn login-and-recv-state [game-state net-sys name password stop?]
-  (cc/update net-sys [{:type :c-login :username name :password password}])
-  (loop [events (cc/get-events net-sys)]
-    (when-not @stop?
-      (if (== 2 (count (filter (fn [e] (contains? #{:s-game-state :s-own-id}
-                                                  (:type e)))
-                               events)))
-        (move-out-own-inv
-          (:new-game-state
-            (ccfns/process-events process-event game-state events)))
-        (recur (concat events (cc/get-events net-sys)))))))
+  (letfn [(move-out-own-inv [{:keys [own-id] :as game-state}]
+            (-> game-state
+                (move-in [:chars own-id :inv] [:inv])
+                (move-in [:chars own-id :gear] [:gear])))]
+    (cc/update net-sys [{:type :c-login :username name :password password}])
+    (loop [events (cc/get-events net-sys)]
+      (when-not @stop?
+        (if (== 2 (count (filter (fn [e] (contains? #{:s-game-state :s-own-id}
+                                                    (:type e)))
+                                 events)))
+          (move-out-own-inv
+            (:new-game-state
+              (ccfns/process-events process-event game-state events)))
+          (recur (concat events (cc/get-events net-sys))))))))
 
 (defn legal-pos? [{:keys [terrain] :as game-state} pos]
   (let [r consts/player-radius
@@ -323,6 +305,23 @@
      (assoc-in game-state [:chars]
                (fmap #(move-toward-new-pos % move-time-delta last-move)
                      chars))}))
+
+(defn update-looking-direction [{:keys [last-dir-update] :as game-state}]
+  (when (> (current-time-ms) (+ last-dir-update consts/dir-update-interval))
+    {:new-game-state
+     (-> game-state
+         (assoc :looking-dir (gfx/get-camera-dir))
+         (assoc :last-dir-update (current-time-ms)))}))
+
+(defn calculate-movement-direction
+  [{:keys [base-move-dir own-id looking-dir] :as game-state}]
+  (let [angle (gmath/angle-between-vecs [0 1] looking-dir)
+        new-move-dir (map float (gmath/rotate-vec base-move-dir angle))
+        old-move-dir (map float (get-in game-state [:chars own-id :move-dir]))]
+    (when-not (rec== new-move-dir old-move-dir)
+      {:new-game-state (assoc-in game-state [:chars own-id :move-dir]
+                                 new-move-dir)
+       :event {:type :new-dir}})))
 
 (defn initial-game-state []
   (-> (gmap/load-game-map) (dissoc :spawns) (assoc :base-move-dir [0 0])
