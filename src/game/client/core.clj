@@ -244,7 +244,7 @@
     :inv (equip-item game-state path)
     nil))
 
-(defmethod process-event :hud-click [game-state {:keys [path button pressed]}]
+(defmethod process-event :inv-click [game-state {:keys [path button pressed]}]
   (-> (cond
         (and pressed (= button consts/mouse-left)
              (#{:inv :gear} (path 0))) (pick-up-or-drop-item game-state path)

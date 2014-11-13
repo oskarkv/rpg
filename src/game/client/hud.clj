@@ -81,8 +81,8 @@
 
 (defmulti concrete-event (fn [abstract-event jfx-event] (:type abstract-event)))
 
-(defmethod concrete-event :hud-click [abstract-event jfx-event]
-  {:type :hud-click :pressed true
+(defmethod concrete-event :inv-click [abstract-event jfx-event]
+  {:type :inv-click :pressed true
    :button (mouse-event->button-int jfx-event)
    :path (:path abstract-event)})
 
@@ -185,7 +185,7 @@
           :else nil)]
     {:type :image :id "inv-slot" :size consts/icon-size
      :texture (if item (get-texture-name item) "inv_slot.png")
-     :event {:type :hud-click :trigger :pressed :path path}
+     :event {:type :inv-click :trigger :pressed :path path}
      :tooltip (when item (items/get-tooltip item))
      :children children}))
 
