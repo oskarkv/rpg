@@ -124,6 +124,15 @@
   (let [item (get-in game-state from)]
     (items/correct-slot? item to)))
 
+(defn inv-swap [game-state [from to :as paths] path-len extra-event
+                changed-gear-event]
+  (if (and (possible-slot? game-state from to)
+           (possible-slot? game-state to from))
+    (cond-> {:new-game-state (swap-in game-state from to)}
+      extra-event (conj {:events [extra-event]})
+      (some #{:gear} (map #(% (dec path-len)) paths))
+      (update-in [:events] conj changed-gear-event))))
+
 (defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
   (let [app
         (init-app-settings-fn

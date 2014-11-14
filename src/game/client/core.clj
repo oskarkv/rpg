@@ -254,19 +254,16 @@
           (dissoc-in % [:new-game-state :destroying-item])
           (assoc % :new-game-state (dissoc game-state :destroying-item))))))
 
-
 (defn possible-move? [game-state from to]
   (and (my-stuff? from) (my-stuff? to)
        (ccfns/possible-slot? game-state from to)
        (ccfns/possible-slot? game-state to from)))
 
-(defmethod process-event :inv-swap
-  [game-state {[from to :as paths] :paths :as event}]
-  (when (possible-move? game-state from to)
-    (cond-> {:new-game-state (swap-in game-state from to)
-             :events [{:type :c-rearrange-inv :paths paths}]}
-      (some #{:gear} (map first paths))
-      (update-in [:events] conj {:type :changed-gear}))))
+(defmethod process-event :inv-swap [game-state {paths :paths :as event}]
+  (when (every? my-stuff? paths)
+    (ccfns/inv-swap game-state paths 2
+                    {:type :c-rearrange-inv :paths paths}
+                    {:type :changed-gear})))
 
 (defmethod process-event :move-quantity
   [game-state {:keys [from-path to-path quantity] :as event}]

@@ -164,13 +164,8 @@
               :player (prepare-char-for-sending player)}]]}))
 
 (defmethod process-event :c-rearrange-inv [game-state {:keys [id paths]}]
-  (let [[opath1 opath2] paths
-        [path1 path2] (map #(concat [:chars id] %) paths)]
-    (if (and (ccfns/possible-slot? game-state opath1 opath2)
-             (ccfns/possible-slot? game-state opath2 opath1))
-      (cond-> {:new-game-state (swap-in game-state path1 path2)}
-        (some #{:gear} (map first paths))
-        (conj {:event {:type :changed-gear :id id}})))))
+  (let [real-paths (map #(into [:chars id] %) paths)]
+    (ccfns/inv-swap game-state real-paths 4 nil {:type :changed-gear :id id})))
 
 (defmethod process-event :c-move-quantity
   [game-state {:keys [id from-path to-path quantity] :as event}]
