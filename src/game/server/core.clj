@@ -170,7 +170,7 @@
 (defmethod process-event :c-move-quantity
   [game-state {:keys [id from-path to-path quantity] :as event}]
   (let [[from to] (map #(into [:chars id] %) [from-path to-path])]
-    {:new-game-state (ccfns/move-quantity game-state from to quantity)}))
+    (ccfns/move-quantity game-state from to quantity)))
 
 (defmethod process-event :c-destroy-item [game-state {:keys [id path quantity]}]
   (let [sv-path (into [:chars id] path)]

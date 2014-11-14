@@ -254,11 +254,6 @@
           (dissoc-in % [:new-game-state :destroying-item])
           (assoc % :new-game-state (dissoc game-state :destroying-item))))))
 
-(defn possible-move? [game-state from to]
-  (and (my-stuff? from) (my-stuff? to)
-       (ccfns/possible-slot? game-state from to)
-       (ccfns/possible-slot? game-state to from)))
-
 (defmethod process-event :inv-swap [game-state {paths :paths :as event}]
   (when (every? my-stuff? paths)
     (ccfns/inv-swap game-state paths 2
@@ -267,10 +262,9 @@
 
 (defmethod process-event :move-quantity
   [game-state {:keys [from-path to-path quantity] :as event}]
-  (when (and (possible-move? game-state from-path to-path)
-             (not= from-path to-path))
-    {:new-game-state (ccfns/move-quantity game-state from-path to-path quantity)
-     :event (assoc event :type :c-move-quantity)}))
+  (when (every? my-stuff? [from-path to-path])
+    (some-> (ccfns/move-quantity game-state from-path to-path quantity)
+            (assoc :event (assoc event :type :c-move-quantity)))))
 
 (defn login-and-recv-state [game-state net-sys name password stop?]
   (letfn [(move-out-own-inv [{:keys [own-id] :as game-state}]

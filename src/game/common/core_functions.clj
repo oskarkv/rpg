@@ -65,6 +65,22 @@
          (call-update-fns ~new-game-state ~all-events ~hook-fn ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
+(defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
+  (let [app
+        (init-app-settings-fn
+          (proxy [SimpleApplication] []
+            (simpleInitApp []
+              (init-fn this))
+            (simpleUpdate [tpf]
+              (update-fn))))]
+    (extend-type (type app)
+      cc/Lifecycle
+      (start [this]
+        (start-fn this))
+      (stop [this]
+        (stop-fn this)))
+    app))
+
 (defn calculate-move-time-delta [{:keys [last-move] :as game-state}]
   (let [curr-time (current-time-ms)
         time-delta (/ (- curr-time last-move) 1000.0)]
@@ -133,22 +149,6 @@
       (some #{:gear} (map #(% (dec path-len)) paths))
       (update-in [:events] conj changed-gear-event))))
 
-(defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
-  (let [app
-        (init-app-settings-fn
-          (proxy [SimpleApplication] []
-            (simpleInitApp []
-              (init-fn this))
-            (simpleUpdate [tpf]
-              (update-fn))))]
-    (extend-type (type app)
-      cc/Lifecycle
-      (start [this]
-        (start-fn this))
-      (stop [this]
-        (stop-fn this)))
-    app))
-
 (defn find-first-nil [v]
   (first (keep-indexed (fn [idx value] (if (nil? value) idx)) v)))
 
@@ -212,7 +212,7 @@
       (assoc-in game-state to-path fake-item))
     game-state))
 
-(defn move-quantity [game-state from-path to-path quantity]
+(defn do-move-quantity [game-state from-path to-path quantity]
   (let [game-state (ensure-to-stack game-state from-path to-path)
         [from-q-path to-q-path] (map #(conj % :quantity) [from-path to-path])
         [from-q to-q] (map #(get-in game-state %) [from-q-path to-q-path])
@@ -222,6 +222,12 @@
     (if (<= from-q moved-q)
       (dissoc-in ngs from-path)
       (update-in ngs from-q-path - moved-q))))
+
+(defn move-quantity [game-state from-path to-path quantity]
+  (when (and (possible-slot? game-state from-path to-path)
+             (not= from-path to-path))
+    {:new-game-state
+     (do-move-quantity game-state from-path to-path quantity)}))
 
 (defn destroy-item [game-state path destroy-quantity]
   (if destroy-quantity
