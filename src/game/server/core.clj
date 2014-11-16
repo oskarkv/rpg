@@ -254,7 +254,7 @@
         (update-in [:damaged-by id] set-damage))))
 
 (defn process-hit [game-state event]
-  (let [{:keys [id target damage last-attack]} event
+  (let [{:keys [id target damage]} event
         register-damage* #(if (ccfns/mob? %)
                             (register-damage % id damage)
                             %)]
