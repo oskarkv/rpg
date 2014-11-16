@@ -85,13 +85,13 @@
              (reduce (fn [cs [id hp]] (assoc-in cs [id :hp] hp))
                      chars id-hp-vecs))})
 
-(defn update-own-stats [{:keys [chars own-id gear] :as game-state}]
-  (assoc game-state :chars
-         (-> chars
-             (assoc-in [own-id :gear] gear)
-             (update-in [own-id] ccfns/update-stats)
-             (update-in [own-id] merge (ccfns/sum-stats gear))
-             (dissoc-in [own-id :gear]))))
+(defn update-own-stats [{:keys [own-id gear] :as game-state}]
+  (update-in game-state [:chars own-id]
+         #(-> %
+             (assoc :gear gear)
+             ccfns/update-stats
+             (merge (ccfns/sum-stats gear))
+             (dissoc :gear))))
 
 (defmethod process-event :s-char-update [game-state {:keys [id updated]}]
   (let [new-level (:level updated)
