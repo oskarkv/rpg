@@ -39,7 +39,7 @@
         {:new-game-state game-state :new-events new-events
          :new-msgs new-msgs}))))
 
-; de 2 fnsen under är bara kvar pga editorn
+; de 2 fn:sen under är bara kvar pga editorn
 (defn process-taps [game-state taps process-tap]
   (loop [[tap & more] taps game-state game-state events []]
     (if tap
@@ -65,6 +65,12 @@
          (call-update-fns ~new-game-state ~all-events ~hook-fn ~@(rest calls)))
       {:new-game-state game-state :events events})))
 
+(defmacro call-update-fns* [game-state hook-fn & calls]
+  (let [calls (map (fn [c] `((fn [gs#] (or (-> gs# ~c) gs#)))) calls)
+        calls (interleave calls (repeat (list hook-fn)))]
+    `(-> ~game-state
+         ~@calls)))
+
 (defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
   (let [app
         (init-app-settings-fn
@@ -84,8 +90,7 @@
 (defn calculate-move-time-delta [{:keys [last-move] :as game-state}]
   (let [curr-time (current-time-ms)
         time-delta (/ (- curr-time last-move) 1000.0)]
-    {:new-game-state
-     (assoc game-state :last-move curr-time :move-time-delta time-delta)}))
+    (assoc game-state :last-move curr-time :move-time-delta time-delta)))
 
 (defn player? [char]
   (= :player (:type char)))
@@ -136,18 +141,32 @@
 (defn queue-conj [queue item]
   (dosync (alter queue conj item)))
 
+(defn enqueue-fn [& queues]
+  (fn [& es]
+    (doseq [e es q queues]
+      (some->> e (queue-conj q)))))
+
+(defn make-process-and-send-fn [process after event-queue]
+  (fn [game-state]
+    (let [get-events #(seq (reset-queue event-queue))
+          ngs (loop [events (get-events) game-state game-state]
+                (if (seq events)
+                  (recur (get-events)
+                         (process game-state events))
+                  game-state))]
+      (when after (after))
+      ngs)))
+
 (defn possible-slot? [game-state from to]
   (let [item (get-in game-state from)]
     (items/correct-slot? item to)))
 
-(defn inv-swap [game-state [from to :as paths] path-len extra-event
-                changed-gear-event]
-  (if (and (possible-slot? game-state from to)
-           (possible-slot? game-state to from))
-    (cond-> {:new-game-state (swap-in game-state from to)}
-      extra-event (conj {:events [extra-event]})
-      (some #{:gear} (map #(% (dec path-len)) paths))
-      (update-in [:events] conj changed-gear-event))))
+(defn inv-swap [game-state [from to :as paths] enqueue id]
+  (when (and (possible-slot? game-state from to)
+             (possible-slot? game-state to from))
+    (enqueue (when (some #{:gear} (map peek paths))
+               {:type :changed-gear :id id}))
+    (swap-in game-state from to)))
 
 (defn find-first-nil [v]
   (first (keep-indexed (fn [idx value] (if (nil? value) idx)) v)))
@@ -226,8 +245,7 @@
 (defn move-quantity [game-state from-path to-path quantity]
   (when (and (possible-slot? game-state from-path to-path)
              (not= from-path to-path))
-    {:new-game-state
-     (do-move-quantity game-state from-path to-path quantity)}))
+    (do-move-quantity game-state from-path to-path quantity)))
 
 (defn destroy-item [game-state path destroy-quantity]
   (if destroy-quantity

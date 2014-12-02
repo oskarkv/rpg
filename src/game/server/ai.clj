@@ -30,7 +30,7 @@
 (defn call-on-all-mobs [{:keys [chars] :as game-state} f]
   (let [mobs (filter (fn [[id char]] (= :mob (:type char))) chars)
         new-mobs (fmap #(f game-state %) mobs)]
-    {:new-game-state (assoc game-state :chars (into chars new-mobs))}))
+    (assoc game-state :chars (into chars new-mobs))))
 
 (defn decide-mob-actions [{:keys [chars player-ids] :as game-state}]
   (let [players (select-keys chars player-ids)
