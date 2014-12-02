@@ -164,8 +164,10 @@
 (defn inv-swap [game-state [from to :as paths] enqueue id]
   (when (and (possible-slot? game-state from to)
              (possible-slot? game-state to from))
-    (enqueue (when (some #{:gear} (map peek paths))
-               {:type :changed-gear :id id}))
+    (let [path-len (count (first paths))
+          gear-index (- path-len 2)]
+      (enqueue (when (some #{:gear} (map #(% gear-index) paths))
+                 {:type :changed-gear :id id})))
     (swap-in game-state from to)))
 
 (defn find-first-nil [v]
