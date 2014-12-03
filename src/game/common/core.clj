@@ -19,6 +19,7 @@
    :c-move-quantity [:from-path :to-path :quantity]
    :c-quit-looting [:ids]
    :c-destroy-item [:path :quantity]
+   :c-cast-spell [:number :target]
    :s-attack [:target :damage :hit]
    :s-game-state [:game-state]
    :s-move [:positions]

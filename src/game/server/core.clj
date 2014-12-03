@@ -36,6 +36,8 @@
      :inv (-> (vec (repeat 10 nil))
               (assoc-in [0] {:stats {:armor 20}, :id 0}))
      :gear (zipmap items/gear-slots (repeat nil))
+     :spells (-> (vec (repeat 8 nil))
+                 (assoc-in [0] :regrowth))
      :effects []}))
 
 (defmethod b/process-event :c-login [game-state event]
@@ -46,14 +48,7 @@
         old-players (:player-ids game-state)
         new-game-state (-> game-state
                            (assoc-in [:chars id] player)
-                           (update-in [:player-ids] conj id)
-                           (assoc-in [:effects (b/new-game-id)]
-                                     {:decay-time (current-time-ms)
-                                      :amount 10
-                                      :target id
-                                      :ticks-left 100
-                                      :source id
-                                      :on-decay sp/test-hot}))
+                           (update-in [:player-ids] conj id))
         gs-for-entrant (b/prepare-for-sending-to id new-game-state)]
     (b/enqueue-msgs [[id] {:type :s-game-state :game-state gs-for-entrant}]
                     [[id] {:type :s-own-id :id id}]
