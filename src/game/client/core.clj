@@ -175,6 +175,9 @@
                                   corpse consts/loot-distance)
       (enqueue-events {:type :c-loot-corpse :corpse-id corpse}))))
 
+(defmethod process-event :spell [game-state {:keys [number]}]
+  (println "spell" number))
+
 (defmethod process-event :open-inv [game-state _]
   (update-in game-state [:inv-open?] not))
 

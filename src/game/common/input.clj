@@ -1,6 +1,7 @@
 (ns game.common.input
   (:require [game.common.core :as cc]
-            [game.common.core-functions :as ccfns])
+            [game.common.core-functions :as ccfns]
+            [clojure.string :as str])
   (:use game.utils)
   (:import (com.jme3.input
              KeyInput
@@ -46,6 +47,11 @@
    ["ctrl" "lcontrol" :hold]
    ["alt" "lmenu" :hold]])
 
+(defn split-name-and-number [name]
+  (if (re-find #"#" name)
+    (update-in (str/split name #"#") [1] #(Integer/parseInt %))
+    [name nil]))
+
 (defn init-input-system [input-manager user-key-bindings]
   (let [key-bindings (into user-key-bindings modifier-bindings)
         key-state-atom (atom (create-key-state-map key-bindings))
@@ -60,8 +66,10 @@
         tap-listener (reify ActionListener
                        (onAction [this name pressed tpf]
                          (when pressed
-                           (ccfns/queue-conj
-                             event-queue-ref {:type (keyword name)}))))
+                           (let [[name number] (split-name-and-number name)]
+                             (ccfns/queue-conj
+                               event-queue-ref {:type (keyword name)
+                                                :number number})))))
         filter-fn (fn [type]
                     (into-array
                       (map first (filter #(= type (% 2)) key-bindings))))
