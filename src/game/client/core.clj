@@ -85,6 +85,9 @@
             (reduce (fn [cs [id hp]] (assoc-in cs [id :hp] hp))
                     chars id-hp-vecs)))
 
+(defmethod process-event :s-heal [game-state {:keys [target by amount]}]
+  (update-in game-state [:chars target :hp] + amount))
+
 (defn update-own-stats [{:keys [own-id gear] :as game-state}]
   (update-in game-state [:chars own-id]
              #(-> %

@@ -12,7 +12,8 @@
                          [base :as b]
                          [mobs-and-looting :as ml]
                          [combat :as cb]
-                         [movement :as move]
+                         [movement :as mv]
+                         [spells :as sp]
                          [inventory :as inv]))
   (:use game.utils))
 
@@ -34,7 +35,8 @@
      :exp 0
      :inv (-> (vec (repeat 10 nil))
               (assoc-in [0] {:stats {:armor 20}, :id 0}))
-     :gear (zipmap items/gear-slots (repeat nil))}))
+     :gear (zipmap items/gear-slots (repeat nil))
+     :effects []}))
 
 (defmethod b/process-event :c-login [game-state event]
   (let [key-value-store (:kvs game-state)
@@ -44,7 +46,14 @@
         old-players (:player-ids game-state)
         new-game-state (-> game-state
                            (assoc-in [:chars id] player)
-                           (update-in [:player-ids] conj id))
+                           (update-in [:player-ids] conj id)
+                           (assoc-in [:effects (b/new-game-id)]
+                                     {:decay-time (current-time-ms)
+                                      :amount 10
+                                      :target id
+                                      :ticks-left 100
+                                      :source id
+                                      :on-decay sp/test-hot}))
         gs-for-entrant (b/prepare-for-sending-to id new-game-state)]
     (b/enqueue-msgs [[id] {:type :s-game-state :game-state gs-for-entrant}]
                     [[id] {:type :s-own-id :id id}]
@@ -69,13 +78,14 @@
     (ccfns/call-update-fns* game-state hook
       (get-network-events net-sys)
       (ccfns/calculate-move-time-delta)
-      (move/move-players)
+      (mv/move-players)
       (ai/decide-mob-actions)
       (ai/decide-mob-paths)
-      (move/move-mobs)
-      (move/check-if-moved)
+      (mv/move-mobs)
+      (mv/check-if-moved)
       (cb/let-chars-attack)
       (cb/regen-chars)
+      (sp/check-effects)
       (ml/check-spawns)
       (ml/check-corpses))))
 
@@ -103,7 +113,8 @@
 
 (defn create-game-state []
   (-> {:chars {} :player-ids #{} :corpses (pm/priority-map-keyfn :decay-time)
-       :last-move (current-time-ms) :last-regen (current-time-ms)}
+       :last-move (current-time-ms) :last-regen (current-time-ms)
+       :effects (pm/priority-map-keyfn :decay-time)}
       (merge (gmap/load-game-map))
       (as-> gs
         (assoc gs :to-spawn (create-to-spawn-queue (:spawns gs))))))

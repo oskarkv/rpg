@@ -151,6 +151,15 @@
                             {:hit false})))))]
     (apply b/enqueue-events (map generate-attack-event (:chars game-state)))))
 
+(defn heal-amount [{:keys [hp max-hp] :as char} amount]
+  (min amount (- max-hp hp)))
+
+(defn heal-char [{:keys [hp max-hp] :as char} amount]
+  (assoc-in char [:hp] (min max-hp (+ hp amount))))
+
+(defn regen-char [{:keys [hp-regen hp max-hp] :as char}]
+  (heal-char char (or (:hp-regen char) 0)))
+
 (defn regen-char [{:keys [hp-regen hp max-hp] :as char}]
   (assoc-in char [:hp] (min max-hp (+ hp (or hp-regen 0)))))
 

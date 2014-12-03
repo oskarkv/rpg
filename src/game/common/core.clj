@@ -32,6 +32,7 @@
    :s-item-looted [:from-path :by :left]
    :s-decay-corpses [:ids]
    :s-hp-update [:id-hp-vecs]
+   :s-heal [:target :by :amount]
    :s-char-update [:updated :id]})
 
 (let [types (-> (keys type->keys) sort)]
