@@ -79,11 +79,8 @@
     (assoc-in game-state (conj from-path :quantity) left)
     (dissoc-in game-state from-path)))
 
-(defmethod process-event :s-hp-update
-  [{:keys [chars] :as game-state} {:keys [id-hp-vecs]}]
-  (assoc-in game-state [:chars]
-            (reduce (fn [cs [id hp]] (assoc-in cs [id :hp] hp))
-                    chars id-hp-vecs)))
+(defmethod process-event :s-regen-tick [game-state {:keys [update-map]}]
+  (update-in game-state [:chars] (partial merge-with merge) update-map))
 
 (defmethod process-event :s-heal [game-state {:keys [target by amount]}]
   (update-in game-state [:chars target :hp] + amount))

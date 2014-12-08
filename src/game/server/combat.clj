@@ -7,6 +7,12 @@
                   [mobs :as mobs]))
   (:use game.utils))
 
+(defn pool-max-key [pool-key]
+  (keyword (str "max-" (name pool-key))))
+
+(defn pool-regen-key [pool-key]
+  (keyword (str (name pool-key) "-regen")))
+
 (defmethod b/process-event :c-toggle-attack [game-state {:keys [id]}]
   (update-in game-state [:chars id :attacking] not))
 
@@ -119,10 +125,20 @@
     ngs))
 
 (defmethod b/process-event :regen-tick [{:keys [chars player-ids]} event]
-  (letfn [(get-id-and-hp [[id char]]
-            [id (:hp char)])]
-    (b/enqueue-msgs [player-ids {:type :s-hp-update
-                                 :id-hp-vecs (map get-id-and-hp chars)}])))
+  (b/enqueue-msgs
+    [player-ids
+     {:type :s-regen-tick :update-map
+      (reduce
+        (fn [m [id c]]
+          (let [updated
+                (into {} (for [k [:hp :mana]
+                               :when (some-> (pool-regen-key k) c pos?)]
+                           [k (k c)]))]
+            (if (empty? updated)
+              m
+              (assoc m id updated))))
+        {}
+        chars)}]))
 
 (defn cooled-down? [{:keys [last-attack delay]}]
   (> (current-time-ms) (+ last-attack (* 1000 delay))))
@@ -151,17 +167,19 @@
                             {:hit false})))))]
     (apply b/enqueue-events (map generate-attack-event (:chars game-state)))))
 
-(defn heal-amount [{:keys [hp max-hp] :as char} amount]
-  (min amount (- max-hp hp)))
+(defn amount-to-give [char pool-key amount]
+  (min amount (- (char (pool-max-key pool-key)) (char pool-key))))
 
-(defn heal-char [{:keys [hp max-hp] :as char} amount]
-  (assoc-in char [:hp] (min max-hp (+ hp amount))))
+(defn give-char [char pool-key amount]
+  (update-in char [pool-key] + (amount-to-give char pool-key amount)))
 
-(defn regen-char [{:keys [hp-regen hp max-hp] :as char}]
-  (heal-char char (or (:hp-regen char) 0)))
+(defn regen-pool [char pool-key]
+  (give-char char pool-key (or (char (pool-regen-key pool-key)) 0)))
 
-(defn regen-char [{:keys [hp-regen hp max-hp] :as char}]
-  (assoc-in char [:hp] (min max-hp (+ hp (or hp-regen 0)))))
+(defn regen-char [char]
+  (reduce (fn [c k]
+            (if (k c) (regen-pool c k) c))
+          char [:hp :mana]))
 
 (defn regen-chars [{:keys [last-regen] :as game-state}]
   (let [curr-time (current-time-ms)

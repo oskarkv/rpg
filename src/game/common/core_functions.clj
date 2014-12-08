@@ -110,6 +110,8 @@
     (merge char
            {:max-hp (stats/hitpoints stamina level)
             :hp-regen (stats/hp-regen level)
+            :max-mana (* level 50)
+            :mana-regen (* level 5)
             :armor armor
             :damage (int (stats/bonus-damage-simple attack-power level))})))
 

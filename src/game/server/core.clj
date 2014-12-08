@@ -18,7 +18,7 @@
   (:use game.utils))
 
 (defn new-player [username]
-  (ccfns/update-stats
+  (->
     {:name username
      :speed 2
      :pos [1 1]
@@ -26,8 +26,6 @@
      :move-dir [0 0]
      :type :player
      :attacking false
-     :hp 100
-     :max-hp 100
      :damage 60
      :delay 1
      :last-attack 0
@@ -38,7 +36,11 @@
      :gear (zipmap items/gear-slots (repeat nil))
      :spells (-> (vec (repeat 8 nil))
                  (assoc-in [0] :regrowth))
-     :effects []}))
+     :effects []}
+    ccfns/update-stats
+    (as-> c
+      (assoc c :hp (:max-hp c))
+      (assoc c :mana (:max-mana c)))))
 
 (defmethod b/process-event :c-login [game-state event]
   (let [key-value-store (:kvs game-state)
