@@ -319,12 +319,11 @@
 
 (defn changed-char-panes [hud-state game-state ckeys ids]
   (let [keys-ids (map vector ckeys ids)
-        chars (:chars game-state)
-        changed (filterv (fn [[k i]]
-                          (not= (get-in hud-state [:chars-state k :old-hash])
-                                (hash-char (chars i))))
-                        keys-ids)]
-    changed))
+        chars (:chars game-state)]
+    (filterv (fn [[k i]]
+               (not= (get-in hud-state [:chars-state k :old-hash])
+                     (hash-char (chars i))))
+             keys-ids)))
 
 (defn create-char-node [char pos]
   (when char
