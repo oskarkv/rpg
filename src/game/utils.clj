@@ -191,3 +191,26 @@
 (defmacro defmemoized [& body]
   `(do (defn ~@body)
        (alter-var-root (var ~(first body)) memoize)))
+
+(defmacro assert-even-vector [v]
+  `(assert-args
+     (vector? ~v) "a vector for its binding"
+     (even? (count ~v)) "an even number of forms in binding vector"))
+
+(defmacro when-lets [bindings & body]
+  (assert-even-vector bindings)
+  (if (seq bindings)
+    `(when-let ~(subvec bindings 0 2)
+       (when-lets ~(subvec bindings 2)
+         ~@body))
+    `(do ~@body)))
+
+(defmacro if-lets [bindings then else]
+  (assert-even-vector bindings)
+  (if (seq bindings)
+    `(if-let ~(subvec bindings 0 2)
+       (if-lets ~(subvec bindings 2)
+         ~then
+         ~else)
+       ~else)
+    then))

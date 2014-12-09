@@ -24,9 +24,10 @@ augroup clojure_settings
   " Syntax highlighting
   autocmd Syntax clojure syntax keyword clojureDefine let def letfn
   autocmd Syntax clojure syntax keyword clojureRepeat loop while-let
-  autocmd Syntax clojure syntax keyword clojureCond if
+  autocmd Syntax clojure syntax keyword clojureCond if when-lets if-lets
   autocmd Syntax clojure syntax keyword clojureMacro assert-args
 
+  " Syntax highlighting with namespace prefix
   call CljHL(fn, 'dissoc-in')
   call CljHL(fn, 'partial\*')
   call CljHL(fn, 'flip')
@@ -46,8 +47,8 @@ augroup END
 
 " Indentation
 let g:clojure_fuzzy_indent = 1
-let g:clojure_fuzzy_indent_patterns = ['^with', '^def', '^let', '^while-let$',
-            \'call-update-fns', 'start-new-thread', 'take-at-least-ms', 'condf']
+let g:clojure_fuzzy_indent_patterns = ['^with', '^def', '^let', '^while-let$', '^when-lets$', '^if-lets$',
+            \'call-update-fns', 'start-new-thread', 'take-at-least-ms', '^condf$']
 let g:clojure_fuzzy_indent_blacklist = ['-fn$', '\v^with-%(meta|out-str|loading-context)$']
 let g:clojure_special_indent_words = 'deftype,defrecord,reify,proxy,extend-type,extend-protocol,letfn,deftype-,defhudrecord,defposrecord'
 let g:clojure_align_multiline_strings = 1
