@@ -78,19 +78,14 @@
      (do (println (with-out-str (println '~x "=") (clojure.pprint/pprint x#)))
          x#)))
 
-(let [polymorphic-dissoc
-      (fn [m k] (if (instance? clojure.lang.IPersistentMap m)
-                  (dissoc m k)
-                  (assoc m k nil)))]
-  (defn dissoc-in [m [k & ks :as keys]]
-    (if (seq keys)
-      (if ks
-        (let [inner-map (dissoc-in (m k) ks)]
-          (if (seq inner-map)
-            (assoc m k inner-map)
-            (polymorphic-dissoc m k)))
-        (polymorphic-dissoc m k))
-      m)))
+(defn dissoc-in [m [k & ks]]
+  (letfn [(polymorphic-dissoc [m k]
+            (if (instance? clojure.lang.IPersistentMap m)
+              (dissoc m k)
+              (assoc m k nil)))]
+    (if-let [inner (and ks (get m k))]
+      (assoc m k (dissoc-in inner ks))
+      (polymorphic-dissoc m k))))
 
 (defn fmap [f m]
   (into {} (for [[k v] m] [k (f v)])))
