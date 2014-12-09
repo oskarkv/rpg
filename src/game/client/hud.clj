@@ -1,7 +1,4 @@
-(ns game.client.hud)
-
 (defonce force-toolkit-init (javafx.embed.swing.JFXPanel.))
-
 (javafx.application.Platform/setImplicitExit false)
 
 (ns game.client.hud
