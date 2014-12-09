@@ -35,7 +35,7 @@
               (assoc-in [0] {:stats {:armor 20}, :id 0}))
      :gear (zipmap items/gear-slots (repeat nil))
      :spells (-> (vec (repeat 8 nil))
-                 (assoc-in [0] :regrowth))
+                 (assoc-in [0] {:spell :regrowth :last-cast 0}))
      :effects []}
     ccfns/update-stats
     (as-> c

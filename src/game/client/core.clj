@@ -54,7 +54,8 @@
 (defmethod process-event :s-spawn-player [game-state {:keys [id player]}]
   (update-in game-state [:chars id] merge player))
 
-(defmethod process-event :s-attack [game-state {:keys [target damage hit] :as event}]
+(defmethod process-event :s-attack
+  [game-state {:keys [target damage hit] :as event}]
   (when hit
     (update-in game-state [:chars target :hp] - damage)))
 
@@ -172,9 +173,23 @@
                                   corpse consts/loot-distance)
       (enqueue-events {:type :c-loot-corpse :corpse-id corpse}))))
 
-(defmethod process-event :spell [{:keys [chars own-id]} {:keys [number]}]
-  (enqueue-events {:type :c-cast-spell :number number
-                   :target (get-in chars [own-id :target])}))
+(defmethod process-event :spell
+  [{:keys [chars own-id] :as game-state} {:keys [number]}]
+  (when-let [target-id (get-in chars [own-id :target])]
+    (when (chars target-id)
+      (enqueue-events {:type :c-cast-spell :number number
+                       :target target-id})
+      (assoc-in game-state [:spells number :last-cast]
+                (+ (current-time-ms) 1e6)))))
+
+(defmethod process-event :s-spell-response [game-state event]
+  (let [{:keys [response number]} event
+        curr-time (current-time-ms)]
+    (case response
+      :out-of-range (println "Out of range!")
+      :cooldown (println "Cooldown!")
+      :out-of-mana (println "Out of mana!")
+      :ok (assoc-in game-state [:spells number :last-cast] curr-time))))
 
 (defmethod process-event :open-inv [game-state _]
   (update-in game-state [:inv-open?] not))
@@ -234,9 +249,9 @@
     (first (concat empty-slots slots))))
 
 (defn equip-item [game-state path]
-  (when-let [item (get-in game-state path)]
-    (when-let [slot (get-prioritized-slot game-state item)]
-      (enqueue-events {:type :inv-swap :paths [[:gear slot] path]}))))
+  (when-lets [item (get-in game-state path)
+              slot (get-prioritized-slot game-state item)]
+    (enqueue-events {:type :inv-swap :paths [[:gear slot] path]})))
 
 (defn activate-item [game-state path]
   (condp #(= %1 (first %2)) path
@@ -343,18 +358,16 @@
     nil event-queue))
 
 (defn login-and-recv-state [game-state net-sys name password stop?]
-  (letfn [(move-out-own-inv [{:keys [own-id] :as game-state}]
-            (-> game-state
-                (move-in [:chars own-id :inv] [:inv])
-                (move-in [:chars own-id :gear] [:gear])))]
+  (letfn [(move-out [gs k]
+            (move-in gs [:chars (:own-id gs) k] [k]))
+          (move-out-special-maps [gs]
+            (-> gs (move-out :inv) (move-out :gear) (move-out :spells)))]
     (cc/update net-sys [{:type :c-login :username name :password password}])
     (loop [events (cc/get-events net-sys)]
       (when-not @stop?
-        (if (== 2 (count (filter (fn [e] (contains? #{:s-game-state :s-own-id}
-                                                    (:type e)))
-                                 events)))
-          (move-out-own-inv
-            (process-events game-state events))
+        (if (-> (fn [e] (contains? #{:s-game-state :s-own-id} (:type e)))
+                (filter events) count (== 2))
+          (move-out-special-maps (process-events game-state events))
           (recur (concat events (cc/get-events net-sys))))))))
 
 (defrecord Client [app]

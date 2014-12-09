@@ -47,7 +47,7 @@
 
 (def prepare-char-for-owner
   (make-preparation-fn
-    (concat keys-about-others [:damage :delay :exp :inv :gear])))
+    (concat keys-about-others [:damage :delay :exp :inv :gear :spells])))
 
 (def prepare-char-for-sending
   (make-preparation-fn keys-about-others))

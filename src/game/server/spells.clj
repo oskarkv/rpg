@@ -44,10 +44,27 @@
 (def spells (merge-with merge comsp/spells spell-effects))
 
 (defmethod b/process-event :c-cast-spell [game-state {:keys [id number target]}]
-  (when (< number 8)
-    (when-let [f (some-> (get-in game-state [:chars id :spells number])
-                         spells :effect-fn)]
-      (f game-state id target))))
+  (when-lets [_ (< number 8)
+              _ (get-in game-state [:chars target])
+              path [:chars id :spells number]
+              {:keys [spell last-cast]} (get-in game-state path)
+              curr-time (current-time-ms)
+              {:keys [cooldown effect-fn cast-range mana-cost]} (spells spell)
+              respond #(b/enqueue-msgs [[id] {:type :s-spell-response
+                                              :response %1 :number number}])]
+    (cond
+      (< curr-time (+ last-cast (* 1000 cooldown)))
+      (respond :cooldown)
+      (> mana-cost (get-in game-state [:chars id :mana]))
+      (respond :out-of-mana)
+      (not (ccfns/id-close-enough? game-state id target cast-range))
+      (respond :out-of-range)
+      :else
+      (do (respond :ok)
+          (-> game-state
+              (update-in [:chars id :mana] - mana-cost)
+              (effect-fn id target)
+              (assoc-in (conj path :last-cast) curr-time))))))
 
 (defn check-effects [game-state]
   (let [effects (:effects game-state)
