@@ -38,10 +38,10 @@
       (cond-> prepared
         pos (assoc :pos (map float pos))))))
 
-(def char-update-keys [:max-hp :level])
+(def char-update-keys [:max-hp :max-mana :level])
 
 (def keys-about-others
-  (concat char-update-keys [:name :speed :pos :type :hp :level]))
+  (concat char-update-keys [:name :speed :pos :type :hp :mana :level]))
 
 (def prepare-char-update (make-preparation-fn char-update-keys))
 

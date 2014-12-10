@@ -191,6 +191,9 @@
       :out-of-mana (println "Out of mana!")
       :ok (assoc-in game-state [:spells number :last-cast] curr-time))))
 
+(defmethod process-event :s-spell-cast [game-state {:keys [by spell mana-cost]}]
+  (update-in game-state [:chars by :mana] - mana-cost))
+
 (defmethod process-event :open-inv [game-state _]
   (update-in game-state [:inv-open?] not))
 

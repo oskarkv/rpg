@@ -55,7 +55,7 @@
     -fx-alignment: bottom-right;
 }
 
-#name-label, #hp-label, #level-label {
+#char-pane .label {
     -fx-alignment: center;
 }
 
@@ -66,8 +66,8 @@
 #level-label {
 }
 
-#hp-label {
-    -fx-font-size: 11;
+#hp-label, #mana-label {
+    -fx-font-size: 13;
 }
 
 .progress-bar .track {
@@ -79,5 +79,12 @@
 .progress-bar .bar {
     -fx-background-radius: 0;
     -fx-background-insets: 1;
+}
+
+#hp-bar .bar {
     -fx-background-color: red;
+}
+
+#mana-bar .bar {
+    -fx-background-color: blue;
 }

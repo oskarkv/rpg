@@ -22,6 +22,7 @@
    :c-cast-spell [:number :target]
    :s-attack [:target :damage :hit]
    :s-spell-response [:response :number]
+   :s-spell-cast [:by :spell :mana-cost]
    :s-game-state [:game-state]
    :s-move [:positions]
    :s-own-id [:id]

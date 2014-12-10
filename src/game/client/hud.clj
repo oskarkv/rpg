@@ -299,20 +299,28 @@
   (update-mouse-slot-content hud-state game-state))
 
 (defn make-char-pane-tree [char]
-  (let [{:keys [name hp max-hp level]} char
-        w 170 nh 22 th 22 bh 12]
+  (let [{:keys [name hp max-hp mana max-mana level]} char
+        w 170 nh 22 th 22 bh 12
+        bar-with-text
+        (fn [ypos pool pool-max name-prefix]
+          [{:type :progress-bar :progress (/ pool pool-max)
+            :id (str name-prefix "-bar")
+            :pos [0 (+ ypos (/ (- th bh) 2))] :size [w bh]}
+           {:type :label :text (str (int pool) "/" (int pool-max))
+            :id (str name-prefix "-label")
+            :pos [0 ypos] :size [w th]}])]
     {:type :pane
+     :id "char-pane"
      :children
-     [{:type :label :text name :id "name-label" :size [w nh]}
-      {:type :label :text level :id "level-label"
-       :pos [(- w (/ th 2)) -5] :size th}
-      {:type :progress-bar :progress (/ hp max-hp) :id "hp-bar"
-       :pos [0 (+ nh (/ (- th bh) 2))] :size [w bh]}
-      {:type :label :text (str (int hp) "/" (int max-hp)) :id "hp-label"
-       :pos [0 nh] :size [w th]}]}))
+     (concat
+       [{:type :label :text name :id "name-label" :size [w nh]}
+        {:type :label :text level :id "level-label"
+         :pos [(- w (/ th 2)) -5] :size th}]
+       (bar-with-text nh hp max-hp "hp")
+       (when mana (bar-with-text (+ nh bh) mana max-mana "mana")))}))
 
 (defn hash-char [char]
-  (hash (select-keys char [:level :hp :max-hp])))
+  (hash (select-keys char [:level :hp :max-hp :mana :max-mana])))
 
 (defn changed-char-panes [hud-state game-state ckeys ids]
   (let [keys-ids (map vector ckeys ids)
