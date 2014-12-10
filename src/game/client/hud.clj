@@ -145,7 +145,7 @@
        (fix-common-things ~'hud-state ~'tree))))
 
 (defmethod tree->jfx :image [tree hud-state]
-  (let [image (ImageView. (:texture tree))
+  (let [image (ImageView. (load-image (:texture tree)))
         pane (Pane.)]
     (-> image .fitHeightProperty (.bind (.heightProperty pane)))
     (-> image .fitWidthProperty (.bind (.widthProperty pane)))
