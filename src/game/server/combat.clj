@@ -3,7 +3,7 @@
                          [items :as items]
                          [stats :as stats])
             (game.server [base :as b])
-            (game [constants :as consts]
+            (game [constants :as const]
                   [mobs :as mobs]))
   (:use game.utils))
 
@@ -36,7 +36,7 @@
                                   (get-in game-state [:chars tagged-by :level]))
         actual-exp (* all-exp (/ tagged-damage total-damage))]
     (update-in game-state [:chars tagged-by]
-               give-exp (* consts/exp-bonus-factor actual-exp))))
+               give-exp (* const/exp-bonus-factor actual-exp))))
 
 (defn mob-death [game-state {:keys [id]}]
   (let [mob (get-in game-state [:chars id])
@@ -60,7 +60,7 @@
 (defn make-corpse [char]
   (-> char
       (select-keys [:name :type :drops :pos :tagged-by])
-      (assoc :decay-time (+ (current-time-ms) consts/corpse-decay-time))
+      (assoc :decay-time (+ (current-time-ms) const/corpse-decay-time))
       (update-in [:name] #(str % "'s corpse"))))
 
 (defn death-msgs [game-state {:keys [id corpse-id]}]
@@ -131,7 +131,7 @@
       (reduce
         (fn [m [id c]]
           (let [updated
-                (into {} (for [k [:hp :mana]
+                (into {} (for [k const/regen-pools
                                :when (some-> (pool-regen-key k) c pos?)]
                            [k (k c)]))]
             (if (empty? updated)
@@ -145,7 +145,7 @@
 
 (defn calculate-new-last-attack [{:keys [last-attack delay]}]
   (let [curr-time (current-time-ms)]
-    (if (> (+ last-attack (* 1000 (+ delay consts/attack-delay-leeway)))
+    (if (> (+ last-attack (* 1000 (+ delay const/attack-delay-leeway)))
            curr-time)
       (+ last-attack (* 1000 delay))
       curr-time)))
@@ -160,7 +160,7 @@
                        (cooled-down? char)
                        target-char
                        (ccfns/id-close-enough? game-state id target
-                                               consts/attack-distance))
+                                               const/attack-distance))
               (conj event (if (stats/hit? char target-char)
                             {:hit true
                              :damage (stats/actual-damage char target-char)}
@@ -179,11 +179,11 @@
 (defn regen-char [char]
   (reduce (fn [c k]
             (if (k c) (regen-pool c k) c))
-          char [:hp :mana]))
+          char const/regen-pools))
 
 (defn regen-chars [{:keys [last-regen] :as game-state}]
   (let [curr-time (current-time-ms)
-        regen-interval (* 1000 consts/regen-interval)]
+        regen-interval (* 1000 const/regen-interval)]
     (when (> curr-time (+ last-regen regen-interval))
       (b/enqueue-events {:type :regen-tick})
       (-> game-state
