@@ -7,7 +7,7 @@
             (game.key-value-store [core :as kvs.core]
                                   [protocols :as kvs])
             (game [game-map :as gmap]
-                  [constants :as consts])
+                  [constants :as const])
             (game.server [ai :as ai]
                          [base :as b]
                          [mobs-and-looting :as ml]
@@ -34,7 +34,7 @@
      :inv (-> (vec (repeat 10 nil))
               (assoc-in [0] {:stats {:armor 20}, :id 0}))
      :gear (zipmap items/gear-slots (repeat nil))
-     :spells (-> (vec (repeat 8 nil))
+     :spells (-> (vec (repeat const/spell-slots nil))
                  (assoc-in [0] {:spell :regrowth :last-cast 0}))
      :effects []}
     ccfns/update-stats

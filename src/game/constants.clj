@@ -22,6 +22,7 @@
   damage-random-portion 0.75
   exp-bonus-factor 15
   regen-interval 1
+  spell-slots 8
   ;;; GRAPHICS
   resolution-x 1024
   resolution-y 768

@@ -1,4 +1,5 @@
-(ns game.client.input)
+(ns game.client.input
+  (:require [game.constants :as const]))
 
 (defn load-key-bindings []
   (->
@@ -10,5 +11,5 @@
      ["left-click" "m-left" :tap]
      ["right-click" "m-right" :tap]
      ["open-inv" "c" :tap]]
-    (into (for [i (range 8)]
+    (into (for [i (range const/spell-slots)]
             [(str "spell#" i) (str (inc i)) :tap]))))

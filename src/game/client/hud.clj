@@ -439,7 +439,8 @@
               (add-children i [a]))
             arc-nodes image-nodes)
     (relocate bar-node
-              (- (/ const/resolution-x 2) (* const/spell-icon-size 4))
+              (- (/ const/resolution-x 2)
+                 (* const/spell-icon-size (/ const/spell-slots 2)))
               (- const/resolution-y (+ const/spell-icon-size 10)))
     {:bar bar-node
      :arcs arc-nodes}))

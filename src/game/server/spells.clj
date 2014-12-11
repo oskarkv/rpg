@@ -1,5 +1,6 @@
 (ns game.server.spells
-  (:require (game.common [core-functions :as ccfns]
+  (:require [game.constants :as const]
+            (game.common [core-functions :as ccfns]
                          [spells :as comsp])
             (game.server [base :as b]
                          [combat :as cb]))
@@ -44,7 +45,7 @@
 (def spells (merge-with merge comsp/spells spell-effects))
 
 (defmethod b/process-event :c-cast-spell [game-state {:keys [id number target]}]
-  (when-lets [_ (< number 8)
+  (when-lets [_ (< number const/spell-slots)
               _ (get-in game-state [:chars target])
               path [:chars id :spells number]
               {:keys [spell last-cast]} (get-in game-state path)
