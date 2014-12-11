@@ -11,7 +11,8 @@
                          [core-functions :as ccfns]
                          [input :as cmi]
                          [graphics :as gfx]
-                         [items :as items])
+                         [items :as items]
+                         [spells :as csp])
             [game.math :as gmath]
             [clojure.set :as set]
             [clojure.math.numeric-tower :as math])
@@ -175,21 +176,24 @@
 
 (defmethod process-event :spell
   [{:keys [chars own-id] :as game-state} {:keys [number]}]
-  (when-let [target-id (get-in chars [own-id :target])]
-    (when (chars target-id)
-      (enqueue-events {:type :c-cast-spell :number number
-                       :target target-id})
-      (assoc-in game-state [:spells number :last-cast]
-                (+ (current-time-ms) 1e6)))))
+  (when-lets [target-id (get-in chars [own-id :target])
+              _ (chars target-id)
+              {:keys [spell last-cast]} (get-in game-state [:spells number])
+              cd (get-in csp/spells [spell :cooldown])
+              curr-time (current-time-ms)
+              _ (> curr-time (+ last-cast (* 1000 cd)))]
+    (enqueue-events {:type :c-cast-spell :number number
+                     :target target-id})
+    (assoc-in game-state [:spells number :last-cast] (+ curr-time 1e6))))
 
 (defmethod process-event :s-spell-response [game-state event]
-  (let [{:keys [response number]} event
-        curr-time (current-time-ms)]
-    (case response
-      :out-of-range (println "Out of range!")
-      :cooldown (println "Cooldown!")
-      :out-of-mana (println "Out of mana!")
-      :ok (assoc-in game-state [:spells number :last-cast] curr-time))))
+  (let [{:keys [response number]} event]
+    (assoc-in game-state [:spells number :last-cast]
+              (case response
+                :out-of-range (do (println "Out of range!") 0)
+                :cooldown (do (println "Cooldown!") 0)
+                :out-of-mana (do (println "Out of mana!") 0)
+                :ok (current-time-ms)))))
 
 (defmethod process-event :s-spell-cast [game-state {:keys [by spell mana-cost]}]
   (update-in game-state [:chars by :mana] - mana-cost))

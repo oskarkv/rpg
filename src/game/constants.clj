@@ -33,8 +33,8 @@
   tooltip-margin 10
   tooltip-text-size 20
   tooltip-opacity 0.6
-  icon-size 40
-  icon-gap 5
+  inv-icon-size 40
+  spell-icon-size 50
   header-height 23
   ;;; INPUT
   camera-rotation-speed 2

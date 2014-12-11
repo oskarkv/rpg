@@ -12,4 +12,4 @@
 (spell-helper mana-cost cast-time cast-range cooldown target-type description)
 
 (def spells
-  {:regrowth (spell 10 0 3 0 :target "Heal over time")})
+  {:regrowth (spell 10 0 3 2 :target "Heal over time")})

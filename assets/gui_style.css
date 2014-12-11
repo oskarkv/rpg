@@ -12,6 +12,11 @@
     -fx-font-size: 14;
 }
 
+.cooldown-indicator {
+    -fx-fill: black;
+    -fx-opacity: 0.5;
+}
+
 #tooltip, #destroy-dialog {
     -fx-padding: 10;
     -fx-background-color: rgba(50, 50, 50, 0.6);

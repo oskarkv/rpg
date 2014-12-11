@@ -5,8 +5,9 @@
   (:use game.utils)
   (:require (game.common [core :as cc]
                          [core-functions :as ccfns]
-                         [items :as items])
-            [game.constants :as consts]
+                         [items :as items]
+                         [spells :as csp])
+            [game.constants :as const]
             [game.common.jme-utils :as ju]
             [clojure.math.numeric-tower :as math]
             [clojure.set :as set])
@@ -70,9 +71,9 @@
 
 (defn mouse-event->button-int [e]
   (condp = (.getButton e)
-    MouseButton/PRIMARY consts/mouse-left
-    MouseButton/SECONDARY consts/mouse-right
-    MouseButton/MIDDLE consts/mouse-middle))
+    MouseButton/PRIMARY const/mouse-left
+    MouseButton/SECONDARY const/mouse-right
+    MouseButton/MIDDLE const/mouse-middle))
 
 (defmulti tree->jfx (fn [tree hud-state] (:type tree)))
 
@@ -120,7 +121,7 @@
                           (f))))]
     (add-handler
       :entered
-      #(let [p (.localToScene node consts/icon-size 0)]
+      #(let [p (.localToScene node const/inv-icon-size 0)]
          (add-children ttpane [(doto (tree->jfx tt nil)
                                  (relocate (.getX p) (.getY p)))])))
     (add-handler
@@ -153,6 +154,13 @@
       (add-children [image])
       (fix-common-things hud-state tree))))
 
+(defmethod tree->jfx :arc [tree hud-state]
+  (let [r (:size tree)
+        c (:center tree)
+        arc (doto (Arc. c c r r 90 360) (.setType ArcType/ROUND)
+              (fix-common-things hud-state (dissoc tree :size)))]
+    arc))
+
 (tree->jfx-method Label [(str (:text tree))] :label)
 
 (tree->jfx-method Pane nil :pane)
@@ -174,13 +182,13 @@
   (let [children
         (cond
           (:quantity item) [{:type :label :text (:quantity item)
-                             :id "stack-indicator" :size consts/icon-size}]
+                             :id "stack-indicator" :size const/inv-icon-size}]
           (and (not item)
                (= :gear (path 0))) [{:type :label :text (name (path 1))
                                      :id "slot-description"
-                                     :size consts/icon-size}]
+                                     :size const/inv-icon-size}]
           :else nil)]
-    {:type :image :id "inv-slot" :size consts/icon-size
+    {:type :image :id "inv-slot" :size const/inv-icon-size
      :texture (if item (get-texture-name item) "inv_slot.png")
      :event {:type :inv-click :trigger :pressed :path path}
      :tooltip (when item (items/get-tooltip item))
@@ -238,7 +246,7 @@
   (set (keys (:invs hud-state))))
 
 (defn same-hash [[path {:keys [old-hash]}] game-state]
-  (== (hash (get-in game-state path)) old-hash))
+  (= (hash (get-in game-state path)) old-hash))
 
 (defn new-and-gone-inventories [hud-state game-state]
   (let [x-same-hash (fn [x]
@@ -259,7 +267,7 @@
 
 (defn update-mouse-slot-pos [{:keys [input-manager mouse-slot]}]
   (let [[x y] (->> input-manager ju/get-real-mouse-pos
-                   (map #(+ % (/ consts/icon-size -2))))]
+                   (map #(+ % (/ const/inv-icon-size -2))))]
     (.setLocalTranslation
       mouse-slot x y (.z (.getLocalTranslation mouse-slot)))))
 
@@ -356,9 +364,9 @@
 (defn update-char-panes [hud-state game-state]
   (let [{:keys [own-id chars]} game-state
         changed (changed-char-panes
-                       hud-state game-state
-                       [:self :target]
-                       [own-id (get-in chars [own-id :target])])]
+                  hud-state game-state
+                  [:self :target]
+                  [own-id (get-in chars [own-id :target])])]
     (create-and-remove-panes hud-state game-state changed)))
 
 (defn make-destroy-dialog-tree [game-state]
@@ -400,6 +408,84 @@
       (remove-destroy-item-dialog hud-state)
       :else hud-state)))
 
+(def icon-table
+  {:regrowth "spells/heal.png"
+   :empty "spells/empty.png"
+   :unknown "spells/unknown.png"})
+
+(defn create-spellbar-trees [spells]
+  {:bar
+   {:type :hbox
+    :id "spell-bar"}
+   :images
+   (for [spell spells]
+     {:type :image
+      :size const/spell-icon-size
+      :texture (or ((or spell :empty) icon-table)
+                   (:unknown icon-table))})
+   :arcs (repeat (count spells) {:type :arc :size const/spell-icon-size
+                                 :center (/ const/spell-icon-size 2)
+                                 :classes ["cooldown-indicator"]})})
+
+(defn create-spellbar [spells]
+  (let [{:keys [bar images arcs]} (create-spellbar-trees spells)
+        make-nodes (fn [trees] (map #(tree->jfx % nil) trees))
+        image-nodes (make-nodes images)
+        arc-nodes (make-nodes arcs)
+        bar-node (add-children (tree->jfx bar nil) image-nodes)]
+    (runmap (fn [a i]
+              (.setClip a (Rectangle. const/spell-icon-size
+                                      const/spell-icon-size))
+              (add-children i [a]))
+            arc-nodes image-nodes)
+    (relocate bar-node
+              (- (/ const/resolution-x 2) (* const/spell-icon-size 4))
+              (- const/resolution-y (+ const/spell-icon-size 10)))
+    {:bar bar-node
+     :arcs arc-nodes}))
+
+(defn spell-list [game-state]
+  (map :spell (:spells game-state)))
+
+(defn spellbar-needs-update? [hud-state game-state]
+  (not= (hash (spell-list game-state))
+        (get-in hud-state [:spellbar :old-hash])))
+
+(defn cooldown-left-quota [last-cast cd curr-time]
+  (if (and cd (pos? cd))
+    (max 0 (/ (+ last-cast (* 1000 cd) (- curr-time))
+              (* 1000 cd)))
+    0))
+
+(defn update-cooldowns [hud-state game-state]
+  (let [spells (:spells game-state)
+        last-casts (map :last-cast spells)
+        curr-time (current-time-ms)
+        cds (map #(get-in csp/spells [% :cooldown]) (map :spell spells))]
+    (fx-run-later
+      (runmap (fn [arc lc cd]
+                (.setLength arc (* 360 (cooldown-left-quota lc cd curr-time))))
+              (get-in hud-state [:spellbar :arcs])
+              last-casts
+              cds))))
+
+(defn update-spellbar [hud-state game-state]
+  (let [old-node (get-in hud-state [:spellbar :node])
+        new-hud-state
+        (if (spellbar-needs-update? hud-state game-state)
+          (let [{:keys [bar arcs]} (create-spellbar (spell-list game-state))]
+            (fx-run-later (-> (get-in hud-state [:panes :chars])
+                              (remove-children [old-node])
+                              (add-children [bar])))
+            (-> hud-state
+                (assoc-in [:spellbar :node] bar)
+                (assoc-in [:spellbar :arcs] arcs)
+                (assoc-in [:spellbar :old-hash]
+                          (hash (spell-list game-state)))))
+          hud-state)]
+    (update-cooldowns new-hud-state game-state)
+    new-hud-state))
+
 (defn update-javafx [{:keys [jfx-changes] :as hud-state}]
   (fx-run-later (doseq [f jfx-changes] (f)))
   (assoc hud-state :jfx-changes []))
@@ -420,6 +506,7 @@
            #(-> %
                 (update-inventories game-state)
                 (update-char-panes game-state)
+                (update-spellbar game-state)
                 (update-destroy-dialog game-state)
                 (update-javafx)))))
 
@@ -444,7 +531,7 @@
         mouse-slot (doto (Node. "mouse-slot") (.setLocalTranslation 0 0 1))
         mouse-node (doto (Geometry.
                            "mouse-node"
-                           (Quad. consts/icon-size consts/icon-size true))
+                           (Quad. const/inv-icon-size const/inv-icon-size true))
                      (.setMaterial
                        (Material. asset-manager
                                   "Common/MatDefs/Misc/Unshaded.j3md")))
@@ -454,8 +541,9 @@
         hud-state-atom (atom {:jfx-changes []
                               :panes panes-map
                               :chars-poses {:self [10 10] :target [200 10]}
-                              :chars-state {:self {:old-hash (hash nil)}
-                                            :target {:old-hash (hash nil)}}
+                              :chars-state {:self {:old-hash nil}
+                                            :target {:old-hash nil}}
+                              :spellbar {:node nil :arcs nil :old-hash nil}
                               :dialogs {}
                               :input-manager input-manager
                               :event-queue (ref [])
@@ -478,7 +566,8 @@
         fxhud (proxy [AbstractHud] []
                 (innerInit []
                   root-pane))]
-    (fx-run-later (swap! hud-state-atom assoc :mtm-scene
-                         (Scene. mtm-pane consts/icon-size consts/icon-size)))
+    (fx-run-later
+      (swap! hud-state-atom assoc :mtm-scene
+             (Scene. mtm-pane const/inv-icon-size const/inv-icon-size)))
     (.attachChild gui-node mouse-slot)
     (->HudSystem hud-state-atom gui-manager fxhud)))
