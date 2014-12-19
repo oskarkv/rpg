@@ -15,6 +15,11 @@
   Vector3f
   (vec [this] (vector (.x this) (.y this) (.z this))))
 
+(defn vectorf [v]
+  (case (count v)
+    2 (Vector2f. (v 0) (v 1))
+    3 (Vector3f. (v 0) (v 1) (v 2))))
+
 (defn new-node []
   (Node. (str (ccfns/get-new-id))))
 

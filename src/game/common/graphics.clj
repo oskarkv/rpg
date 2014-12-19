@@ -7,7 +7,9 @@
            com.jme3.input.ChaseCamera
            com.jme3.collision.CollisionResults
            com.jme3.util.BufferUtils
-           com.jme3.material.Material
+           (com.jme3.material Material RenderState$BlendMode)
+           (com.jme3.effect.shapes EmitterShape EmitterPointShape)
+           (com.jme3.effect ParticleEmitter ParticleMesh$Type)
            com.jme3.renderer.queue.RenderQueue$Bucket
            (com.jme3.font BitmapText BitmapFont$Align Rectangle))
   (:require (game.common [core :as cc]
@@ -97,6 +99,77 @@
     (reset! ids->objects (into {} ids-and-objects))
     (reset! geoms->ids (into {} (map get-geom-id ids-and-objects)))))
 
+(defmacro make-particle-emitter-fn [kw-dval-code-vecs]
+  (with-gensyms [settings]
+    `(fn [~settings]
+       (doto (ParticleEmitter. "ParticleEmitter" ParticleMesh$Type/Triangle 0)
+         ~@(for [[kw dv code] kw-dval-code-vecs]
+             `(~code (or (~kw ~settings) ~dv)))))))
+
+(defn emitter-shape [rand-point rand-normal]
+  (let [set-vector (fn [v vals]
+                     (doto v
+                       (.setX (vals 0)) (.setY (vals 1)) (.setZ (vals 2))))]
+    (reify EmitterShape
+      (deepClone [this]
+        (.clone this))
+      (getRandomPoint [this store]
+        (let [p (rand-point)]
+          (set-vector store p)))
+      (getRandomPointAndNormal [this point normal]
+        (.getRandomPoint this point)
+        (let [n (rand-normal)]
+          (set-vector normal n))))))
+
+(defn particle-emitter [materials settings]
+  ((make-particle-emitter-fn
+     [[:texture :flash #(.setMaterial %1 (%2 materials))]
+      [:num-particles 50 .setNumParticles]
+      [:images-x 2 .setImagesX]
+      [:images-y 2 .setImagesY]
+      ;; If select-random-image is false,
+      ;; the image depends on the particles age.
+      [:select-random-image true .setSelectRandomImage]
+      ;; By default in-world-space and ignore-transform has the same value.
+      ;; If in-world-space is true, the particles' positions are determined by
+      ;; a custom calculation that takes scale into account, but the size of
+      ;; the particles themselves does not scale.
+      [:in-world-space false .setInWorldSpace]
+      [:ignore-transform false .setIgnoreTransform]
+      [:start-color ColorRGBA/Red .setStartColor]
+      [:end-color ColorRGBA/Red .setEndColor]
+      [:velocity-variation 0
+       #(-> %1 .getParticleInfluencer (.setVelocityVariation %2))]
+      [:initial-velocity [0 0 0]
+       #(-> %1 .getParticleInfluencer (.setInitialVelocity (ju/vectorf %2)))]
+      [:high-life 3 .setHighLife]
+      [:low-life 2 .setLowLife]
+      [:gravity [0 0 0] #(.setGravity %1 (.negate (ju/vectorf %2)))]
+      [:start-size 0.5 .setStartSize]
+      [:end-size 0.5 .setEndSize]
+      [:pps 5 .setParticlesPerSec]
+      [:rot-speed 0 .setRotateSpeed]
+      [:shape (EmitterPointShape. (Vector3f. 0 0 0)) .setShape]
+      [:random-angle true .setRandomAngle]])
+   settings))
+
+(def emitter-shapes
+  (let [rand-normal (fn [] (vec (take 3 (repeatedly #(rand-uniform -1 1)))))]
+    {:circle
+     (emitter-shape
+       (fn [] (let [v (rand-uniform (* 2 Math/PI))]
+                [(Math/cos v) 0 (Math/sin v)]))
+       rand-normal)}))
+
+(def effects
+  {:regrowth {:gravity [0 0.3 0]
+              :start-color ColorRGBA/Green
+              :end-color ColorRGBA/Yellow
+              :start-size 0.15
+              :end-size 0.1
+              :velocity-variation 0.1
+              :shape :circle}})
+
 (deftype GraphicsSystem
   [nodes ids->objects geoms->ids game-map assets]
   cc/Lifecycle
@@ -107,7 +180,7 @@
   cc/EventsProducer
   (get-events [this])
   cc/Updatable
-  (update [this game-state]
+  (update [this {:keys [game-state events]}]
     ;;; Not all object types exist in both editor and client.
     (let [get-maker (fn [create-fn update?]
                       #(get-graphics-object % @ids->objects create-fn update?))
@@ -129,8 +202,10 @@
       (update-object-maps ids->objects geoms->ids
                           (concat chars spawns corpses)))))
 
-(defn create-mother-material [asset-manager]
-  (Material. asset-manager "Common/MatDefs/Misc/Unshaded.j3md"))
+(defn create-base-materials [asset-manager]
+  (let [mat #(Material. asset-manager %)]
+    {:unshaded (mat "Common/MatDefs/Misc/Unshaded.j3md")
+     :particle (mat "Common/MatDefs/Misc/Particle.j3md")}))
 
 (defn create-material [material textures texture color]
   (let [mat (.clone material)]
@@ -138,18 +213,29 @@
     (if color (.setColor mat "Color" color))
     mat))
 
-(defn create-material-map [mother-material textures]
+(defn create-material-map [base-materials textures]
   (letfn [(color-material [color]
-            (create-material mother-material textures nil color))]
-    {:player (color-material ColorRGBA/Blue)
-     :mob (color-material ColorRGBA/Red)
-     :ground (create-material mother-material textures :ground nil)
-     :spawn (color-material ColorRGBA/Red)}))
+            (create-material (:unshaded base-materials) textures nil color))
+          (particle-material [texture]
+            (doto (.clone (:particle base-materials))
+              (.setTexture "Texture" (texture textures))
+              (-> .getAdditionalRenderState (.setPointSprite true))))]
+    (merge base-materials
+      {:player (color-material ColorRGBA/Blue)
+       :mob (color-material ColorRGBA/Red)
+       :ground (create-material (:unshaded base-materials) textures :ground nil)
+       :spawn (color-material ColorRGBA/Red)
+       :flash (particle-material :flash)
+       :shockwave (particle-material :shockwave)
+       :flame (particle-material :flame)})))
 
 (defn create-texture-map [asset-manager]
   (letfn [(load-texture [tex]
             (.loadTexture asset-manager tex))]
-    {:ground (load-texture "test_ground.jpg")}))
+    {:ground (load-texture "test_ground.jpg")
+     :flash (load-texture "textures/flash.png")
+     :flame (load-texture "textures/flame.png")
+     :shockwave (load-texture "textures/shockwave.png")}))
 
 (defn create-mesh-map [asset-manager]
   {:player (Box. (Vector3f. 0 0.3 0) 0.3 0.3 0.3)
@@ -189,21 +275,20 @@
         ids->objects (atom {})
         geoms->ids (atom {})
         meshes (create-mesh-map asset-manager)
-        mother-material (create-mother-material asset-manager)
+        base-materials (create-base-materials asset-manager)
         textures (create-texture-map asset-manager)
-        materials (create-material-map mother-material textures)
+        materials (create-material-map base-materials textures)
         font (.loadFont asset-manager "Interface/Fonts/Default.fnt")
-        assets {:meshes meshes :mother-material mother-material
-                :textures textures :materials materials :font font}]
+        assets {:meshes meshes :textures textures
+                :materials materials :font font}]
     (defn pick-target [type]
       (let [ray (ju/get-world-ray input-manager camera)]
         (ju/pick-target ray (type nodes) @geoms->ids)))
     (defn get-target-coords []
       (ju/get-target-coords input-manager camera (:gamemap nodes)))
     (defn set-up-camera [graphics-system game-state]
-      ;; We need to update once to make sure that the player exists in the
-      ;; scene graph
-      (cc/update graphics-system game-state)
+      ;; Update once to make sure that the player exists in the scene graph
+      (cc/update graphics-system {:game-state game-state})
       (set-up-camera* @ids->objects camera input-manager game-state))
     (defn get-camera-dir []
       (get-camera-dir* camera))

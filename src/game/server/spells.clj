@@ -64,7 +64,7 @@
       (do (respond :ok)
           (b/enqueue-msgs [(:player-ids game-state)
                            {:type :s-spell-cast :by id :spell spell
-                            :mana-cost mana-cost}])
+                            :mana-cost mana-cost :target target}])
           (-> game-state
               (update-in [:chars id :mana] - mana-cost)
               (effect-fn id target)

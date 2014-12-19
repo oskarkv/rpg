@@ -429,7 +429,8 @@
                   (move-self)
                   (move-chars))
                 events (ccfns/reset-queue all-events-queue)]
-            (cc/update @graphics-system new-game-state)
+            (cc/update @graphics-system {:game-state new-game-state
+                                         :events events})
             (cc/update @hud-system {:game-state new-game-state :events events})
             (reset! game-state-atom new-game-state)))
         init-app-settings-fn
