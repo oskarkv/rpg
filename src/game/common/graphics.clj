@@ -48,9 +48,14 @@
 
 (defn create-character-name-text [name height font]
   (let [name (or name "")
+        on-material (fn [text f]
+                      (runmap #(-> % .getMaterial .getAdditionalRenderState f)
+                              (.getChildren text)))
         text (doto (BitmapText. font)
                (.setQueueBucket RenderQueue$Bucket/Transparent)
-               (.setSize 0.5)
+               (on-material #(.setAlphaTest % true))
+               (on-material #(.setAlphaFallOff % 0.3))
+               (.setSize 0.3)
                (.setText name))
         w (.getLineWidth text)
         h (.getLineHeight text)]
