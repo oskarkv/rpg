@@ -168,35 +168,39 @@
        rand-normal)
      :time-circle
      (emitter-shape
-       (fn [] (let [period 1000
+       (fn [] (let [period 500
                     v (* (/ (mod (current-time-ms) period) period)
                          2 Math/PI (rand-uniform 0.9 1.1))]
                 [(* 0.5 (Math/cos v)) 0 (* 0.5 (Math/sin v))]))
        rand-normal)}))
 
 (def effects
-  (fmap (fn [m] (update-in m [:shape] emitter-shapes))
-        {:regrowth {:gravity [0 -0.3 0]
-                    :start-color ColorRGBA/Blue
-                    :end-color ColorRGBA/Green
-                    :start-size 0.25
-                    :end-size 0.1
-                    :pps 30
-                    :shape :time-circle}
-         :poison {:start-color (ColorRGBA. 0 0.6 0 1)
-                  :end-color (ColorRGBA. 0 0.6 0 1)
-                  :start-size 0
-                  :end-size 0.4
-                  :rot-speed 1
-                  :high-life 2
-                  :low-life 1
-                  :initial-velocity [0 0.7 0]
-                  :gravity [0 -0.3 0]
-                  :velocity-variation 0.5
-                  :pps 10
-                  :texture :flame
-                  :images-x 1
-                  :images-y 1}}))
+  (->>
+    {:regrowth {:duration 2
+                :position [0 0.7 0]
+                :gravity [0 -0.4 0]
+                :start-color ColorRGBA/Blue
+                :end-color ColorRGBA/Green
+                :start-size 0.25
+                :end-size 0.1
+                :pps 30
+                :shape :time-circle}
+     :poison {:start-color (ColorRGBA. 0 0.6 0 1)
+              :end-color (ColorRGBA. 0 0.6 0 1)
+              :start-size 0
+              :end-size 0.4
+              :rot-speed 1
+              :high-life 2
+              :low-life 1
+              :initial-velocity [0 0.7 0]
+              :gravity [0 -0.3 0]
+              :velocity-variation 0.5
+              :pps 10
+              :texture :flame
+              :images-x 1
+              :images-y 1}}
+    (fmap (fn [m] (merge {:duration 1 :position [0 0 0]} m)))
+    (fmap (fn [m] (update-in m [:shape] emitter-shapes)))))
 
 (defmulti process-event (fn [gfx-state game-state event] (:type event)))
 
@@ -205,11 +209,13 @@
 (defmethod process-event :s-spell-cast [gfx-state game-state event]
   (let [{:keys [by target spell]} event
         mats (get-in gfx-state [:assets :materials])
-        emitter (particle-emitter mats (spell effects))]
-    (.setLocalTranslation emitter (ju/vectorf [0 1 0]))
+        settings (spell effects)
+        emitter (particle-emitter mats settings)]
+    (.setLocalTranslation emitter (ju/vectorf (:position settings)))
     (.attachChild (get-in gfx-state [:ids->objects target :node]) emitter)
     (update-in gfx-state [:effects] conj
-               {:node emitter :end-time (+ (current-time-ms) 3000)})))
+               {:node emitter :end-time (+ (current-time-ms)
+                                           (* 1000 (:duration settings)))})))
 
 (defn process-events [gfx-state game-state events]
   (reduce (fn [gfx e] (or (process-event gfx game-state e) gfx))
