@@ -24,7 +24,7 @@
    :tex-coords (map #(Vector2f. %1 %2)
                     [0 1 0 1] [0 0 1 1])})
 
-(defn portray-game-map [assets gamemap-node game-map]
+(defn portray-game-map [assets game-map-node game-map]
   (let [w (count game-map)
         h (count (first game-map))
         quads (for [x (range w) y (range h)]
@@ -44,7 +44,7 @@
                (.updateBound))
         mat (get-in assets [:materials :ground])
         geom (doto (Geometry. "ground" mesh) (.setMaterial mat))]
-    (.attachChild gamemap-node geom)))
+    (.attachChild game-map-node geom)))
 
 (defn create-character-name-text [name height font]
   (let [name (or name "")
@@ -94,10 +94,11 @@
     [id (or (some-> (ids->objects id) (cond-> update? update))
             (update (create-fn game-object)))]))
 
-(defn update-object-maps [ids->objects geoms->ids ids-and-objects]
+(defn update-object-maps [gfx-state ids-and-objects]
   (let [get-geom-id (fn [[id obj]] [(:geom obj) id])]
-    (reset! ids->objects (into {} ids-and-objects))
-    (reset! geoms->ids (into {} (map get-geom-id ids-and-objects)))))
+    (-> gfx-state
+        (assoc :ids->objects (into {} ids-and-objects))
+        (assoc :geoms->ids (into {} (map get-geom-id ids-and-objects))))))
 
 (defmacro make-particle-emitter-fn [kw-dval-code-vecs]
   (with-gensyms [settings]
@@ -124,7 +125,7 @@
 (defn particle-emitter [materials settings]
   ((make-particle-emitter-fn
      [[:texture :flash #(.setMaterial %1 (%2 materials))]
-      [:num-particles 50 .setNumParticles]
+      [:num-particles 100 .setNumParticles]
       [:images-x 2 .setImagesX]
       [:images-y 2 .setImagesY]
       ;; If select-random-image is false,
@@ -158,32 +159,92 @@
     {:circle
      (emitter-shape
        (fn [] (let [v (rand-uniform (* 2 Math/PI))]
-                [(Math/cos v) 0 (Math/sin v)]))
+                [(* 0.5 (Math/cos v)) 0 (* 0.5 (Math/sin v))]))
+       rand-normal)
+     :time-circle
+     (emitter-shape
+       (fn [] (let [period 1000
+                    v (* (/ (mod (current-time-ms) period) period)
+                         2 Math/PI (rand-uniform 0.9 1.1))]
+                [(* 0.5 (Math/cos v)) 0 (* 0.5 (Math/sin v))]))
        rand-normal)}))
 
 (def effects
-  {:regrowth {:gravity [0 0.3 0]
-              :start-color ColorRGBA/Green
-              :end-color ColorRGBA/Yellow
-              :start-size 0.15
-              :end-size 0.1
-              :velocity-variation 0.1
-              :shape :circle}})
+  (fmap (fn [m] (update-in m [:shape] emitter-shapes))
+        {:regrowth {:gravity [0 -0.3 0]
+                    :start-color ColorRGBA/Blue
+                    :end-color ColorRGBA/Green
+                    :start-size 0.25
+                    :end-size 0.1
+                    :pps 30
+                    :shape :time-circle}
+         :poison {:start-color (ColorRGBA. 0 0.6 0 1)
+                  :end-color (ColorRGBA. 0 0.6 0 1)
+                  :start-size 0
+                  :end-size 0.4
+                  :rot-speed 1
+                  :high-life 2
+                  :low-life 1
+                  :initial-velocity [0 0.7 0]
+                  :gravity [0 -0.3 0]
+                  :velocity-variation 0.5
+                  :pps 10
+                  :texture :flame
+                  :images-x 1
+                  :images-y 1}}))
+
+(defmulti process-event (fn [gfx-state game-state event] (:type event)))
+
+(defmethod process-event :default [gfx-state game-state event])
+
+(defmethod process-event :s-spell-cast [gfx-state game-state event]
+  (let [{:keys [by target spell]} event
+        mats (get-in gfx-state [:assets :materials])
+        emitter (particle-emitter mats (spell effects))]
+    (.setLocalTranslation emitter (ju/vectorf [0 1 0]))
+    (.attachChild (get-in gfx-state [:ids->objects target :node]) emitter)
+    (update-in gfx-state [:effects] conj
+               {:node emitter :end-time (+ (current-time-ms) 3000)})))
+
+(defn process-events [gfx-state game-state events]
+  (reduce (fn [gfx e] (or (process-event gfx game-state e) gfx))
+          gfx-state events))
+
+(defn expired-and-remains [coll delay-ms]
+  (let [curr-time (current-time-ms)
+        piles (group-by #(< curr-time (+ delay-ms (:end-time %))) coll)]
+    [(piles false) (piles true)]))
+
+(defn remove-dead-effects [gfx-state]
+  (let [[expired remains] (expired-and-remains (:dying-effects gfx-state) 5000)]
+    (runmap #(.removeFromParent (:node %)) expired)
+    (assoc gfx-state :dying-effects remains)))
+
+(defn update-effects [gfx-state]
+  (let [[expired remains] (expired-and-remains (:effects gfx-state) 0)]
+    (runmap #(.setParticlesPerSec (:node %) 0) expired)
+    (-> gfx-state
+        (assoc :effects remains)
+        (update-in [:dying-effects] into expired)
+        remove-dead-effects)))
 
 (deftype GraphicsSystem
-  [nodes ids->objects geoms->ids game-map assets]
+  [gfx-state-atom]
   cc/Lifecycle
   (start [this]
-    (portray-game-map assets (:gamemap nodes) game-map)
-    (fmap #(.attachChild (:root-node nodes) %) (dissoc nodes :root-node)))
+    (let [gfx-state @gfx-state-atom
+          {:keys [nodes assets game-map]} gfx-state]
+      (portray-game-map assets (:game-map nodes) game-map)
+      (fmap #(.attachChild (:root-node nodes) %) (dissoc nodes :root-node))))
   (stop [this])
   cc/EventsProducer
   (get-events [this])
   cc/Updatable
   (update [this {:keys [game-state events]}]
     ;;; Not all object types exist in both editor and client.
-    (let [get-maker (fn [create-fn update?]
-                      #(get-graphics-object % @ids->objects create-fn update?))
+    (let [{:keys [nodes assets ids->objects geoms->ids]} @gfx-state-atom
+          get-maker (fn [create-fn update?]
+                      #(get-graphics-object % ids->objects create-fn update?))
           create-char #(create-character-node assets %)
           create-spawn #(create-spawn-node assets %)
           get-char (get-maker create-char true)
@@ -198,9 +259,12 @@
           reattach (fn [k objs]
                      (.detachAllChildren (k nodes))
                      (attach-objects objs (k nodes)))]
-      (dorun (map reattach [:chars :spawns :corpses] [chars spawns corpses]))
-      (update-object-maps ids->objects geoms->ids
-                          (concat chars spawns corpses)))))
+      (runmap reattach [:chars :spawns :corpses] [chars spawns corpses])
+      (swap! gfx-state-atom
+             #(-> %
+                  (update-object-maps (concat chars spawns corpses))
+                  (process-events game-state events)
+                  update-effects)))))
 
 (defn create-base-materials [asset-manager]
   (let [mat #(Material. asset-manager %)]
@@ -258,7 +322,7 @@
 (defn init-graphics-system [app game-map]
   (let [root-node (.getRootNode app)
         characters-node (Node. "characters-node")
-        gamemap-node (Node. "gamemap-node")
+        game-map-node (Node. "game-map-node")
         spawns-node (Node. "spawns-node")
         corpses-node (Node. "corpses-node")
         nodes {:chars characters-node
@@ -266,30 +330,31 @@
                :mob characters-node
                :spawns spawns-node
                :corpses corpses-node
-               :gamemap gamemap-node
+               :game-map game-map-node
                :root-node root-node}
         input-manager (.getInputManager app)
         asset-manager (doto (.getAssetManager app)
                         (.registerLocator "assets" FileLocator))
         camera (.getCamera app)
-        ids->objects (atom {})
-        geoms->ids (atom {})
         meshes (create-mesh-map asset-manager)
         base-materials (create-base-materials asset-manager)
         textures (create-texture-map asset-manager)
         materials (create-material-map base-materials textures)
         font (.loadFont asset-manager "Interface/Fonts/Default.fnt")
         assets {:meshes meshes :textures textures
-                :materials materials :font font}]
+                :materials materials :font font}
+        gfx-state-atom (atom {:nodes nodes :ids->objects {} :geoms->ids {}
+                              :game-map game-map :assets assets :effects []})]
     (defn pick-target [type]
       (let [ray (ju/get-world-ray input-manager camera)]
-        (ju/pick-target ray (type nodes) @geoms->ids)))
+        (ju/pick-target ray (type nodes) (:geoms->ids @gfx-state-atom))))
     (defn get-target-coords []
-      (ju/get-target-coords input-manager camera (:gamemap nodes)))
+      (ju/get-target-coords input-manager camera (:game-map nodes)))
     (defn set-up-camera [graphics-system game-state]
       ;; Update once to make sure that the player exists in the scene graph
       (cc/update graphics-system {:game-state game-state})
-      (set-up-camera* @ids->objects camera input-manager game-state))
+      (set-up-camera* (:ids->objects @gfx-state-atom) camera
+                      input-manager game-state))
     (defn get-camera-dir []
       (get-camera-dir* camera))
-    (->GraphicsSystem nodes ids->objects geoms->ids game-map assets)))
+    (->GraphicsSystem gfx-state-atom)))
