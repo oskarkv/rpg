@@ -143,8 +143,8 @@
     ([max] (* max (.nextDouble r)))
     ([min max] (+ min (* (- max min) (.nextDouble r)))))
   (defn rand-uniform-int
-    ([max] (.nextInt (inc max)))
-    ([min max] (+ min (.nextInt (inc (- max min)))))))
+    ([max] (.nextInt r (inc max)))
+    ([min max] (+ min (.nextInt r (inc (- max min)))))))
 
 (defmacro def-let [bindings]
   (let [let-expr (macroexpand `(let ~bindings))
