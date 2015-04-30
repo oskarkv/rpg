@@ -753,6 +753,30 @@ Club][borderlands2]. Saker han säger:
     ut med bättre armor.
 
 
+### Pengar i stället för loot av bossar
+
+Två problem med att få den bästa looten ifrån bossar är att det ger incitament
+till att zerga, och att det är svårt för de som ''ligger under'' att få några
+kills och därmed loot. Man skulle kunna göra så att det bästa gearet i stället
+finns att köpa för guld. På så vis får ju stora guilder dela på guldet, fast en
+mindre guild kan kanske få mer per spelare, och därmed snabbare få bra gear.
+
+Det kan också ge en ganska bra reward i PvP, om man droppar guld fast inte
+gear man redan har. Mobs skulle ju förstås kunna droppa gear också, men det
+borde inte finnas raidbossar som droppar det bästa. Och om inte, så varför ha
+raidbossar alls? Det är också nice att om man grindar och har otur med gear så
+får man i alla fall guld. Jag tror att det gör spelet mer beroendeframkallande.
+Tänk t.ex. på Diablo när man inte får upgrades, då tröttnar man efter ett tag.
+Men får man guld så vet man att man snart kan köpa en upgrade. Det bästa gearet
+ska förstås vara väldigt dyrt.
+
+Man skulle också kunna göra så att gearet som NPCs säljer är random, och byts
+ut varje dag. Fördelarna med det är att folk kommer bli ännu mer beroende, och
+dessutom är det lite spännande med nya items varje dag. Det borde kanske inte
+vara *helt* random, utan kanske t.ex. minst ett vapen var annan dag, eller
+nått sånt.
+
+
 PvP rewards
 -----------
 
