@@ -92,7 +92,7 @@
 
 (defn call-times [n f & args]
   (let [n (int n)]
-    (if (or (zero? n) (neg? n))
+    (if-not (pos? n)
       (first args)
       (loop [i (dec n) result (apply f args)]
         (if (zero? i)
@@ -118,8 +118,8 @@
 (defn partial* [f & args]
   (apply partial (flip f) args))
 
-(defn conj-some [xs x]
-  (if (some? x) (conj xs x) xs))
+(defn conj-some [coll x]
+  (if (some? x) (conj coll x) coll))
 
 (defmacro take-at-least-ms [ms & body]
   `(let [start# (current-time-ms)
