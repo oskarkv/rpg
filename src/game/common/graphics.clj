@@ -16,7 +16,8 @@
                          [jme-utils :as ju])
             [game.constants :as consts]
             [clojure.set :as set])
-  (:use game.utils))
+  (:use game.utils
+        game.java-math))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) 0 (- (+ y %2)))
@@ -163,15 +164,15 @@
   (let [rand-normal (fn [] (vec (take 3 (repeatedly #(rand-uniform -1 1)))))]
     {:circle
      (emitter-shape
-       (fn [] (let [v (rand-uniform (* 2 Math/PI))]
-                [(* 0.5 (Math/cos v)) 0 (* 0.5 (Math/sin v))]))
+       (fn [] (let [v (rand-uniform (* 2 pi))]
+                [(* 0.5 (cos v)) 0 (* 0.5 (sin v))]))
        rand-normal)
      :time-circle
      (emitter-shape
        (fn [] (let [period 500
                     v (* (/ (mod (current-time-ms) period) period)
-                         2 Math/PI (rand-uniform 0.9 1.1))]
-                [(* 0.5 (Math/cos v)) 0 (* 0.5 (Math/sin v))]))
+                         2 pi (rand-uniform 0.9 1.1))]
+                [(* 0.5 (cos v)) 0 (* 0.5 (sin v))]))
        rand-normal)}))
 
 (def effects
