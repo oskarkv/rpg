@@ -13,6 +13,17 @@
           (when more
             (list* `assert-args more)))))
 
+(defmacro dotimes* [bindsvec & body]
+  (assert-args
+    (vector? bindsvec) "a vector for its binding"
+    (even? (count bindsvec))
+    "an even number of elements in its bindings vector")
+  (if (> (count bindsvec) 2)
+    `(dotimes ~(vec (take 2 bindsvec))
+       (dotimes* ~(vec (drop 2 bindsvec))
+                 ~@body))
+    `(dotimes ~bindsvec ~@body)))
+
 (defmacro while-let [bindingvec & body]
   (assert-args
     (vector? bindingvec) "a vector for its binding"
