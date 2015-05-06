@@ -7,7 +7,8 @@
                  [seesaw "1.4.4"]
                  [org.clojars.oskarkv/kryonet "2.21.0-SNAPSHOT"]
                  [org.clojars.oskarkv/jmonkeyengine "3.0.0"]
-                 [jme3jfx "0.1.0-SNAPSHOT"]]
+                 [jme3jfx "0.1.0-SNAPSHOT"]
+                 [net.mikera/imagez "0.5.0"]]
   :resource-paths ["assets"]
   :jvm-opts ["-XX:-OmitStackTraceInFastThrow"
              "-Djavafx.animation.fullspeed=true"]

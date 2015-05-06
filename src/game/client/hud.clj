@@ -1,4 +1,5 @@
-(defonce force-toolkit-init (javafx.embed.swing.JFXPanel.))
+(in-ns 'game.client.hud)
+(def force-toolkit-init (javafx.embed.swing.JFXPanel.))
 (javafx.application.Platform/setImplicitExit false)
 
 (ns game.client.hud

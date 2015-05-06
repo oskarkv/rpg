@@ -9,3 +9,5 @@
 (def sqrt #(Math/sqrt %))
 
 (def atan2 #(Math/atan2 %1 %2))
+
+(def abs #(Math/abs %))

@@ -339,7 +339,7 @@
 
 (defn calculate-movement-direction
   [{:keys [base-move-dir own-id looking-dir] :as game-state}]
-  (let [angle (gmath/angle-between-vecs [0 1] looking-dir)
+  (let [angle (gmath/angle-between [0 1] looking-dir)
         new-move-dir (map float (gmath/rotate-vec base-move-dir angle))
         old-move-dir (map float (get-in game-state [:chars own-id :move-dir]))]
     (when-not (rec== new-move-dir old-move-dir)
