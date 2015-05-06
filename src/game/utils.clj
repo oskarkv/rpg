@@ -114,7 +114,8 @@
   ([x] true)
   ([x y]
    (cond (and (number? x) (number? y)) (== x y)
-         (and (coll? x) (coll? y)) (every? true? (map rec== x y))
+         (and (coll? x) (coll? y)) (and (== (count x) (count y))
+                                        (every? true? (map rec== x y)))
          :else (= x y)))
   ([x y & more]
    (if (rec== x y)
