@@ -6,7 +6,7 @@
         game.java-math))
 
 
-(def map-types (zipmap [:wall :floor :monster :start :end] (range)))
+(def tile-types (zipmap [:wall :floor :monster :start :end] (range)))
 
 (def wall? zero?)
 
@@ -24,7 +24,7 @@
   #(wall? (get-in m %)))
 
 (defn make-map
-  ([x y] (make-map x y (:floor map-types)))
+  ([x y] (make-map x y (:floor tile-types)))
   ([x y v]
    (vec (repeat x (vec (repeat y v))))))
 
@@ -57,7 +57,7 @@
     (poses-between bottom top)))
 
 (defn fill
-  ([m poses] (fill m poses (:wall map-types)))
+  ([m poses] (fill m poses (:wall tile-types)))
   ([m poses v]
    (reduce (fn [m path] (assoc-in m path v))
            m poses)))
@@ -137,7 +137,7 @@
                   [i j])))))
 
 (defn make-image [m]
-  (let [{:keys [wall floor monster start end]} map-types
+  (let [{:keys [wall floor monster start end]} tile-types
         colors (fmap unchecked-int {wall 0xff000000 floor 0xffffffff
                                     monster 0xffff0000 start 0xff00ff00
                                     end 0xff00aaaa})
@@ -174,7 +174,7 @@
       (let [[a b] (closest-pair rooms)
             rect (rectangle-between-points a b 1.5 0.5)
             to-remove (filter #(inside? % rect) walls)
-            new-m (fill m to-remove (:floor map-types))]
+            new-m (fill m to-remove (:floor tile-types))]
         (show-map new-m)
         (recur new-m))
       m)))
@@ -243,18 +243,18 @@
   (first (sort-by #(gmath/distance % point)
                   (first (:rooms (walls-and-rooms m))))))
 
-(defn add-start-and-end [m points]
-  (let [{:keys [start end]} map-types
+(defn start-and-end [m points]
+  (let [{:keys [start end]} tile-types
         points (if (== 1 (count points))
                  (let [[x y] (map-size m)]
                    (shuffle [[0 0] [x y] [0 y] [x 0]]))
                  points)
-        setter (fn [m p v] (assoc-in m (vec (select-close-point m p)) v))]
-    (-> m (setter (first points) start) (setter (last points) end))))
+        close-to #(vec (select-close-point m %))]
+    (zipmap [:start :end]
+            (map close-to [(first points) (last points)]))))
 
-(defn add-monsters [m monsters]
-  (fill m (take monsters (shuffle (remove (wall-in? m) (all-poses m))))
-        (:monster map-types)))
+(defn monster-spawns [m monsters]
+  (take monsters (shuffle (remove (wall-in? m) (all-poses m)))))
 
 (defn make-round-rooms [num-points radius monsters percent]
   (let [points (random-points-chain num-points)
@@ -268,14 +268,14 @@
         {:keys [maxx maxy minx miny]} (find-bounds centers)
         ;; +1 because if a point is at n, the map needs n+1 cells
         [x y] (map #(+ % r+1 1) [maxx maxy])
-        m (make-map x y (:wall map-types))
+        m (make-map x y (:wall tile-types))
         m (reduce (fn [m* c] (fill m* (points-in-circle c radius)
-                                   (:floor map-types)))
+                                   (:floor tile-types)))
                   m centers)
         m (-> m
               (fill-randomly percent)
               (ca-step 1 5 2)
-              connect-rooms
-              (add-monsters monsters)
-              (add-start-and-end centers))]
-    m))
+              connect-rooms)]
+    (show-map m)
+    (merge {:terrain m :spawns (monster-spawns m monsters)}
+           (start-and-end m centers))))
