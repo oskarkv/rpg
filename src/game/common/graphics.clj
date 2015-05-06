@@ -14,6 +14,7 @@
            (com.jme3.font BitmapText BitmapFont$Align Rectangle))
   (:require (game.common [core :as cc]
                          [jme-utils :as ju])
+            (game [game-map :as gmap])
             [game.constants :as consts]
             [clojure.set :as set])
   (:use game.utils
@@ -28,12 +29,13 @@
 (defn portray-game-map [assets game-map-node game-map]
   (let [w (count game-map)
         h (count (first game-map))
-        quads (for [x (range w) y (range h)]
+        quads (for [x (range w) y (range h)
+                    :when (gmap/walkable-type? (get-in game-map [x y]))]
                 (make-quad x y))
         vertices (into-array (mapcat :vertices quads))
         tex-coords (into-array (mapcat :tex-coords quads))
         indices (int-array (apply concat
-                                  (for [x (range (* w h))]
+                                  (for [x (range (count quads))]
                                     (map #(+ (* 4 x) %) [2 0 1 1 3 2]))))
         mesh (doto (Mesh.)
                (.setBuffer VertexBuffer$Type/Position 3

@@ -66,7 +66,7 @@
     (-> game-state
         (update-in [:chars] prepare-chars-for-sending)
         (update-in [:corpses] prepare-corpses-for-sending)
-        (select-keys [:chars :corpses])
+        (select-keys [:chars :corpses :terrain])
         (assoc-in [:chars id] player))))
 
 (defn update-player [game-state id]

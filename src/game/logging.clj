@@ -3,7 +3,8 @@
             [clojure.pprint :as pp]
             (game.server [core :as sv]
                          [pathfinding :as pf]
-                         [ai :as ai])
+                         [ai :as ai]
+                         [mobs-and-looting :as ml])
             [game.client.core :as cl]
             [game.math :as math]
             [game.editor.core :as ec]

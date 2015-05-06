@@ -347,7 +347,7 @@
       (assoc-in game-state [:chars own-id :move-dir] new-move-dir))))
 
 (defn initial-game-state []
-  (-> (gmap/load-game-map) (dissoc :spawns) (assoc :base-move-dir [0 0])
+  (-> {} (assoc :base-move-dir [0 0])
       (assoc :last-dir-update 0) (assoc :looting #{})))
 
 (defn get-subsystem-events [_ systems]
@@ -404,6 +404,11 @@
                                      (cleanup []
                                        (reset! stop? true))))
             (.setCursorVisible input-manager true)
+            (cc/start @networking-system)
+            (reset! game-state-atom
+                    (login-and-recv-state @game-state-atom @networking-system
+                                          "leif" "star" stop?))
+            (clojure.pprint/pprint (dissoc @game-state-atom :terrain))
             (reset! graphics-system
                     (gfx/init-graphics-system app (:terrain @game-state-atom)))
             (reset! hud-system
@@ -411,10 +416,8 @@
             (reset! input-system
                     (cmi/init-input-system
                       input-manager (ci/load-key-bindings)))
-            (dorun (map cc/start (get-subsystems)))
-            (reset! game-state-atom
-                    (login-and-recv-state @game-state-atom @networking-system
-                                          "leif" "star" stop?))
+            (dorun (map cc/start (remove #{@networking-system}
+                                         (get-subsystems))))
             (gfx/set-up-camera @graphics-system @game-state-atom)))
         simple-update-fn
         (fn []

@@ -17,12 +17,12 @@
                          [inventory :as inv]))
   (:use game.utils))
 
-(defn new-player [username]
+(defn new-player [username spawn-pos]
   (->
     {:name username
      :speed 2
-     :pos [1 1]
-     :bind-spot [1 1]
+     :pos spawn-pos
+     :bind-spot spawn-pos
      :move-dir [0 0]
      :type :player
      :attacking false
@@ -46,7 +46,8 @@
   (let [key-value-store (:kvs game-state)
         {:keys [id username password]} event
         player (or (kvs/load key-value-store username)
-                   (new-player username))
+                   (new-player username
+                               (:player-spawn game-state)))
         old-players (:player-ids game-state)
         new-game-state (-> game-state
                            (assoc-in [:chars id] player)
