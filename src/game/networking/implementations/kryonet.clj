@@ -62,12 +62,13 @@
     (.addListener base-object listener)
     system))
 
-(defn construct-server [port conn-fn recv-fn disc-fn]
-  {:net-sys (construct-system (Server.) ->KryonetServer
-                              [port] conn-fn recv-fn disc-fn)})
-
-(defn construct-client [address port conn-fn recv-fn disc-fn]
-  (let [client (Client.)]
-    {:net-sys (construct-system client ->KryonetClient
-                                [address port] conn-fn recv-fn disc-fn)
-     :conn client}))
+(let [buffer-size 50000]
+  (defn construct-server [port conn-fn recv-fn disc-fn]
+    (let [server (Server. buffer-size buffer-size)]
+      {:net-sys (construct-system server ->KryonetServer
+                                  [port] conn-fn recv-fn disc-fn)}))
+  (defn construct-client [address port conn-fn recv-fn disc-fn]
+    (let [client (Client. buffer-size buffer-size)]
+      {:net-sys (construct-system client ->KryonetClient
+                                  [address port] conn-fn recv-fn disc-fn)
+       :conn client})))
