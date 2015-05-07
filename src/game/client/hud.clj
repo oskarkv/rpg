@@ -122,7 +122,7 @@
                           (f))))]
     (add-handler
       :entered
-      #(let [p (.localToScene node const/inv-icon-size 0)]
+      #(let [p (.localToScene node (double const/inv-icon-size) (double 0))]
          (add-children ttpane [(doto (tree->jfx tt nil)
                                  (relocate (.getX p) (.getY p)))])))
     (add-handler
