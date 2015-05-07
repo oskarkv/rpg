@@ -39,18 +39,6 @@
         {:new-game-state game-state :new-events new-events
          :new-msgs new-msgs}))))
 
-; de 2 fn:sen under är bara kvar pga editorn
-(defn process-taps [game-state taps process-tap]
-  (loop [[tap & more] taps game-state game-state events []]
-    (if tap
-      (let [{:keys [new-game-state event]} (process-tap game-state tap)]
-        (recur more (or new-game-state game-state) (conj events event)))
-      {:new-game-state game-state
-       :events (remove nil? events)})))
-
-(defn process-player-input [game-state key-state process-tap]
-  (process-taps game-state (:taps key-state) process-tap))
-
 (defmacro call-update-fns [game-state events hook-fn & calls]
   (with-gensyms [new-game-state new-events all-events]
     (if (seq calls)
