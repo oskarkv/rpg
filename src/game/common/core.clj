@@ -1,4 +1,5 @@
-(ns game.common.core)
+(ns game.common.core
+  (:refer-clojure :exclude [update]))
 
 (def port 12345)
 
