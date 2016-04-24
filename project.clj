@@ -11,5 +11,6 @@
                  [net.mikera/imagez "0.10.0"]]
   :resource-paths ["assets"]
   :jvm-opts ["-XX:-OmitStackTraceInFastThrow"
-             "-Djavafx.animation.fullspeed=true"]
+             "-Djavafx.animation.fullspeed=true"
+             "-Dclojure.compiler.direct-linking=false"]
   :global-vars {*warn-on-reflection* false})
