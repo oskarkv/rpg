@@ -175,7 +175,6 @@
             rect (rectangle-between-points a b 1.5 0.5)
             to-remove (filter #(inside? % rect) walls)
             new-m (fill m to-remove (:floor tile-types))]
-        (show-map new-m)
         (recur new-m))
       m)))
 
@@ -276,6 +275,5 @@
               (fill-randomly percent)
               (ca-step 1 5 2)
               connect-rooms)]
-    (show-map m)
     (merge {:terrain m :spawns (monster-spawns m monsters)}
            (start-and-end m centers))))
