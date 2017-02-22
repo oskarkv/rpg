@@ -6,10 +6,14 @@
                  [robert/hooke "1.3.0"]
                  [seesaw "1.4.4"]
                  [org.clojars.oskarkv/kryonet "2.21.0-SNAPSHOT"]
-                 [org.clojars.oskarkv/jmonkeyengine "3.0.0"]
-                 [jme3jfx "0.1.0-SNAPSHOT"]
+                 [org.jmonkeyengine/jme3-core "3.1.0-stable"]
+                 [org.jmonkeyengine/jme3-desktop "3.1.0-stable"]
+                 [org.jmonkeyengine/jme3-lwjgl "3.1.0-stable"]
+                 [com.jme3x/jfx "2.184.2016-04-30_145140-ccbd413"]
                  [net.mikera/imagez "0.10.0"]]
   :resource-paths ["assets"]
+  :repositories [["bintray" "https://jcenter.bintray.com"]
+                 ["bintrayjme" "http://dl.bintray.com/jmonkeyengine/contrib"]]
   :jvm-opts ["-XX:-OmitStackTraceInFastThrow"
              "-Djavafx.animation.fullspeed=true"
              "-Dclojure.compiler.direct-linking=false"]
