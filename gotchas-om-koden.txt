@@ -1,0 +1,26 @@
+Randomsaker
+===========
+* Protocol/implementationer blir cacheade, så om man ändrar på dem kan man
+  behöva starta om repln.
+* Man måste calla (add-logging-wrappers) för att logging ska fungera.
+
+
+Servern
+=======
+
+game-state består av:
+* chars
+* player-ids
+* corpses
+* last-move
+* last-regen
+* effects
+* to-spawn
+
+* terrain
+* player-spawn
+* spawns
+
+* kvs
+
+
