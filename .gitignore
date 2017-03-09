@@ -33,6 +33,7 @@ profiles.clj
 # Test data
 /data
 
+vimeditbuf.sh
 assets/tmp
 *.bat
 treasure_chest.txt
