@@ -76,7 +76,10 @@
     MouseButton/SECONDARY const/mouse-right
     MouseButton/MIDDLE const/mouse-middle))
 
-(defmulti tree->jfx (fn [tree hud-state] (:type tree)))
+(defmulti tree->jfx
+  "Takes a description of a HUD element (a tree structure) in Clojure data, and
+   creates the JavaFX objects to represent it."
+  (fn [tree hud-state] (:type tree)))
 
 (defmulti concrete-event (fn [abstract-event jfx-event] (:type abstract-event)))
 
@@ -130,18 +133,22 @@
       #(clear-children ttpane)))
   node)
 
-(defn fix-common-things
-  [node hud-state {:keys [pos size id children event classes tooltip]}]
-  (cond-> node
-    classes (doto (-> .getStyleClass (.addAll (into-array classes))))
-    event (add-game-event-maker event hud-state)
-    tooltip (add-tooltip-stuff hud-state tooltip)
-    id (doto (.setId id))
-    pos (relocate pos)
-    size (set-size size)
-    children (add-children (map #(tree->jfx % hud-state) children))))
+(defn fix-common-things [node hud-state tree]
+  (let [{:keys [pos size id children event classes tooltip]} tree]
+    (cond-> node
+      classes (doto (-> .getStyleClass (.addAll (into-array classes))))
+      event (add-game-event-maker event hud-state)
+      tooltip (add-tooltip-stuff hud-state tooltip)
+      id (doto (.setId id))
+      pos (relocate pos)
+      size (set-size size)
+      children (add-children (map #(tree->jfx % hud-state) children)))))
 
-(defmacro tree->jfx-method [class-name cargs kword]
+(defmacro tree->jfx-method
+  "Converts a tree description to an object by creating an instance of
+   class-name, passing to the constructor the cargs. The kword is the
+   multimethod dispatch value."
+  [class-name cargs kword]
   `(defmethod tree->jfx ~kword [~'tree ~'hud-state]
      (doto (new ~class-name ~@cargs)
        (fix-common-things ~'hud-state ~'tree))))
@@ -226,18 +233,18 @@
     (runmap #(relocate % (or (get-in hud-state [:positions (%2 0)])
                              (get-in hud-state [:positions :other])))
             nodes new-paths)
-    (-> (apply update-in hud-state [:invs] merge
+    (-> (apply update hud-state :invs merge
                (map (fn [p n h]
                       [p {:node n :old-hash h}])
                     new-paths nodes hashes))
-        (update-in [:jfx-changes] conj hud-changes))))
+        (update :jfx-changes conj hud-changes))))
 
 (defn remove-inventories [hud-state gone-paths]
   (let [invs-pane (get-in hud-state [:panes :invs])
         gone-nodes (map #(get-in hud-state [:invs % :node]) gone-paths)
         hud-changes #(remove-children invs-pane gone-nodes)]
-    (-> (apply update-in hud-state [:invs] dissoc gone-paths)
-        (update-in [:jfx-changes] conj hud-changes))))
+    (-> (apply update hud-state :invs dissoc gone-paths)
+        (update :jfx-changes conj hud-changes))))
 
 (defn open-inventories [{:keys [looting inv-open?] :as game-state}]
   (set (cond-> (map #(vector :corpses % :drops) looting)

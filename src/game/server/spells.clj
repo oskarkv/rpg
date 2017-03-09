@@ -19,20 +19,20 @@
       {:new-game-state
        (update-in game-state [:chars target] cb/give-char :hp amount)
        :new-effect (-> e
-                       (update-in [:decay-time] + (int (* tick-time 1000)))
-                       (update-in [:ticks-left] dec))})))
+                       (update :decay-time + (int (* tick-time 1000)))
+                       (update :ticks-left dec))})))
 
 (defn heal-over-time [amount ticks tick-time]
   (fn [game-state caster target]
-    (update-in game-state [:effects]
-               assoc (b/new-game-id)
-               {:decay-time (current-time-ms)
-                :amount amount
-                :target target
-                :ticks-left ticks
-                :tick-time tick-time
-                :source caster
-                :on-decay heal-over-time-tick})))
+    (update game-state :effects
+            assoc (b/new-game-id)
+            {:decay-time (current-time-ms)
+             :amount amount
+             :target target
+             :ticks-left ticks
+             :tick-time tick-time
+             :source caster
+             :on-decay heal-over-time-tick})))
 
 (defn make-spell-effects [& pairs]
   (into {} (for [[k v] (partition 2 pairs)]

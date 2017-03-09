@@ -1,6 +1,7 @@
 (ns game.mobs)
 
 (def mobs-table
+  ;; The first row are the defaults
   [{:hp 100 :speed 1 :damage 10}
    {:name "an orc pawn" :hp 110 :damage 9}
    {:name "spiderling"}

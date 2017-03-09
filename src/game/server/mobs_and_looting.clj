@@ -52,7 +52,7 @@
                      {:type :s-spawn-mobs
                       :mobs (b/prepare-chars-for-sending new-mobs-map)}])
     (-> game-state
-        (update-in [:chars] merge new-mobs-map)
+        (update :chars merge new-mobs-map)
         (assoc :to-spawn (call-times num-mobs pop to-spawn)))))
 
 (defmethod b/process-event :c-loot-corpse [game-state {:keys [id corpse-id]}]
@@ -99,7 +99,7 @@
 
 (defmethod b/process-event :decay-corpses [game-state {:keys [ids]}]
   (b/enqueue-msgs [(:player-ids game-state) {:type :s-decay-corpses :ids ids}])
-  (update-in game-state [:corpses] #(apply dissoc % ids)))
+  (update game-state :corpses #(apply dissoc % ids)))
 
 (defn check-spawns [{:keys [to-spawn] :as game-state}]
   (let [curr-time (current-time-ms)

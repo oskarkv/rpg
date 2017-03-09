@@ -55,7 +55,7 @@
      (let [{group# ~type} (group-by (fn [[id# char#]] (:type char#))
                                     (:chars game-state#))
            move-char# #(~move-fn % ~@args)]
-       (update-in game-state# [:chars] into (fmap move-char# group#)))))
+       (update game-state# :chars into (fmap move-char# group#)))))
 
 (defmovefn move-players :player move-player move-time-delta last-move)
 

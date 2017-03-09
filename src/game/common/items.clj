@@ -135,7 +135,7 @@
                  number? {:weight e}
                  types {:type e}
                  keyword? {e true})))
-      (update-in [:slots] concrete-slots)
+      (update :slots concrete-slots)
       remove-map-nils))
 
 (defn check-item [item]

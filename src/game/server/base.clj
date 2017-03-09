@@ -49,11 +49,9 @@
   (make-preparation-fn
     (concat keys-about-others [:damage :delay :exp :inv :gear :spells])))
 
-(def prepare-char-for-sending
-  (make-preparation-fn keys-about-others))
+(def prepare-char-for-sending (make-preparation-fn keys-about-others))
 
-(def prepare-corpse-for-sending
-  (make-preparation-fn [:name :pos :type]))
+(def prepare-corpse-for-sending (make-preparation-fn [:name :pos :type]))
 
 (defn prepare-chars-for-sending [m]
   (fmap prepare-char-for-sending m))
@@ -64,8 +62,8 @@
 (defn prepare-for-sending-to [id game-state]
   (let [player (prepare-char-for-owner (get-in game-state [:chars id]))]
     (-> game-state
-        (update-in [:chars] prepare-chars-for-sending)
-        (update-in [:corpses] prepare-corpses-for-sending)
+        (update :chars prepare-chars-for-sending)
+        (update :corpses prepare-corpses-for-sending)
         (select-keys [:chars :corpses :terrain])
         (assoc-in [:chars id] player))))
 

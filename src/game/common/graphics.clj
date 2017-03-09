@@ -203,7 +203,7 @@
               :images-x 1
               :images-y 1}}
     (fmap (fn [m] (merge {:duration 1 :position [0 0 0]} m)))
-    (fmap (fn [m] (update-in m [:shape] emitter-shapes)))))
+    (fmap (fn [m] (update m :shape emitter-shapes)))))
 
 (defmulti process-event (fn [gfx-state game-state event] (:type event)))
 
@@ -216,9 +216,9 @@
         emitter (particle-emitter mats settings)]
     (.setLocalTranslation emitter (ju/vectorf (:position settings)))
     (.attachChild (get-in gfx-state [:ids->objects target :node]) emitter)
-    (update-in gfx-state [:effects] conj
-               {:node emitter :end-time (+ (current-time-ms)
-                                           (* 1000 (:duration settings)))})))
+    (update gfx-state :effects conj
+            {:node emitter :end-time (+ (current-time-ms)
+                                        (* 1000 (:duration settings)))})))
 
 (defn process-events [gfx-state game-state events]
   (reduce (fn [gfx e] (or (process-event gfx game-state e) gfx))
@@ -239,7 +239,7 @@
     (runmap #(.setParticlesPerSec (:node %) 0) expired)
     (-> gfx-state
         (assoc :effects remains)
-        (update-in [:dying-effects] into expired)
+        (update :dying-effects into expired)
         remove-dead-effects)))
 
 (deftype GraphicsSystem
@@ -273,6 +273,7 @@
           reattach (fn [k objs]
                      (.detachAllChildren (k nodes))
                      (attach-objects objs (k nodes)))]
+      ;; Removes obsolete objects
       (runmap reattach [:chars :spawns :corpses] [chars spawns corpses])
       (swap! gfx-state-atom
              #(-> %

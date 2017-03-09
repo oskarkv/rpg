@@ -49,7 +49,7 @@
 
 (defn split-name-and-number [name]
   (if (re-find #"#" name)
-    (update-in (str/split name #"#") [1] #(Integer/parseInt %))
+    (update (str/split name #"#") 1 #(Integer/parseInt %))
     [name nil]))
 
 (defn init-input-system [input-manager user-key-bindings]

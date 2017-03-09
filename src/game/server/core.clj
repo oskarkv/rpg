@@ -51,7 +51,7 @@
         old-players (:player-ids game-state)
         new-game-state (-> game-state
                            (assoc-in [:chars id] player)
-                           (update-in [:player-ids] conj id))
+                           (update :player-ids conj id))
         gs-for-entrant (b/prepare-for-sending-to id new-game-state)]
     (b/enqueue-msgs [[id] {:type :s-game-state :game-state gs-for-entrant}]
                     [[id] {:type :s-own-id :id id}]

@@ -27,7 +27,7 @@
   (-> input-manager .getCursorPosition vec))
 
 (defn get-mouse-pos [input-manager]
-  (update-in (get-real-mouse-pos input-manager) [1] #(- consts/resolution-y %)))
+  (update (get-real-mouse-pos input-manager) 1 #(- consts/resolution-y %)))
 
 (defn get-collisions [objects collidable]
   (let [results (CollisionResults.)]

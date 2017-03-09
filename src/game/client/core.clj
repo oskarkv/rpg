@@ -61,17 +61,17 @@
     (update-in game-state [:chars target :hp] - damage)))
 
 (defmethod process-event :s-spawn-mobs [game-state {:keys [mobs]}]
-  (update-in game-state [:chars] merge mobs))
+  (update game-state :chars merge mobs))
 
 (defmethod process-event :s-decay-corpses [game-state {:keys [ids]}]
   (-> game-state
-      (update-in [:corpses] #(apply dissoc % ids))
-      (update-in [:looting] #(apply disj % ids))))
+      (update :corpses #(apply dissoc % ids))
+      (update :looting #(apply disj % ids))))
 
 (defmethod process-event :s-loot [game-state {:keys [corpse-id drops]}]
   (-> game-state
       (assoc-in [:corpses corpse-id :drops] drops)
-      (update-in [:looting] conj corpse-id)))
+      (update :looting conj corpse-id)))
 
 (defmethod process-event :s-loot-item-ok [game-state {:keys [from-path]}]
   (ccfns/loot-item game-state from-path [:inv]))
@@ -82,9 +82,10 @@
     (dissoc-in game-state from-path)))
 
 (defmethod process-event :s-regen-tick [game-state {:keys [update-map]}]
-  (update-in game-state [:chars] (partial merge-with merge) update-map))
+  (update game-state :chars (partial merge-with merge) update-map))
 
 (defmethod process-event :s-heal [game-state {:keys [target by amount]}]
+  ;; The server makes sure the amount does not make the :hp go over :max-hp
   (update-in game-state [:chars target :hp] + amount))
 
 (defn update-own-stats [{:keys [own-id gear] :as game-state}]
@@ -199,7 +200,7 @@
   (update-in game-state [:chars by :mana] - mana-cost))
 
 (defmethod process-event :open-inv [game-state _]
-  (update-in game-state [:inv-open?] not))
+  (update game-state :inv-open? not))
 
 (defn my-inv? [path]
   (= :inv (first path)))
@@ -268,10 +269,10 @@
 
 (defmethod process-event :inv-click [game-state {:keys [path button pressed]}]
   (-> (cond
-        (and pressed (= button consts/mouse-left)
-             (#{:inv :gear} (path 0))) (pick-up-or-drop-item game-state path)
-        (and pressed (= button consts/mouse-right)) (activate-item game-state
-                                                                   path))
+        (and pressed (= button consts/mouse-left) (#{:inv :gear} (path 0)))
+        (pick-up-or-drop-item game-state path)
+        (and pressed (= button consts/mouse-right))
+        (activate-item game-state path))
       (#(if %
           (dissoc % :destroying-item)
           (dissoc game-state :destroying-item)))))
@@ -347,8 +348,8 @@
       (assoc-in game-state [:chars own-id :move-dir] new-move-dir))))
 
 (defn initial-game-state []
-  (-> {} (assoc :base-move-dir [0 0])
-      (assoc :last-dir-update 0) (assoc :looting #{})))
+  (-> {} (assoc :base-move-dir [0 0]) (assoc :last-dir-update 0)
+      (assoc :looting #{})))
 
 (defn get-subsystem-events [_ systems]
   (apply enqueue-events (mapcat cc/get-events systems)))
@@ -450,7 +451,7 @@
         stop-fn
         (fn [this]
           (reset! stop? true)
-          (dorun (map cc/stop (get-subsystems)))
+          (runmap cc/stop (get-subsystems))
           (.stop this))]
     [stop? (ccfns/create-jme3-app start-fn stop-fn
                                   simple-init-fn simple-update-fn

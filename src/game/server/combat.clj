@@ -24,9 +24,9 @@
         req-exp (stats/exp-to-level (inc level))]
     (if (> exp-sum req-exp)
       (-> char
-          (update-in [:level] inc)
-          (assoc-in [:exp] (- exp-sum req-exp)))
-      (update-in char [:exp] + new-exp))))
+          (update :level inc)
+          (assoc :exp (- exp-sum req-exp)))
+      (update char :exp + new-exp))))
 
 (defn distribute-exp [game-state char]
   (let [{:keys [damaged-by tagged-by]} char
@@ -44,8 +44,8 @@
         respawn-time (get-in game-state [:spawns spawn-id :respawn-time])]
     (-> game-state
         (dissoc-in [:chars id])
-        (update-in [:to-spawn] conj
-                   [spawn-id (+ (current-time-ms) (* 1000 respawn-time))])
+        (update :to-spawn conj
+                [spawn-id (+ (current-time-ms) (* 1000 respawn-time))])
         (distribute-exp mob))))
 
 (defn player-death [game-state {:keys [id]}]
@@ -61,7 +61,7 @@
   (-> char
       (select-keys [:name :type :drops :pos :tagged-by])
       (assoc :decay-time (+ (current-time-ms) const/corpse-decay-time))
-      (update-in [:name] #(str % "'s corpse"))))
+      (update :name #(str % "'s corpse"))))
 
 (defn death-msgs [game-state {:keys [id corpse-id]}]
   (let [all-players (:player-ids game-state)
@@ -87,7 +87,7 @@
         ngs (-> (if (ccfns/mob? char)
                   (mob-death game-state event)
                   (player-death game-state event))
-                (update-in [:corpses] assoc corpse-id corpse))]
+                (update :corpses assoc corpse-id corpse))]
     (apply b/enqueue-msgs (death-msgs ngs event))
     (when (leveled-up? game-state ngs char)
       (b/enqueue-events {:type :level-up :id (:tagged-by char)}))
@@ -100,7 +100,7 @@
   (let [tag #(or % id)
         set-damage #(+ (or % 0) damage)]
     (-> char
-        (update-in [:tagged-by] tag)
+        (update :tagged-by tag)
         (update-in [:damaged-by id] set-damage))))
 
 (defn process-hit [game-state event]
@@ -171,7 +171,7 @@
   (min amount (- (char (pool-max-key pool-key)) (char pool-key))))
 
 (defn give-char [char pool-key amount]
-  (update-in char [pool-key] + (amount-to-give char pool-key amount)))
+  (update char pool-key + (amount-to-give char pool-key amount)))
 
 (defn regen-pool [char pool-key]
   (give-char char pool-key (or (char (pool-regen-key pool-key)) 0)))
@@ -187,5 +187,5 @@
     (when (> curr-time (+ last-regen regen-interval))
       (b/enqueue-events {:type :regen-tick})
       (-> game-state
-          (update-in [:chars] #(fmap regen-char %))
-          (update-in [:last-regen] + regen-interval)))))
+          (update :chars #(fmap regen-char %))
+          (update :last-regen + regen-interval)))))

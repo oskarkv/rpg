@@ -202,7 +202,7 @@
     (cond-> (update-in ngs from-path
                        (if (= total-looted quantity)
                          (constantly nil)
-                         #(update-in % [:quantity] - total-looted)))
+                         #(update % :quantity - total-looted)))
       extra-slot (assoc-in (conj to-inv-path extra-idx)
                            (assoc item :quantity extra-n)))))
 
