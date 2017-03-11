@@ -223,28 +223,26 @@
                    :classes ["inventory"]}]
     container))
 
-(defn create-inventories [hud-state game-state new-paths]
+(defn create-inventories [hud-state game-state paths]
   (let [invs-pane (get-in hud-state [:panes :invs])
         nodes (map (comp #(tree->jfx % hud-state)
                          #(create-inventory game-state %))
-                   new-paths)
-        hashes (map #(hash (get-in game-state %)) new-paths)
-        hud-changes #(add-children invs-pane nodes)]
+                   paths)
+        hashes (domap #(hash (get-in game-state %)) paths)]
     (runmap #(relocate % (or (get-in hud-state [:positions (%2 0)])
                              (get-in hud-state [:positions :other])))
-            nodes new-paths)
-    (-> (apply update hud-state :invs merge
-               (map (fn [p n h]
-                      [p {:node n :old-hash h}])
-                    new-paths nodes hashes))
-        (update :jfx-changes conj hud-changes))))
+            nodes paths)
+    (fx-run-later (add-children invs-pane nodes))
+    (apply update hud-state :invs merge
+           (map (fn [p n h]
+                  [p {:node n :old-hash h}])
+                paths nodes hashes))))
 
-(defn remove-inventories [hud-state gone-paths]
+(defn remove-inventories [hud-state paths]
   (let [invs-pane (get-in hud-state [:panes :invs])
-        gone-nodes (map #(get-in hud-state [:invs % :node]) gone-paths)
-        hud-changes #(remove-children invs-pane gone-nodes)]
-    (-> (apply update hud-state :invs dissoc gone-paths)
-        (update :jfx-changes conj hud-changes))))
+        gone-nodes (map #(get-in hud-state [:invs % :node]) paths)]
+    (fx-run-later (remove-children invs-pane gone-nodes))
+    (apply update hud-state :invs dissoc paths)))
 
 (defn open-inventories [{:keys [looting inv-open?] :as game-state}]
   (set (cond-> (map #(vector :corpses % :drops) looting)
@@ -495,10 +493,6 @@
     (update-cooldowns new-hud-state game-state)
     new-hud-state))
 
-(defn update-javafx [{:keys [jfx-changes] :as hud-state}]
-  (fx-run-later (doseq [f jfx-changes] (f)))
-  (assoc hud-state :jfx-changes []))
-
 (deftype HudSystem [hud-state-atom gui-manager fxhud]
   cc/Lifecycle
   (start [this]
@@ -516,8 +510,7 @@
                 (update-inventories game-state)
                 (update-char-panes game-state)
                 (update-spellbar game-state)
-                (update-destroy-dialog game-state)
-                (update-javafx)))))
+                (update-destroy-dialog game-state)))))
 
 (defn random-string [length]
   (->> #(rand-nth "abcdefghijklmnopqrstuvxyz0123456789")
@@ -547,8 +540,7 @@
         mtm-pane (doto (Pane.) add-stylesheet)
         panes [(Pane.) (Pane.) (doto (Pane.) (.setMouseTransparent true))]
         panes-map (zipmap [:chars :invs :tooltip] panes)
-        hud-state-atom (atom {:jfx-changes []
-                              :panes panes-map
+        hud-state-atom (atom {:panes panes-map
                               :chars-poses {:self [10 10] :target [200 10]}
                               :chars-state {:self {:old-hash nil}
                                             :target {:old-hash nil}}
