@@ -408,7 +408,6 @@
             (reset! game-state-atom
                     (login-and-recv-state @game-state-atom @networking-system
                                           "leif" "star" stop?))
-            (clojure.pprint/pprint (dissoc @game-state-atom :terrain))
             (reset! graphics-system
                     (gfx/init-graphics-system app (:terrain @game-state-atom)))
             (reset! hud-system
