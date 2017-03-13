@@ -507,7 +507,7 @@
   (start [this]
     (.attachHudAsync gui-manager fxhud))
   (stop [this]
-    (.detatchHudAsync gui-manager (first (.getAttachedHuds gui-manager))))
+    (.detachHudAsync gui-manager (first (.getAttachedHuds gui-manager))))
   cc/EventsProducer
   (get-events [this]
     (ccfns/reset-queue (:event-queue @hud-state-atom)))
