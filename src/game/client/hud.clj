@@ -207,7 +207,12 @@
     items/gear-slots-vector
     (keys (get-in game-state path))))
 
-(defn items-paths [game-state path]
+(defn items-paths
+  "Returns a seq of [item path] pairs, from the given path in the game-state.
+   If the original collection was not a map, the order of the returned seq will
+   be the same as the original. If it the original was a map, the order is
+   defined by get-map-order."
+  [game-state path]
   (let [items (get-in game-state path)
         add-to-path (fn [endings] (map #(conj path %) endings))]
     (if (map? items)
@@ -223,7 +228,11 @@
                    :classes ["inventory"]}]
     container))
 
-(defn create-inventories [hud-state game-state paths]
+(defn create-inventories
+  "Returns a new hud-state, with new inventories, based on what's in the
+   game-state at paths. Also attachs the new inventories to the gui-node, as
+   children to the invs pane."
+  [hud-state game-state paths]
   (let [invs-pane (get-in hud-state [:panes :invs])
         nodes (map (comp #(tree->jfx % hud-state)
                          #(create-inventory game-state %))
@@ -530,6 +539,8 @@
   (let [gui-node (.getGuiNode app)
         asset-manager (.getAssetManager app)
         input-manager (.getInputManager app)
+        ;; The mouse slot should be displayed in front of the rest of the HUD,
+        ;; which is at -1.
         mouse-slot (doto (Node. "mouse-slot") (.setLocalTranslation 0 0 1))
         mouse-node (doto (Geometry.
                            "mouse-node"
@@ -549,7 +560,11 @@
                               :input-manager input-manager
                               :event-queue (ref [])
                               :mouse-texture-atom (atom nil)
+                              ;; Mouse texture maker things, not part of the
+                              ;; GUI themselves, only for making the mouse slot
+                              ;; texture.
                               :mtm-pane mtm-pane
+                              :mtm-scene nil
                               :invs {}
                               :mouse-slot mouse-slot
                               :mouse-node mouse-node
