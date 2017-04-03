@@ -22,7 +22,7 @@ augroup clojure_settings
   autocmd FileType clojure :let &colorcolumn=81
 
   " Syntax highlighting
-  autocmd Syntax clojure syntax keyword clojureDefine let def letfn
+  autocmd Syntax clojure syntax keyword clojureDefine let def letfn defnav
   autocmd Syntax clojure syntax keyword clojureRepeat loop while-let dotimes*
   autocmd Syntax clojure syntax keyword clojureCond if when-lets if-lets
   autocmd Syntax clojure syntax keyword clojureMacro assert-args
