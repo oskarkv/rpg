@@ -99,7 +99,7 @@
       (polymorphic-dissoc m k))))
 
 (defn fmap [f m]
-  (into {} (for [[k v] m] [k (f v)])))
+  (into {} (map (fn [[k v]] [k (f v)])) m))
 
 (defn call-times [n f & args]
   (let [n (int n)]
