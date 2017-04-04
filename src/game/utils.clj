@@ -101,7 +101,9 @@
 (defn fmap [f m]
   (into {} (map (fn [[k v]] [k (f v)])) m))
 
-(defn call-times [n f & args]
+(defn call-times
+  "Call f on args, then again on the result, and so on, n times."
+  [n f & args]
   (let [n (int n)]
     (if-not (pos? n)
       (first args)
