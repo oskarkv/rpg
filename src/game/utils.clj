@@ -223,3 +223,6 @@
          ~else)
        ~else)
     then))
+
+(defn iterate-some [f x]
+  (take-while (complement nil?) (iterate #(when % (f %)) x)))
