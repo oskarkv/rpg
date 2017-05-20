@@ -10,6 +10,8 @@
 ;;; algorithm. It is not quite complete. The basic sweep line part is done, but
 ;;; not the preparation of the diagram in a convinient form.
 ;;;
+;;; Having the first two points on the same y might be a problem. Try it!
+;;;
 ;;; The function fortunes returns a map of :edges and :vertices. The edges are
 ;;; pairs of sites which share a border between them. The vertices are triples
 ;;; of sites that lie on a circle, whose mid point is a vertex in the voronoi
