@@ -13,7 +13,10 @@
           (when more
             (list* `assert-args more)))))
 
-(defmacro dotimes* [bindsvec & body]
+(defmacro dotimes*
+  "Like dotimes, but allows more than one binding,
+   e.g. (dotimes* [i (range 10) j (range 10)] body)."
+  [bindsvec & body]
   (assert-args
     (vector? bindsvec) "a vector for its binding"
     (even? (count bindsvec))
