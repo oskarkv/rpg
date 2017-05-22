@@ -310,3 +310,28 @@
             connect-rooms)]
     (merge {:terrain m :spawns (monster-spawns m monsters)}
            (start-and-end m centers))))
+
+(defn expand-point
+  "Makes a small image of a randomly generate area, by randomly expanding a
+   point."
+  [n]
+  (let [size [20 20]
+        p (mapv #(/ % 2) size)
+        wall (tile-type :wall)
+        add (fn add [m [p & ps]]
+              (if ps
+                (assoc-in (add m ps) p wall)
+                (assoc-in m p wall)))]
+    (loop [m (assoc-in (apply make-map size) p wall)
+           ps #{p}
+           border (set (cross-neighbors m p))
+           i n]
+      (if (<= i 0)
+        (show-map m)
+        (let [rps (take (* (count border) 0.7) (shuffle (seq border)))
+              ps (into ps rps)]
+          (recur (add m rps)
+                 ps
+                 (set/difference (into border (apply cross-neighbors m rps))
+                                 (set ps))
+                 (dec i)))))))
