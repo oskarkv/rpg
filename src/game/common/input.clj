@@ -4,12 +4,12 @@
             [clojure.string :as str])
   (:use game.utils)
   (:import (com.jme3.input
-             KeyInput
-             MouseInput)
+            KeyInput
+            MouseInput)
            (com.jme3.input.controls
-             KeyTrigger
-             MouseButtonTrigger
-             ActionListener)))
+            KeyTrigger
+            MouseButtonTrigger
+            ActionListener)))
 
 (defn string->trigger [s]
   (let [[input trigger prefix s]
@@ -19,7 +19,7 @@
           :else
           [KeyInput KeyTrigger "KEY_" s])
         key-code (-> (.getField input (str prefix (.toUpperCase s)))
-                     (.get nil))]
+                   (.get nil))]
     (eval `(new ~trigger ~key-code))))
 
 (defn create-triggers [key-bindings]
@@ -68,11 +68,11 @@
                          (when pressed
                            (let [[name number] (split-name-and-number name)]
                              (ccfns/queue-conj
-                               event-queue-ref {:type (keyword name)
-                                                :number number})))))
+                              event-queue-ref {:type (keyword name)
+                                               :number number})))))
         filter-fn (fn [type]
                     (into-array
-                      (map first (filter #(= type (% 2)) key-bindings))))
+                     (map first (filter #(= type (% 2)) key-bindings))))
         tap-names (filter-fn :tap)
         hold-names (filter-fn :hold)
         start-fn (fn []

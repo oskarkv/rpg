@@ -1,11 +1,8 @@
 (ns game.dungeon-generator
-  (:require [clojure.math.numeric-tower :as math]
-            [game.math :as gmath]
+  (:require [game.math :as math]
             [mikera.image.core :as imz]
             [clojure.set :as set])
-  (:use game.utils
-        game.java-math))
-
+  (:use game.utils))
 
 (def tile-types (zipmap [:wall :floor :monster :start :end] (range)))
 
@@ -51,9 +48,9 @@
   "Returns true iff p is inside polygon (defined as a seq of points)."
   [p polygon]
   (->> (partition 2 1 (cycle polygon))
-       (take (count polygon))
-       (filter #(line-crossed? p %))
-       count odd?))
+    (take (count polygon))
+    (filter #(line-crossed? p %))
+    count odd?))
 
 (defn poses-between
   "Returns a set of the tile positions that exist in a rectangle defined by the
@@ -99,13 +96,18 @@
   (let [[x y] pos
         range* (range (- dist) (inc dist))]
     (remove-illegal-poses
-      m (for [j range* i range*]
-          [(+ x i) (+ y j)]))))
+     m (for [j range* i range*]
+         [(+ x i) (+ y j)]))))
 
-(defn cross-neighbors [m pos]
-  (let [[x y] pos]
-    (remove-illegal-poses
-      m [[(inc x) y] [(dec x) y] [x (inc y)] [x (dec y)]])))
+(defn cross-neighbors
+  "Returns the neighbors, in a cross, of pos in m. If more positions, returns
+   the union of their neighbors."
+  ([m pos]
+   (let [[x y] pos]
+     (set (remove-illegal-poses
+           m [[(inc x) y] [(dec x) y] [x (inc y)] [x (dec y)]]))))
+  ([m pos & more]
+   (set/union (cross-neighbors m pos) (apply cross-neighbors m more))))
 
 (defn flood-fill
   "Returns a set of all room tiles connected to start-pos in m."
@@ -138,7 +140,7 @@
    extending the line segment between p1 and p2 by extra on each end, and then
    widening the line."
   [p1 p2 width extra]
-  (let [fw (gmath/norm-diff p2 p1)
+  (let [fw (math/norm-diff p2 p1)
         bw (v- fw)
         [e-> e<-] (map #(v*s % extra) [fw bw])
         [v1 v2] (map #(v*s % (/ width 2.0))
@@ -156,7 +158,7 @@
              m
              (map vector
                   ps
-                  (map #(apply + (get-vals m (all-neighbors m dist %))) ps)))))
+                  (map #(reduce + (get-vals m (all-neighbors m dist %))) ps)))))
   ([m dist limit steps] (call-times steps #(ca-step % dist limit) m)))
 
 (defn fill-edge
@@ -195,9 +197,9 @@
         others (apply concat other)
         take-some #(take (/ (count %) 3) (shuffle %))
         [a b] (first (sort-by
-                       #(% 2)
-                       (for [a (take-some room) b (take-some others)]
-                         [a b (gmath/distance a b)])))]
+                      #(% 2)
+                      (for [a (take-some room) b (take-some others)]
+                        [a b (math/distance a b)])))]
     [a b]))
 
 (defn connect-rooms [m]
@@ -211,7 +213,7 @@
       m)))
 
 (defn random-angle []
-  (rand-uniform 0 (* 2 pi)))
+  (rand-uniform 0 (* 2 math/pi)))
 
 (defn random-points-chain
   "Returns a seq of random points starting with [0 0], such that any two
@@ -223,10 +225,10 @@
     (loop [ps [start] last-p start]
       (if (< (count ps) n)
         (let [v (random-angle)
-              p (->> [(sin v) (cos v)]
-                     (mapv #(* % extra-dist-between-points))
-                     (mapv + last-p))]
-          (if (every? #(> (gmath/distance p %)
+              p (->> [(math/sin v) (math/cos v)]
+                  (mapv #(* % extra-dist-between-points))
+                  (mapv + last-p))]
+          (if (every? #(> (math/distance p %)
                           (* 0.999 extra-dist-between-points))
                       ps)
             (recur (conj ps p) p)
@@ -258,7 +260,7 @@
 (defn points-in-circle [center radius]
   (let [top (map #(+ % radius) center)
         bottom (map #(- % radius) center)]
-    (remove #(> (gmath/distance % center) radius)
+    (remove #(> (math/distance % center) radius)
             (poses-between bottom top))))
 
 (defn add-intermediate-points [points]
@@ -270,7 +272,7 @@
                            (cycle (partition 2 1 points)))))))
 
 (defn select-close-point [m point]
-  (first (sort-by #(gmath/distance % point)
+  (first (sort-by #(math/distance % point)
                   (first (:rooms (walls-and-rooms m))))))
 
 (defn start-and-end [m points]
@@ -290,11 +292,11 @@
   (let [points (random-points-chain num-points)
         r+1 (+ radius 1)
         centers (-> points
-                    add-intermediate-points
-                    translate-to-min-0
-                    (multiply-points (* 3 radius))
-                    (#(map-over-points math/round %))
-                    (add-to-points [r+1 r+1]))
+                  add-intermediate-points
+                  translate-to-min-0
+                  (multiply-points (* 3 radius))
+                  (#(map-over-points math/round %))
+                  (add-to-points [r+1 r+1]))
         {:keys [maxx maxy minx miny]} (find-bounds centers)
         ;; + 1 because if a point is at n, it's really betwen n and n + 1
         [x y] (map #(+ % r+1 1) [maxx maxy])
@@ -303,8 +305,8 @@
                   m
                   centers)
         m (-> m
-              (fill-randomly ratio)
-              (ca-step 1 5 2)
-              connect-rooms)]
+            (fill-randomly ratio)
+            (ca-step 1 5 2)
+            connect-rooms)]
     (merge {:terrain m :spawns (monster-spawns m monsters)}
            (start-and-end m centers))))

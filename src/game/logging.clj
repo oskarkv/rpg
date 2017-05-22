@@ -65,7 +65,7 @@
 
 (defn add-logging-wrappers []
   (dorun (->> (all-ns) (map #(.name %)) (mapcat ns-interns) (map second)
-              (map rh/clear-hooks)))
+           (map rh/clear-hooks)))
   (add-hooks log-both print-output print-input)
   (add-hooks log-input print-input)
   (add-hooks log-output print-output))

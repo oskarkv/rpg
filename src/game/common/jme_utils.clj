@@ -54,4 +54,4 @@
 
 (defn pick-target [ray node geoms->things]
   (-> (get-collisions node ray)
-      (get-closest-model-collision geoms->things)))
+    (get-closest-model-collision geoms->things)))

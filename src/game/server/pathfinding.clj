@@ -1,8 +1,7 @@
 (ns game.server.pathfinding
   (:use game.utils)
-  (:require [clojure.math.numeric-tower :as math]
-            [clojure.data.priority-map :as pm]
-            (game [math :as gmath]
+  (:require [clojure.data.priority-map :as pm]
+            (game [math :as math]
                   [constants :as consts]
                   [game-map :as gmap])))
 
@@ -26,20 +25,20 @@
   [start stop step]
   (if-not (zero? step)
     (let [first-t (-> start ((if (neg? step) math/floor math/ceil))
-                      (- start) (/ step))
+                    (- start) (/ step))
           t-step (/ 1 (math/abs step))]
       (take-while #((if (neg? step) > <) (+ start (* step %)) stop)
                   (iterate (partial + t-step) first-t)))))
 
 (defn crossed-tiles [[x y :as p] p2 m]
-  (let [[dx dy :as diff-vec] (gmath/norm-diff p2 p)
+  (let [[dx dy :as diff-vec] (math/norm-diff p2 p)
         ipf (fn [getter]
               (integer-points (getter p) (getter p2) (getter diff-vec)))
         x-int-ps (ipf first)
         y-int-ps (ipf second)
         get-tile (fn [[x-indent y-indent] t]
                    (->> [(+ x-indent x (* t dx)) (+ y-indent y (* t dy))]
-                        (get-tile m)))]
+                     (get-tile m)))]
     (concat (map (partial get-tile [dx 0]) x-int-ps)
             (map (partial get-tile [0 dy]) y-int-ps))))
 
@@ -55,7 +54,7 @@
    otherwise false.
    Note: Does not currently work for objects with a radius >= 0.5."
   [p p2 r m]
-  (let [diff-vec (map (partial * r) (gmath/normalize (map - p2 p)))
+  (let [diff-vec (map (partial * r) (math/normalize (map - p2 p)))
         ortho1 ((fn [[x y]] (list (- y) x)) diff-vec)
         ortho2 ((fn [[x y]] (list y (- x))) diff-vec)
         s1 (map + ortho1 p) t1 (map + ortho1 p2)
@@ -90,10 +89,10 @@
   [mat start goal heuristic-factor]
   (let [width (count mat)
         height (count (first mat))]
-    (letfn [(h [{pos :pos}] (* heuristic-factor (gmath/distance pos goal)))
+    (letfn [(h [{pos :pos}] (* heuristic-factor (math/distance pos goal)))
             (g [{:keys [pos parent]}]
               (if parent
-                (+ (:g parent) (gmath/distance pos (parent :pos)))
+                (+ (:g parent) (math/distance pos (parent :pos)))
                 0))
             (make-node [parent pos]
               (let [node {:pos pos :parent parent}
@@ -113,17 +112,17 @@
               (let [adj [[1 0] [0 1] [-1 0] [0 -1]]
                     add-pos (partial mapv + pos)]
                 (->> (take 4 (partition 2 1 (cycle adj)))
-                     (map (fn [[t t2]]
-                            (list* (map + t t2) (map add-pos [t t2]))))
-                     (map (fn [[d t t2]]
-                            (if (every? free-tile? [t t2]) d nil)))
-                     (remove nil?)
-                     (concat adj)
-                     (map add-pos)
-                     (remove (fn [[x y :as tile]]
-                               (or (closed tile) (neg? x) (neg? y)
-                                   (>= x width) (>= y height)
-                                   (not (walkable? (get-in mat tile)))))))))
+                  (map (fn [[t t2]]
+                         (list* (map + t t2) (map add-pos [t t2]))))
+                  (map (fn [[d t t2]]
+                         (if (every? free-tile? [t t2]) d nil)))
+                  (remove nil?)
+                  (concat adj)
+                  (map add-pos)
+                  (remove (fn [[x y :as tile]]
+                            (or (closed tile) (neg? x) (neg? y)
+                                (>= x width) (>= y height)
+                                (not (walkable? (get-in mat tile)))))))))
             (add-to-open [open tile->node [{:keys [pos f] :as node} & more]]
               (if node
                 (if (or (not (contains? open pos))

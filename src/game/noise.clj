@@ -1,38 +1,36 @@
 (ns game.noise
-  (:require [clojure.math.numeric-tower :as math]
-            [game.math :as gmath]
+  (:require [game.math :as math]
             [mikera.image.core :as imz])
-  (:use game.utils
-        game.java-math))
+  (:use game.utils))
 
 ;; The number of different gradients, spread out on the unit circle, to use
 (def different-gradients 8)
 
-(def f-constant (-> 2 (+ 1) sqrt (- 1) (/ 2)))
+(def f-constant (-> 2 (+ 1) math/sqrt (- 1) (/ 2)))
 
-(def g-constant (-> 1 (- (/ 1 (sqrt 3))) (/ 2)))
+(def g-constant (-> 1 (- (/ 1 (math/sqrt 3))) (/ 2)))
 
 (def simplex-radius 0.55)
 
 (def simplex-power 4)
 
 (defn random-spread-unit-vectors [n]
-  (let [slice (/ (* 2 pi) n)
+  (let [slice (/ (* 2 math/pi) n)
         offset (rand slice)
         unit-vec [1 0]]
-    (map #(gmath/rotate-vec unit-vec %)
+    (map #(math/rotate-vec unit-vec %)
          (take n (iterate #(+ % slice) offset)))))
 
 (defn spread-vectors-seq [n]
   (let [vs (random-spread-unit-vectors n)]
-   (apply concat (drop 1 (iterate shuffle vs)))))
+    (apply concat (drop 1 (iterate shuffle vs)))))
 
 (defn make-gradient-table []
   (let [s (atom (spread-vectors-seq different-gradients))]
     (memoize
-      (fn [point]
-        (swap! s next)
-        (first @s)))))
+     (fn [point]
+       (swap! s next)
+       (first @s)))))
 
 (defn skew-transform-fn [f constant]
   (fn transform
@@ -57,10 +55,10 @@
     (map #(map (comp int +) %1 %2) corners (cycle [[xb yb]]))))
 
 (def scale-factor
-  (let [triangle-side (gmath/distance [0 0] (unskew 0 1))
-        to-center (* triangle-side (sqrt (/ 1 3)))
-        max-dot (gmath/dot-product
-                  (gmath/normalize [1 1]) [to-center to-center])]
+  (let [triangle-side (math/distance [0 0] (unskew 0 1))
+        to-center (* triangle-side (math/sqrt (/ 1 3)))
+        max-dot (math/dot-product
+                 (math/normalize [1 1]) [to-center to-center])]
     (/ (* 3 max-dot
           (math/expt (- simplex-radius (math/expt to-center 2))
                      simplex-power)))))
@@ -72,7 +70,7 @@
             gradients (map gradients-map corners)
             gradients-positions (map unskew corners)
             displacement-vs (map #(map - % [x y]) gradients-positions)
-            dots (map gmath/dot-product gradients displacement-vs)]
+            dots (map math/dot-product gradients displacement-vs)]
         (->> (map (fn [disp dot]
                     (-> (max 0 (- simplex-radius
                                   (reduce + (map #(* % %) disp))))

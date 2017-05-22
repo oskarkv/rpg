@@ -4,11 +4,11 @@
 (defmacro assert-args [& pairs]
   `(do (when-not ~(first pairs)
          (throw (IllegalArgumentException.
-                  (str (first ~'&form)
-                       " requires "
-                       ~(second pairs)
-                       " in " ~'*ns*
-                       ":" (:line (meta ~'&form))))))
+                 (str (first ~'&form)
+                      " requires "
+                      ~(second pairs)
+                      " in " ~'*ns*
+                      ":" (:line (meta ~'&form))))))
        ~(let [more (nnext pairs)]
           (when more
             (list* `assert-args more)))))
@@ -18,19 +18,19 @@
    e.g. (dotimes* [i (range 10) j (range 10)] body)."
   [bindsvec & body]
   (assert-args
-    (vector? bindsvec) "a vector for its binding"
-    (even? (count bindsvec))
-    "an even number of elements in its bindings vector")
+   (vector? bindsvec) "a vector for its binding"
+   (even? (count bindsvec))
+   "an even number of elements in its bindings vector")
   (if (> (count bindsvec) 2)
     `(dotimes ~(vec (take 2 bindsvec))
        (dotimes* ~(vec (drop 2 bindsvec))
-                 ~@body))
+         ~@body))
     `(dotimes ~bindsvec ~@body)))
 
 (defmacro while-let [bindingvec & body]
   (assert-args
-    (vector? bindingvec) "a vector for its binding"
-    (= 2 (count bindingvec)) "exactly 2 forms in binding vector")
+   (vector? bindingvec) "a vector for its binding"
+   (= 2 (count bindingvec)) "exactly 2 forms in binding vector")
   (let [form (bindingvec 0) expr (bindingvec 1)]
     `(loop [result# ~expr]
        (when result#
@@ -48,8 +48,8 @@
 
 (defmacro with-gensyms [syms & body]
   (assert-args
-    (vector? syms) "a vector of symbols as it's first argument"
-    (every? symbol? syms) "a vector of symbols as it's first argument")
+   (vector? syms) "a vector of symbols as it's first argument"
+   (every? symbol? syms) "a vector of symbols as it's first argument")
   `(let [~@(apply concat (for [sym syms]
                            [sym `(gensym ~(str sym))]))]
      ~@body))
@@ -84,7 +84,7 @@
                args# (:arglists meta#)
                meta# (assoc meta# :arglists `'~args#)
                sym# (with-meta '~constructor
-                               (assoc meta# :private true))]
+                      (assoc meta# :private true))]
            (eval `(def ~sym# ~~constructor))))))
 
 (defmacro debug [x]
@@ -172,7 +172,7 @@
 
 (defmacro condf [obj & pairs]
   (assert-args
-    (even? (count pairs)) "an odd number of arguments")
+   (even? (count pairs)) "an odd number of arguments")
   (when pairs
     `(if (~(first pairs) ~obj)
        ~(second pairs)
@@ -183,8 +183,8 @@
 
 (defn move-in [m from-path to-path]
   (-> m
-      (assoc-in to-path (get-in m from-path))
-      (dissoc-in from-path)))
+    (assoc-in to-path (get-in m from-path))
+    (dissoc-in from-path)))
 
 (defn swap-in [m path1 path2]
   (let [item1 (get-in m path1)
@@ -206,8 +206,8 @@
 
 (defmacro assert-even-vector [v]
   `(assert-args
-     (vector? ~v) "a vector for its binding"
-     (even? (count ~v)) "an even number of forms in binding vector"))
+    (vector? ~v) "a vector for its binding"
+    (even? (count ~v)) "an even number of forms in binding vector"))
 
 (defmacro when-lets [bindings & body]
   (assert-even-vector bindings)

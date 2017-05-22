@@ -3,7 +3,7 @@
 
 (defmacro make-map [& syms]
   (into {} (for [sym syms]
-    [(keyword sym) sym])))
+             [(keyword sym) sym])))
 
 (defmacro spell-helper [& args]
   `(defn spell ~(vec args)

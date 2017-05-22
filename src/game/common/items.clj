@@ -1,5 +1,5 @@
 (ns game.common.items
-  (:require [clojure.math.numeric-tower :as math]
+  (:require [game.math :as math]
             [clojure.string :as str]
             [game.constants :as consts])
   (:use game.utils
@@ -21,15 +21,15 @@
    held-slots #{:main-hand :off-hand :ranged}
    left-right-slots #{:ear :finger :wrist}
    gear-slots (-> (union armor-slots held-slots)
-                  (difference left-right-slots)
-                  (union (mapcat left-right left-right-slots)))
+                (difference left-right-slots)
+                (union (mapcat left-right left-right-slots)))
    gear-slots-vector (check-gear-slots
-                       gear-slots
-                       [:left-ear :head :face :right-ear
-                        :arms :shoulders :neck :back
-                        :left-wrist :chest :waist :right-wrist
-                        :left-finger :legs :feet :right-finger
-                        :main-hand :off-hand :ranged :hands])
+                      gear-slots
+                      [:left-ear :head :face :right-ear
+                       :arms :shoulders :neck :back
+                       :left-wrist :chest :waist :right-wrist
+                       :left-finger :legs :feet :right-finger
+                       :main-hand :off-hand :ranged :hands])
    equip-slots #{:held :armor}
    melee-weapons #{:sword :staff :club :dagger :spear :axe}
    ranged-weapons #{:crossbow :bow :wand}
@@ -90,13 +90,13 @@
 
 (def item-type-hierarchy
   (-> (make-hierarchy)
-      (derive-many armor-slots :armor)
-      (derive-many held-slots :held)
-      (derive-many equip-slots :equipment)
-      (derive-many melee-weapons :melee)
-      (derive-many ranged-weapons :ranged)
-      (derive-many weapons :weapon)
-      (derive-many non-equip :inv-types)))
+    (derive-many armor-slots :armor)
+    (derive-many held-slots :held)
+    (derive-many equip-slots :equipment)
+    (derive-many melee-weapons :melee)
+    (derive-many ranged-weapons :ranged)
+    (derive-many weapons :weapon)
+    (derive-many non-equip :inv-types)))
 
 (defn what-kind [thing]
   (condf thing
@@ -135,8 +135,8 @@
                  number? {:weight e}
                  types {:type e}
                  keyword? {e true})))
-      (update :slots concrete-slots)
-      remove-map-nils))
+    (update :slots concrete-slots)
+    remove-map-nils))
 
 (defn check-item [item]
   (let [{:keys [name slots type weight race class two-hand stackable]
@@ -196,7 +196,7 @@
 
 (def items
   (check-items
-    [(item "Leather Vest" "leather_armor.png" 5 [:chest] :leather {:armor 20})
-     (item "Snake Skin" "snakeskin.png" 0.1 {:stackable 20})
-     (item "Rusty Sword" "longsword.png" 5 {:damage 3 :delay 20}
-           [:main-hand :off-hand] [:paladin :warrior])]))
+   [(item "Leather Vest" "leather_armor.png" 5 [:chest] :leather {:armor 20})
+    (item "Snake Skin" "snakeskin.png" 0.1 {:stackable 20})
+    (item "Rusty Sword" "longsword.png" 5 {:damage 3 :delay 20}
+          [:main-hand :off-hand] [:paladin :warrior])]))

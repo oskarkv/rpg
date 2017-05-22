@@ -1,10 +1,8 @@
 (ns game.voronoi
-  (:require [clojure.math.numeric-tower :as math]
-            [game.math :as gmath]
+  (:require [game.math :as math]
             [clojure.data.priority-map :as pm]
             [clojure.math.combinatorics :as comb])
-  (:use game.utils
-        game.java-math))
+  (:use game.utils))
 
 ;;; This file contains code to compute voronoi diagrams using Fortune's
 ;;; algorithm. It is not quite complete. The basic sweep line part is done, but
@@ -43,7 +41,7 @@
   "Returns a line, defined by two points, that is the perpendicular bisector of
    the line segment between p1 and p2."
   [p1 p2]
-  (let [midpoint (mapv gmath/avg p1 p2)
+  (let [midpoint (mapv math/avg p1 p2)
         [vx vy] (mapv - p1 p2)
         perp [(- vy) vx]]
     [(mapv - midpoint perp) (mapv + midpoint perp)]))
@@ -236,7 +234,7 @@
    the right side."
   [p1 p2 p3]
   (let [[v2 v1] (map #(apply map - %) (partition 2 1 [p3 p2 p1]))]
-    (neg? (gmath/cross-product-2d v1 v2))))
+    (neg? (math/cross-product-2d v1 v2))))
 
 ;; Kommer det att funka att ha en mutable sak i mappen?
 (defn make-circle-event [[p1 p2 p3] leaf]
@@ -245,7 +243,7 @@
           b2 (bisector p2 p3)
           vertex (line-intersection b1 b2)
           [x y] vertex
-          event-pos [x (- y (gmath/distance vertex p1))]]
+          event-pos [x (- y (math/distance vertex p1))]]
       {:type :circle :vertex vertex :pos event-pos :leaf leaf})))
 
 (defn get-triple [leaf]
@@ -318,8 +316,8 @@
   (loop [diagram {}
          ;; Largest y first
          queue (into (pm/priority-map-by
-                       (fn [[x y] [x2 y2]]
-                         (if (= y y2) (< x x2) (> y y2))))
+                      (fn [[x y] [x2 y2]]
+                        (if (= y y2) (< x x2) (> y y2))))
                      (map #(vector {:type :site :pos %} %) sites))
          tree nil
          valid-events #{}]
@@ -353,4 +351,4 @@
 
 (defn test-fortune* []
   (build-voronoi-diagram
-    (fortunes (mapv #(mapv double %) [[1 1] [2 1] [1 2] [2 2] [1 3]]))))
+   (fortunes (mapv #(mapv double %) [[1 1] [2 1] [1 2] [2 2] [1 3]]))))

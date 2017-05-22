@@ -50,7 +50,7 @@
 
 (defn process-events [game-state event-queue key-value-store]
   (let [args-map {:key-value-store key-value-store}]
-   (ccfns/process-events (process-event* args-map) game-state event-queue)))
+    (ccfns/process-events (process-event* args-map) game-state event-queue)))
 
 (defn get-subsystem-events [_ systems]
   {:events (mapcat cc/get-events systems)})
@@ -74,7 +74,7 @@
             (.detach state-manager (.getState state-manager FlyCamAppState))
             (.setCursorVisible input-manager true)
             (reset! input-system (cmn-input/init-input-system
-                                   input-manager (e-input/load-key-bindings)))
+                                  input-manager (e-input/load-key-bindings)))
             (reset! graphics-system (init-gfx-fn app))
             (dorun (map cc/start (get-subsystems)))))
         simple-update-fn
@@ -104,7 +104,7 @@
           (cc/stop @graphics-system)
           (.stop this))
         app (ccfns/create-jme3-app
-              start-fn stop-fn
-              simple-init-fn simple-update-fn
-              init-app-settings-fn)]
+             start-fn stop-fn
+             simple-init-fn simple-update-fn
+             init-app-settings-fn)]
     app))

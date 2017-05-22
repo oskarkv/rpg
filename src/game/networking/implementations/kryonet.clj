@@ -24,18 +24,17 @@
   (get-connection-id [this]
     (.getID this)))
 
-
 (defmacro defnetworkingsystem [name args & start-body]
   `(deftype- ~name ~args
      cc/Lifecycle
      (~'start [this#]
-       ~@start-body)
+      ~@start-body)
      (~'stop [this#]
-       (.stop ~(first args)))
+      (.stop ~(first args)))
      cc/Updatable
      (~'update [this# _#]
-       ; Maybe having a positive timeout is better.
-       (.update ~(first args) 0))))
+      ;; Maybe having a positive timeout is better.
+      (.update ~(first args) 0))))
 
 (defnetworkingsystem KryonetServer [server port]
   ;; .bind must be called in a thread other than the update thread, but

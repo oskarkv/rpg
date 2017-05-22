@@ -52,8 +52,8 @@
                      {:type :s-spawn-mobs
                       :mobs (b/prepare-chars-for-sending new-mobs-map)}])
     (-> game-state
-        (update :chars merge new-mobs-map)
-        (assoc :to-spawn (call-times num-mobs pop to-spawn)))))
+      (update :chars merge new-mobs-map)
+      (assoc :to-spawn (call-times num-mobs pop to-spawn)))))
 
 (defmethod b/process-event :c-loot-corpse [game-state {:keys [id corpse-id]}]
   (when (ccfns/id-close-enough? game-state id corpse-id consts/loot-distance)
@@ -77,9 +77,9 @@
 
 (defn update-looting [game-state corpse-id]
   (->> (get-in game-state [:corpses corpse-id :looting])
-       (filter #(ccfns/id-close-enough? game-state % corpse-id
-                                        consts/loot-distance))
-       set))
+    (filter #(ccfns/id-close-enough? game-state % corpse-id
+                                     consts/loot-distance))
+    set))
 
 (defn loot-item [game-state id from-path]
   (let [ngs (ccfns/loot-item game-state from-path [:chars id :inv])

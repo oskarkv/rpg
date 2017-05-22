@@ -24,8 +24,8 @@
         req-exp (stats/exp-to-level (inc level))]
     (if (> exp-sum req-exp)
       (-> char
-          (update :level inc)
-          (assoc :exp (- exp-sum req-exp)))
+        (update :level inc)
+        (assoc :exp (- exp-sum req-exp)))
       (update char :exp + new-exp))))
 
 (defn distribute-exp [game-state char]
@@ -43,31 +43,31 @@
         spawn-id (:spawn mob)
         respawn-time (get-in game-state [:spawns spawn-id :respawn-time])]
     (-> game-state
-        (dissoc-in [:chars id])
-        (update :to-spawn conj
-                [spawn-id (+ (current-time-ms) (* 1000 respawn-time))])
-        (distribute-exp mob))))
+      (dissoc-in [:chars id])
+      (update :to-spawn conj
+              [spawn-id (+ (current-time-ms) (* 1000 respawn-time))])
+      (distribute-exp mob))))
 
 (defn player-death [game-state {:keys [id]}]
   (let [char-set (fn [gs key val] (assoc-in gs [:chars id key] val))
         char-get (fn [key] (get-in game-state [:chars id key]))]
     (-> game-state
-        (char-set :pos (char-get :bind-spot))
-        (char-set :hp (char-get :max-hp))
-        (char-set :target nil)
-        (char-set :attacking false))))
+      (char-set :pos (char-get :bind-spot))
+      (char-set :hp (char-get :max-hp))
+      (char-set :target nil)
+      (char-set :attacking false))))
 
 (defn make-corpse [char]
   (-> char
-      (select-keys [:name :type :drops :pos :tagged-by])
-      (assoc :decay-time (+ (current-time-ms) const/corpse-decay-time))
-      (update :name #(str % "'s corpse"))))
+    (select-keys [:name :type :drops :pos :tagged-by])
+    (assoc :decay-time (+ (current-time-ms) const/corpse-decay-time))
+    (update :name #(str % "'s corpse"))))
 
 (defn death-msgs [game-state {:keys [id corpse-id]}]
   (let [all-players (:player-ids game-state)
         char (get-in game-state [:chars id])
         corpse (b/prepare-corpse-for-sending
-                 (get-in game-state [:corpses corpse-id]))
+                (get-in game-state [:corpses corpse-id]))
         msgs-vec [[all-players {:type :s-char-death :id id}]
                   [all-players {:type :s-spawn-corpse
                                 :id corpse-id :corpse corpse}]]]
@@ -87,7 +87,7 @@
         ngs (-> (if (ccfns/mob? char)
                   (mob-death game-state event)
                   (player-death game-state event))
-                (update :corpses assoc corpse-id corpse))]
+              (update :corpses assoc corpse-id corpse))]
     (apply b/enqueue-msgs (death-msgs ngs event))
     (when (leveled-up? game-state ngs char)
       (b/enqueue-events {:type :level-up :id (:tagged-by char)}))
@@ -100,8 +100,8 @@
   (let [tag #(or % id)
         set-damage #(+ (or % 0) damage)]
     (-> char
-        (update :tagged-by tag)
-        (update-in [:damaged-by id] set-damage))))
+      (update :tagged-by tag)
+      (update-in [:damaged-by id] set-damage))))
 
 (defn process-hit [game-state event]
   (let [{:keys [id target damage]} event
@@ -109,8 +109,8 @@
                             (register-damage % id damage)
                             %)]
     (-> game-state
-        (update-in [:chars target :hp] - damage)
-        (update-in [:chars target] register-damage*))))
+      (update-in [:chars target :hp] - damage)
+      (update-in [:chars target] register-damage*))))
 
 (defmethod b/process-event :attack [game-state event]
   (let [{:keys [id target damage last-attack hit]} event
@@ -118,27 +118,27 @@
               true (assoc-in [:chars id :last-attack] last-attack)
               hit (process-hit event))]
     (b/enqueue-events
-      (when (<= (get-in ngs [:chars target :hp]) 0)
-        {:type :death :id target :by id :corpse-id (b/new-game-id)}))
+     (when (<= (get-in ngs [:chars target :hp]) 0)
+       {:type :death :id target :by id :corpse-id (b/new-game-id)}))
     (b/enqueue-msgs [(:player-ids game-state)
                      {:type :s-attack :target target :damage damage :hit hit}])
     ngs))
 
 (defmethod b/process-event :regen-tick [{:keys [chars player-ids]} event]
   (b/enqueue-msgs
-    [player-ids
-     {:type :s-regen-tick :update-map
-      (reduce
-        (fn [m [id c]]
-          (let [updated
-                (into {} (for [k const/regen-pools
-                               :when (some-> (pool-regen-key k) c pos?)]
-                           [k (k c)]))]
-            (if (empty? updated)
-              m
-              (assoc m id updated))))
-        {}
-        chars)}]))
+   [player-ids
+    {:type :s-regen-tick :update-map
+     (reduce
+      (fn [m [id c]]
+        (let [updated
+              (into {} (for [k const/regen-pools
+                             :when (some-> (pool-regen-key k) c pos?)]
+                         [k (k c)]))]
+          (if (empty? updated)
+            m
+            (assoc m id updated))))
+      {}
+      chars)}]))
 
 (defn cooled-down? [{:keys [last-attack delay]}]
   (> (current-time-ms) (+ last-attack (* 1000 delay))))
@@ -187,5 +187,5 @@
     (when (> curr-time (+ last-regen regen-interval))
       (b/enqueue-events {:type :regen-tick})
       (-> game-state
-          (update :chars #(fmap regen-char %))
-          (update :last-regen + regen-interval)))))
+        (update :chars #(fmap regen-char %))
+        (update :last-regen + regen-interval)))))

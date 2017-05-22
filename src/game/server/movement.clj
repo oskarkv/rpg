@@ -1,24 +1,24 @@
 (ns game.server.movement
   (:require (game.common [core-functions :as ccfns])
             (game.server [base :as b])
-            (game [math :as gmath]
+            (game [math :as math]
                   [constants :as consts]))
   (:use game.utils))
 
 (defmethod b/process-event :c-move [game-state {:keys [id pos move-dir]}]
   (-> game-state
-      (update-in [:chars id] merge
-                 {:recv-pos pos :move-dir (gmath/normalize move-dir)
-                  :recv-time (current-time-ms)})))
+    (update-in [:chars id] merge
+               {:recv-pos pos :move-dir (math/normalize move-dir)
+                :recv-time (current-time-ms)})))
 
 (defmethod b/process-event :chars-moved [game-state {ids :moved-ids}]
   (b/enqueue-msgs
-    [(:player-ids game-state)
-     {:type :s-move :positions
-      (into {} (for [id ids
-                     :let [pos (get-in game-state [:chars id :pos])]
-                     :when pos]
-                 [id (map float pos)]))}]))
+   [(:player-ids game-state)
+    {:type :s-move :positions
+     (into {} (for [id ids
+                    :let [pos (get-in game-state [:chars id :pos])]
+                    :when pos]
+                [id (map float pos)]))}]))
 
 (defn move-player* [char time-delta last-move]
   (let [{:keys [pos move-dir recv-pos recv-time speed]} char]
@@ -26,13 +26,13 @@
       (recur (-> char (dissoc :recv-pos) (assoc :pos recv-pos))
              (/ (- last-move recv-time) 1000.0)
              last-move)
-      (assoc char :pos (gmath/extrapolate-pos pos move-dir time-delta speed)))))
+      (assoc char :pos (math/extrapolate-pos pos move-dir time-delta speed)))))
 
 (defn move-mob* [{:keys [pos speed path target] :as mob} time-delta chars]
   (let [target-pos (get-in chars [target :pos])]
-    (if (and path (> (gmath/distance pos target-pos) consts/attack-distance))
+    (if (and path (> (math/distance pos target-pos) consts/attack-distance))
       (let [[next-point & path-left] path
-            time-cost (/ (gmath/distance pos next-point) speed)]
+            time-cost (/ (math/distance pos next-point) speed)]
         (if (< time-cost time-delta)
           (recur (assoc mob :pos next-point :path path-left)
                  (- time-delta time-cost) chars)

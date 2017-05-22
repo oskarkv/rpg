@@ -1,5 +1,5 @@
 (ns game.server.ai
-  (:require (game [math :as gmath]
+  (:require (game [math :as math]
                   [constants :as consts])
             (game.server [pathfinding :as pf]))
   (:use game.utils))
@@ -8,7 +8,7 @@
   (let [{:keys [pos]} mob
         [nearest dist]
         (reduce (fn [[nearest-id dist :as old] [id char]]
-                  (let [new-dist (gmath/distance (:pos char) pos)]
+                  (let [new-dist (math/distance (:pos char) pos)]
                     (if (< new-dist dist)
                       [id new-dist]
                       old)))

@@ -17,9 +17,9 @@
   cc/Updatable
   (update [this events]
     (->> events
-         (filter (fn [msg] (contains? msg-types-set (:type msg))))
-         (map send-msg-fn)
-         dorun)))
+      (filter (fn [msg] (contains? msg-types-set (:type msg))))
+      (map send-msg-fn)
+      dorun)))
 
 (deftype ServerNetworkingSystem [send-msg-fn msg-queue-ref impl-sys]
   cc/Lifecycle
@@ -41,10 +41,10 @@
         id->conn (atom {})
         enqueue (fn [conn game-msg]
                   (ccfns/queue-conj
-                    msg-queue-ref
-                    (assoc game-msg
-                           :id (net-id->game-id
-                                 (protocols/get-connection-id conn)))))
+                   msg-queue-ref
+                   (assoc game-msg
+                          :id (net-id->game-id
+                               (protocols/get-connection-id conn)))))
         conn-fn (fn [conn]
                   (swap! id->conn assoc (protocols/get-connection-id conn) conn)
                   (enqueue conn cc/connect-msg))

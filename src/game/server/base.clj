@@ -47,7 +47,7 @@
 
 (def prepare-char-for-owner
   (make-preparation-fn
-    (concat keys-about-others [:damage :delay :exp :inv :gear :spells])))
+   (concat keys-about-others [:damage :delay :exp :inv :gear :spells])))
 
 (def prepare-char-for-sending (make-preparation-fn keys-about-others))
 
@@ -62,10 +62,10 @@
 (defn prepare-for-sending-to [id game-state]
   (let [player (prepare-char-for-owner (get-in game-state [:chars id]))]
     (-> game-state
-        (update :chars prepare-chars-for-sending)
-        (update :corpses prepare-corpses-for-sending)
-        (select-keys [:chars :corpses :terrain])
-        (assoc-in [:chars id] player))))
+      (update :chars prepare-chars-for-sending)
+      (update :corpses prepare-corpses-for-sending)
+      (select-keys [:chars :corpses :terrain])
+      (assoc-in [:chars id] player))))
 
 (defn update-player [game-state id]
   (let [ngs (update-in game-state [:chars id] ccfns/update-stats)]

@@ -44,11 +44,10 @@
 
 (defn save-zone [game-state key-value-store]
   (kvs/store
-    key-value-store (str consts/zone-folders "gfay") (:game-map game-state)))
+   key-value-store (str consts/zone-folders "gfay") (:game-map game-state)))
 
 (defn load-zone [game-state key-value-store]
   (let [zone (kvs/load key-value-store (str consts/zone-folders "gfay"))
         new-game-state (assoc game-state :game-map zone)]
     (set-spawn-id-ctr (apply max (keys (:spawns zone))))
     new-game-state))
-

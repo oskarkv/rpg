@@ -10,7 +10,7 @@
                          [spells :as csp])
             [game.constants :as const]
             [game.common.jme-utils :as ju]
-            [clojure.math.numeric-tower :as math]
+            [game.math :as math]
             [clojure.set :as set])
   (:import (com.jme3x.jfx GuiManager AbstractHud)
            (com.jme3.texture.plugins AWTLoader)
@@ -103,16 +103,16 @@
 
 (defmacro add-event-handler [node trigger argsv & body]
   `(.addEventHandler
-     ~node
-     (triggers-map ~trigger)
-     (event-handler ~argsv ~@body)))
+    ~node
+    (triggers-map ~trigger)
+    (event-handler ~argsv ~@body)))
 
 (defn add-game-event-maker [node event {:keys [event-queue]}]
   (add-event-handler
-    node (:trigger event) [this e]
+      node (:trigger event) [this e]
     (ccfns/queue-conj
-      event-queue
-      (concrete-event event e)))
+     event-queue
+     (concrete-event event e)))
   node)
 
 (defn add-tooltip-stuff [node hud-state tooltip]
@@ -120,17 +120,17 @@
         tt {:type :label :id "tooltip" :text tooltip}
         add-handler (fn [trigger f]
                       (add-event-handler
-                        node trigger [this e]
+                          node trigger [this e]
                         (when (= (.getTarget e) node)
                           (f))))]
     (add-handler
-      :entered
-      #(let [p (.localToScene node (double const/inv-icon-size) (double 0))]
-         (add-children ttpane [(doto (tree->jfx tt nil)
-                                 (relocate (.getX p) (.getY p)))])))
+     :entered
+     #(let [p (.localToScene node (double const/inv-icon-size) (double 0))]
+        (add-children ttpane [(doto (tree->jfx tt nil)
+                                (relocate (.getX p) (.getY p)))])))
     (add-handler
-      :exited
-      #(clear-children ttpane)))
+     :exited
+     #(clear-children ttpane)))
   node)
 
 (defn fix-common-things [node hud-state tree]
@@ -165,7 +165,8 @@
 (defmethod tree->jfx :arc [tree hud-state]
   (let [r (:size tree)
         c (:center tree)
-        arc (doto (Arc. c c r r 90 360) (.setType ArcType/ROUND)
+        arc (doto (Arc. c c r r 90 360)
+              (.setType ArcType/ROUND)
               (fix-common-things hud-state (dissoc tree :size)))]
     arc))
 
@@ -277,14 +278,14 @@
 (defn update-inventories [hud-state game-state]
   (let [[news gones] (new-and-gone-inventories hud-state game-state)]
     (-> hud-state
-        (remove-inventories gones)
-        (create-inventories game-state news))))
+      (remove-inventories gones)
+      (create-inventories game-state news))))
 
 (defn update-mouse-slot-pos [{:keys [input-manager mouse-slot]}]
   (let [[x y] (->> input-manager ju/get-real-mouse-pos
-                   (map #(+ % (/ const/inv-icon-size -2))))]
+                (map #(+ % (/ const/inv-icon-size -2))))]
     (.setLocalTranslation
-      mouse-slot x y (.z (.getLocalTranslation mouse-slot)))))
+     mouse-slot x y (.z (.getLocalTranslation mouse-slot)))))
 
 (defn create-mouse-texture
   [{:keys [mouse-texture-atom mtm-pane mtm-scene] :as hud-state} item]
@@ -295,8 +296,8 @@
       (add-children mtm-pane
                     [(tree->jfx (dissoc (create-slot item nil) :event) nil)])
       (let [image (-> mtm-scene
-                      (.snapshot nil)
-                      (SwingFXUtils/fromFXImage nil))
+                    (.snapshot nil)
+                    (SwingFXUtils/fromFXImage nil))
             texture (Texture2D. (.load (AWTLoader.) image false))]
         (reset! mouse-texture-atom texture)))))
 
@@ -336,11 +337,11 @@
      :id "char-pane"
      :children
      (concat
-       [{:type :label :text name :id "name-label" :size [w nh]}
-        {:type :label :text level :id "level-label"
-         :pos [(- w (/ th 2)) -5] :size th}]
-       (bar-with-text nh hp max-hp "hp")
-       (when mana (bar-with-text (+ nh bh) mana max-mana "mana")))}))
+      [{:type :label :text name :id "name-label" :size [w nh]}
+       {:type :label :text level :id "level-label"
+        :pos [(- w (/ th 2)) -5] :size th}]
+      (bar-with-text nh hp max-hp "hp")
+      (when mana (bar-with-text (+ nh bh) mana max-mana "mana")))}))
 
 (defn hash-char [char]
   (hash (select-keys char [:level :hp :max-hp :mana :max-mana])))
@@ -379,9 +380,9 @@
 (defn update-char-panes [hud-state game-state]
   (let [{:keys [own-id chars]} game-state
         changed (changed-char-panes
-                  hud-state game-state
-                  [:self :target]
-                  [own-id (get-in chars [own-id :target])])]
+                 hud-state game-state
+                 [:self :target]
+                 [own-id (get-in chars [own-id :target])])]
     (create-and-remove-panes hud-state game-state changed)))
 
 (defn make-destroy-dialog-tree [game-state]
@@ -491,13 +492,13 @@
         (if (spellbar-needs-update? hud-state game-state)
           (let [{:keys [bar arcs]} (create-spellbar (spell-list game-state))]
             (fx-run-later (-> (get-in hud-state [:panes :chars])
-                              (remove-children [old-node])
-                              (add-children [bar])))
+                            (remove-children [old-node])
+                            (add-children [bar])))
             (-> hud-state
-                (assoc-in [:spellbar :node] bar)
-                (assoc-in [:spellbar :arcs] arcs)
-                (assoc-in [:spellbar :old-hash]
-                          (hash (spell-list game-state)))))
+              (assoc-in [:spellbar :node] bar)
+              (assoc-in [:spellbar :arcs] arcs)
+              (assoc-in [:spellbar :old-hash]
+                        (hash (spell-list game-state)))))
           hud-state)]
     (update-cooldowns new-hud-state game-state)
     new-hud-state))
@@ -516,15 +517,15 @@
     (update-mouse-slot @hud-state-atom game-state)
     (swap! hud-state-atom
            #(-> %
-                (update-inventories game-state)
-                (update-char-panes game-state)
-                (update-spellbar game-state)
-                (update-destroy-dialog game-state)))))
+              (update-inventories game-state)
+              (update-char-panes game-state)
+              (update-spellbar game-state)
+              (update-destroy-dialog game-state)))))
 
 (defn random-string [length]
   (->> #(rand-nth "abcdefghijklmnopqrstuvxyz0123456789")
-       (repeatedly length)
-       (apply str)))
+    (repeatedly length)
+    (apply str)))
 
 (defn random-rename [file]
   (let [rname (str "tmp/" (random-string 20) ".css")
@@ -543,11 +544,11 @@
         ;; which is at -1.
         mouse-slot (doto (Node. "mouse-slot") (.setLocalTranslation 0 0 1))
         mouse-node (doto (Geometry.
-                           "mouse-node"
-                           (Quad. const/inv-icon-size const/inv-icon-size true))
+                          "mouse-node"
+                          (Quad. const/inv-icon-size const/inv-icon-size true))
                      (.setMaterial
-                       (Material. asset-manager
-                                  "Common/MatDefs/Misc/Unshaded.j3md")))
+                      (Material. asset-manager
+                                 "Common/MatDefs/Misc/Unshaded.j3md")))
         mtm-pane (doto (Pane.) add-stylesheet)
         panes [(Pane.) (Pane.) (doto (Pane.) (.setMouseTransparent true))]
         panes-map (zipmap [:chars :invs :tooltip] panes)
@@ -572,10 +573,10 @@
                                           :gear [800 100]
                                           :other [100 100]}})
         gui-manager (GuiManager.
-                      gui-node asset-manager app false
-                      (proxy [ICursorDisplayProvider] []
-                        (setup [_])
-                        (showCursor [_])))
+                     gui-node asset-manager app false
+                     (proxy [ICursorDisplayProvider] []
+                       (setup [_])
+                       (showCursor [_])))
         root-pane  (doto (Pane.)
                      add-stylesheet
                      (add-children panes))

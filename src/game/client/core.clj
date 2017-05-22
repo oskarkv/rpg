@@ -13,9 +13,8 @@
                          [graphics :as gfx]
                          [items :as items]
                          [spells :as csp])
-            [game.math :as gmath]
-            [clojure.set :as set]
-            [clojure.math.numeric-tower :as math])
+            [game.math :as math]
+            [clojure.set :as set])
   (:use game.utils))
 
 (def event-queue (ref []))
@@ -65,13 +64,13 @@
 
 (defmethod process-event :s-decay-corpses [game-state {:keys [ids]}]
   (-> game-state
-      (update :corpses #(apply dissoc % ids))
-      (update :looting #(apply disj % ids))))
+    (update :corpses #(apply dissoc % ids))
+    (update :looting #(apply disj % ids))))
 
 (defmethod process-event :s-loot [game-state {:keys [corpse-id drops]}]
   (-> game-state
-      (assoc-in [:corpses corpse-id :drops] drops)
-      (update :looting conj corpse-id)))
+    (assoc-in [:corpses corpse-id :drops] drops)
+    (update :looting conj corpse-id)))
 
 (defmethod process-event :s-loot-item-ok [game-state {:keys [from-path]}]
   (ccfns/loot-item game-state from-path [:inv]))
@@ -91,10 +90,10 @@
 (defn update-own-stats [{:keys [own-id gear] :as game-state}]
   (update-in game-state [:chars own-id]
              #(-> %
-                  (assoc :gear gear)
-                  ccfns/update-stats
-                  (merge (ccfns/sum-stats gear))
-                  (dissoc :gear))))
+                (assoc :gear gear)
+                ccfns/update-stats
+                (merge (ccfns/sum-stats gear))
+                (dissoc :gear))))
 
 (defmethod process-event :s-char-update [game-state {:keys [id updated]}]
   (let [new-level (:level updated)
@@ -118,7 +117,7 @@
       (:back key-state) ((adder 0 -1))
       (:left key-state) ((adder -1 0))
       (:right key-state) ((adder 1 0))
-      true (gmath/normalize))))
+      true (math/normalize))))
 
 (defmethod process-event :new-key-state [game-state {:keys [key-state]}]
   (let [new-base-dir (map float (calculate-base-movement-direction key-state))
@@ -159,14 +158,14 @@
     (enqueue-events {:type :c-destroy-item :path on-mouse
                      :quantity on-mouse-quantity})
     (-> (ccfns/destroy-item game-state on-mouse on-mouse-quantity)
-        (dissoc :on-mouse :on-mouse-quantity))))
+      (dissoc :on-mouse :on-mouse-quantity))))
 
 (defmethod process-event :destroy-item [game-state {:keys [destroy]}]
   (dissoc
-    (if destroy
-      (destroy-item game-state)
-      game-state)
-    :destroying-item))
+   (if destroy
+     (destroy-item game-state)
+     game-state)
+   :destroying-item))
 
 (defmethod process-event :right-click [game-state _]
   (when-let [corpse (gfx/pick-target :corpses)]
@@ -225,7 +224,7 @@
   (let [{:keys [ctrl]} (:modifiers game-state)
         quantity (:quantity (get-in game-state path))]
     (-> game-state (assoc :on-mouse path)
-        (assoc :on-mouse-quantity (if ctrl 1 quantity)))))
+      (assoc :on-mouse-quantity (if ctrl 1 quantity)))))
 
 (defn pick-up-item [game-state path]
   (assoc game-state :on-mouse path))
@@ -272,9 +271,9 @@
         (pick-up-or-drop-item game-state path)
         (and pressed (= button consts/mouse-right))
         (activate-item game-state path))
-      (#(if %
-          (dissoc % :destroying-item)
-          (dissoc game-state :destroying-item)))))
+    (#(if %
+        (dissoc % :destroying-item)
+        (dissoc game-state :destroying-item)))))
 
 (defmethod process-event :inv-swap [game-state {paths :paths :as event}]
   (when (every? my-stuff? paths)
@@ -303,12 +302,12 @@
 
 (defn move-self [{:keys [looting own-id chars move-time-delta] :as game-state}]
   (let [{:keys [pos move-dir speed] :as self} (chars own-id)
-        new-pos (gmath/extrapolate-pos pos move-dir move-time-delta speed)]
+        new-pos (math/extrapolate-pos pos move-dir move-time-delta speed)]
     (if (legal-pos? game-state new-pos)
       (let [new-looting (update-looting game-state new-pos)
             ngs (-> game-state
-                    (assoc-in [:chars own-id :pos] new-pos)
-                    (assoc :looting new-looting))
+                  (assoc-in [:chars own-id :pos] new-pos)
+                  (assoc :looting new-looting))
             quitted (set/difference looting new-looting)]
         (when (seq quitted)
           (enqueue-events {:type :c-quit-looting :ids quitted}))
@@ -334,13 +333,13 @@
 (defn update-looking-direction [{:keys [last-dir-update] :as game-state}]
   (when (> (current-time-ms) (+ last-dir-update consts/dir-update-interval))
     (-> game-state
-        (assoc :looking-dir (gfx/get-camera-dir))
-        (assoc :last-dir-update (current-time-ms)))))
+      (assoc :looking-dir (gfx/get-camera-dir))
+      (assoc :last-dir-update (current-time-ms)))))
 
 (defn calculate-movement-direction
   [{:keys [base-move-dir own-id looking-dir] :as game-state}]
-  (let [angle (gmath/angle-between [0 1] looking-dir)
-        new-move-dir (map float (gmath/rotate-vec base-move-dir angle))
+  (let [angle (math/angle-between [0 1] looking-dir)
+        new-move-dir (map float (math/rotate-vec base-move-dir angle))
         old-move-dir (map float (get-in game-state [:chars own-id :move-dir]))]
     (when-not (rec== new-move-dir old-move-dir)
       (enqueue-events {:type :new-dir})
@@ -348,7 +347,7 @@
 
 (defn initial-game-state []
   (-> {} (assoc :base-move-dir [0 0]) (assoc :last-dir-update 0)
-      (assoc :looting #{})))
+    (assoc :looting #{})))
 
 (defn get-subsystem-events [_ systems]
   (apply enqueue-events (mapcat cc/get-events systems)))
@@ -359,10 +358,10 @@
 
 (defn make-process-and-send-fn [networking-system]
   (ccfns/make-process-and-send-fn
-    (fn [game-state events]
-      (cc/update networking-system events)
-      (process-events game-state events))
-    nil event-queue))
+   (fn [game-state events]
+     (cc/update networking-system events)
+     (process-events game-state events))
+   nil event-queue))
 
 (defn login-and-recv-state [game-state net-sys name password stop?]
   (letfn [(move-out [gs k]
@@ -373,7 +372,7 @@
     (loop [events (cc/get-events net-sys)]
       (when-not @stop?
         (if (-> (fn [e] (contains? #{:s-game-state :s-own-id} (:type e)))
-                (filter events) count (== 2))
+              (filter events) count (== 2))
           (move-out-special-maps (process-events game-state events))
           (recur (concat events (cc/get-events net-sys))))))))
 
@@ -414,7 +413,7 @@
                     (hud/init-hud-system app))
             (reset! input-system
                     (cmi/init-input-system
-                      input-manager (ci/load-key-bindings)))
+                     input-manager (ci/load-key-bindings)))
             (dorun (map cc/start (remove #{@networking-system}
                                          (get-subsystems))))
             (gfx/set-up-camera @graphics-system @game-state-atom)))
@@ -440,8 +439,8 @@
           (doto app
             (.setShowSettings false)
             (.setSettings
-              (doto (AppSettings. true)
-                (.setResolution consts/resolution-x consts/resolution-y)))
+             (doto (AppSettings. true)
+               (.setResolution consts/resolution-x consts/resolution-y)))
             (.setPauseOnLostFocus false)))
         start-fn
         (fn [this]
@@ -462,8 +461,8 @@
         (error-printing-future
           (reset! game-state-atom
                   (login-and-recv-state
-                    @game-state-atom networking-system "leif" "star"
-                    stop?))
+                   @game-state-atom networking-system "leif" "star"
+                   stop?))
           ((fn []
              (reset! game-state-atom
                      (ccfns/process-events process-event @game-state-atom

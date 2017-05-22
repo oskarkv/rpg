@@ -32,7 +32,7 @@
       (if-let [e (first events-q)]
         (let [{:keys [new-game-state events msgs]}
               (complete-return-map
-                game-state (process-fn game-state e))]
+               game-state (process-fn game-state e))]
           (recur new-game-state (reduce conj (pop events-q) events)
                  (reduce conj new-events events)
                  (reduce conj new-msgs msgs)))
@@ -57,16 +57,16 @@
   (let [calls (map (fn [c] `((fn [gs#] (or (-> gs# ~c) gs#)))) calls)
         calls (interleave calls (repeat (list hook-fn)))]
     `(-> ~game-state
-         ~@calls)))
+       ~@calls)))
 
 (defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
   (let [app
         (init-app-settings-fn
-          (proxy [SimpleApplication] []
-            (simpleInitApp []
-              (init-fn this))
-            (simpleUpdate [tpf]
-              (update-fn))))]
+         (proxy [SimpleApplication] []
+           (simpleInitApp []
+             (init-fn this))
+           (simpleUpdate [tpf]
+             (update-fn))))]
     (extend-type (type app)
       cc/Lifecycle
       (start [this]
@@ -176,11 +176,11 @@
 (defn stack-loot-dest [inv {:keys [quantity id] :as item}]
   (let [size (:stackable (items/all-info item))
         idx-place (->> (map-indexed vector inv)
-                       (filter (fn [[idx item]]
-                                 (and item
-                                      (== id (:id item))
-                                      (< (:quantity item) size))))
-                       (map (fn [[idx item]] [idx (- size (:quantity item))])))
+                    (filter (fn [[idx item]]
+                              (and item
+                                   (== id (:id item))
+                                   (< (:quantity item) size))))
+                    (map (fn [[idx item]] [idx (- size (:quantity item))])))
         distribution (divide-into-piles (map second idx-place) quantity)
         will-use (map vector (map first idx-place) distribution)
         need-extra-slot (< (count will-use) (count distribution))
@@ -192,7 +192,7 @@
 (defn loot-stack [game-state from-path to-inv-path]
   (let [{:keys [quantity] :as item} (get-in game-state from-path)
         {:keys [add-to extra-slot]} (stack-loot-dest
-                                      (get-in game-state to-inv-path) item)
+                                     (get-in game-state to-inv-path) item)
         [extra-idx extra-n] extra-slot
         add-to-stack (fn [gs [idx n]]
                        (update-in gs (conj to-inv-path idx :quantity) + n))

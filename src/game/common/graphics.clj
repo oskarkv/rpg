@@ -16,9 +16,9 @@
                          [jme-utils :as ju])
             (game [game-map :as gmap])
             [game.constants :as consts]
-            [clojure.set :as set])
-  (:use game.utils
-        game.java-math))
+            [clojure.set :as set]
+            [game.math :as math])
+  (:use game.utils))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) 0 (- (+ y %2)))
@@ -66,8 +66,8 @@
       (.setBox (Rectangle. (- w) (/ h 2) (* w 2) h))
       (.setAlignment BitmapFont$Align/Center)
       (.addControl
-        (doto (BillboardControl.)
-          (.setAlignment BillboardControl$Alignment/Screen)))
+       (doto (BillboardControl.)
+         (.setAlignment BillboardControl$Alignment/Screen)))
       (.setLocalTranslation 0 height 0))))
 
 (defn create-geom [assets type]
@@ -83,7 +83,7 @@
 (defn create-character-node [assets character]
   (let [geom (create-geom assets (:type character))
         name-text (create-character-name-text
-                    (:name character) 1 (:font assets))
+                   (:name character) 1 (:font assets))
         node (new-group-node (:name character) geom name-text)]
     {:node node :geom geom}))
 
@@ -105,8 +105,8 @@
 (defn update-object-maps [gfx-state ids-and-objects]
   (let [get-geom-id (fn [[id obj]] [(:geom obj) id])]
     (-> gfx-state
-        (assoc :ids->objects (into {} ids-and-objects))
-        (assoc :geoms->ids (into {} (map get-geom-id ids-and-objects))))))
+      (assoc :ids->objects (into {} ids-and-objects))
+      (assoc :geoms->ids (into {} (map get-geom-id ids-and-objects))))))
 
 (defmacro make-particle-emitter-fn [kw-dval-code-vecs]
   (with-gensyms [settings]
@@ -132,50 +132,50 @@
 
 (defn particle-emitter [materials settings]
   ((make-particle-emitter-fn
-     [[:texture :flash #(.setMaterial %1 (%2 materials))]
-      [:num-particles 100 .setNumParticles]
-      [:images-x 2 .setImagesX]
-      [:images-y 2 .setImagesY]
-      ;; If select-random-image is false,
-      ;; the image depends on the particles age.
-      [:select-random-image true .setSelectRandomImage]
-      ;; By default in-world-space and ignore-transform has the same value.
-      ;; If in-world-space is true, the particles' positions are determined by
-      ;; a custom calculation that takes scale into account, but the size of
-      ;; the particles themselves does not scale.
-      [:in-world-space false .setInWorldSpace]
-      [:ignore-transform false .setIgnoreTransform]
-      [:start-color ColorRGBA/Red .setStartColor]
-      [:end-color ColorRGBA/Red .setEndColor]
-      [:velocity-variation 0
-       #(-> %1 .getParticleInfluencer (.setVelocityVariation %2))]
-      [:initial-velocity [0 0 0]
-       #(-> %1 .getParticleInfluencer (.setInitialVelocity (ju/vectorf %2)))]
-      [:high-life 3 .setHighLife]
-      [:low-life 2 .setLowLife]
-      [:gravity [0 0 0] #(.setGravity %1 (.negate (ju/vectorf %2)))]
-      [:start-size 0.5 .setStartSize]
-      [:end-size 0.5 .setEndSize]
-      [:pps 5 .setParticlesPerSec]
-      [:rot-speed 0 .setRotateSpeed]
-      [:shape (EmitterPointShape. (Vector3f. 0 0 0)) .setShape]
-      [:random-angle true .setRandomAngle]])
+    [[:texture :flash #(.setMaterial %1 (%2 materials))]
+     [:num-particles 100 .setNumParticles]
+     [:images-x 2 .setImagesX]
+     [:images-y 2 .setImagesY]
+     ;; If select-random-image is false,
+     ;; the image depends on the particles age.
+     [:select-random-image true .setSelectRandomImage]
+     ;; By default in-world-space and ignore-transform has the same value.
+     ;; If in-world-space is true, the particles' positions are determined by
+     ;; a custom calculation that takes scale into account, but the size of
+     ;; the particles themselves does not scale.
+     [:in-world-space false .setInWorldSpace]
+     [:ignore-transform false .setIgnoreTransform]
+     [:start-color ColorRGBA/Red .setStartColor]
+     [:end-color ColorRGBA/Red .setEndColor]
+     [:velocity-variation 0
+      #(-> %1 .getParticleInfluencer (.setVelocityVariation %2))]
+     [:initial-velocity [0 0 0]
+      #(-> %1 .getParticleInfluencer (.setInitialVelocity (ju/vectorf %2)))]
+     [:high-life 3 .setHighLife]
+     [:low-life 2 .setLowLife]
+     [:gravity [0 0 0] #(.setGravity %1 (.negate (ju/vectorf %2)))]
+     [:start-size 0.5 .setStartSize]
+     [:end-size 0.5 .setEndSize]
+     [:pps 5 .setParticlesPerSec]
+     [:rot-speed 0 .setRotateSpeed]
+     [:shape (EmitterPointShape. (Vector3f. 0 0 0)) .setShape]
+     [:random-angle true .setRandomAngle]])
    settings))
 
 (def emitter-shapes
   (let [rand-normal (fn [] (vec (take 3 (repeatedly #(rand-uniform -1 1)))))]
     {:circle
      (emitter-shape
-       (fn [] (let [v (rand-uniform (* 2 pi))]
-                [(* 0.5 (cos v)) 0 (* 0.5 (sin v))]))
-       rand-normal)
+      (fn [] (let [v (rand-uniform (* 2 math/pi))]
+               [(* 0.5 (math/cos v)) 0 (* 0.5 (math/sin v))]))
+      rand-normal)
      :time-circle
      (emitter-shape
-       (fn [] (let [period 500
-                    v (* (/ (mod (current-time-ms) period) period)
-                         2 pi (rand-uniform 0.9 1.1))]
-                [(* 0.5 (cos v)) 0 (* 0.5 (sin v))]))
-       rand-normal)}))
+      (fn [] (let [period 500
+                   v (* (/ (mod (current-time-ms) period) period)
+                        2 math/pi (rand-uniform 0.9 1.1))]
+               [(* 0.5 (math/cos v)) 0 (* 0.5 (math/sin v))]))
+      rand-normal)}))
 
 (def effects
   (->>
@@ -238,12 +238,11 @@
   (let [[expired remains] (expired-and-remains (:effects gfx-state) 0)]
     (runmap #(.setParticlesPerSec (:node %) 0) expired)
     (-> gfx-state
-        (assoc :effects remains)
-        (update :dying-effects into expired)
-        remove-dead-effects)))
+      (assoc :effects remains)
+      (update :dying-effects into expired)
+      remove-dead-effects)))
 
-(deftype GraphicsSystem
-  [gfx-state-atom]
+(deftype GraphicsSystem [gfx-state-atom]
   cc/Lifecycle
   (start [this]
     (let [gfx-state @gfx-state-atom
@@ -277,9 +276,9 @@
       (runmap reattach [:chars :spawns :corpses] [chars spawns corpses])
       (swap! gfx-state-atom
              #(-> %
-                  (update-object-maps (concat chars spawns corpses))
-                  (process-events game-state events)
-                  update-effects)))))
+                (update-object-maps (concat chars spawns corpses))
+                (process-events game-state events)
+                update-effects)))))
 
 (defn create-base-materials [asset-manager]
   (let [mat #(Material. asset-manager %)]
@@ -300,13 +299,14 @@
               (.setTexture "Texture" (texture textures))
               (-> .getAdditionalRenderState (.setPointSprite true))))]
     (merge base-materials
-      {:player (color-material ColorRGBA/Blue)
-       :mob (color-material ColorRGBA/Red)
-       :ground (create-material (:unshaded base-materials) textures :ground nil)
-       :spawn (color-material ColorRGBA/Red)
-       :flash (particle-material :flash)
-       :shockwave (particle-material :shockwave)
-       :flame (particle-material :flame)})))
+           {:player (color-material ColorRGBA/Blue)
+            :mob (color-material ColorRGBA/Red)
+            :ground (create-material (:unshaded base-materials)
+                                     textures :ground nil)
+            :spawn (color-material ColorRGBA/Red)
+            :flash (particle-material :flash)
+            :shockwave (particle-material :shockwave)
+            :flame (particle-material :flame)})))
 
 (defn create-texture-map [asset-manager]
   (letfn [(load-texture [tex]

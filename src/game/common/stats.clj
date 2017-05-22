@@ -1,5 +1,5 @@
 (ns game.common.stats
-  (:require [clojure.math.numeric-tower :as math]
+  (:require [game.math :as math]
             [game.constants :as consts])
   (:use game.utils))
 
@@ -51,8 +51,8 @@
   (let [scaled 0.5
         max-stats (* 50 stats-per-level)]
     (* 200 (+ 1
-             (/ power max-stats (/ (- 1 scaled)))
-             (/ power level stats-per-level (/ scaled))))))
+              (/ power max-stats (/ (- 1 scaled)))
+              (/ power level stats-per-level (/ scaled))))))
 
 (defn bonus-damage [power level]
   (let [flat-fraction 0.5
