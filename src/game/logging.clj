@@ -1,18 +1,20 @@
 (ns game.logging
-  (:require [robert.hooke :as rh]
-            [clojure.pprint :as pp]
-            (game.server [core :as sv]
-                         [pathfinding :as pf]
-                         [ai :as ai]
-                         [mobs-and-looting :as ml])
-            [game.client.core :as cl]
-            [game.math :as math]
-            [game.editor.core :as ec]
-            [game.client.hud :as hud]
-            (game.common [core-functions :as ccfns]
-                         [graphics :as gfx]
-                         [stats :as stats]))
-  (:use game.utils))
+  (:require
+   [clojure.pprint :as pp]
+   [game.client.core :as cl]
+   [game.client.hud :as hud]
+   [game.common.core-functions :as ccfns]
+   [game.common.graphics :as gfx]
+   [game.common.stats :as stats]
+   [game.editor.core :as ec]
+   [game.math :as math]
+   [game.server.ai :as ai]
+   [game.server.core :as sv]
+   [game.server.mobs-and-looting :as ml]
+   [game.server.pathfinding :as pf]
+   [game.utils :refer :all]
+   [game.voronoi :as vor]
+   [robert.hooke :as rh]))
 
 (def print-if-thread-name-contains
   #{"Renderer"
