@@ -1,5 +1,15 @@
 (ns game.utils
+  (:require
+   [clojure.core.matrix :as m]
+   [clojure.pprint :as pp]
+   [clojure.reflect :as r]
+   [clojure.walk :as walk])
   (:import java.util.Random))
+
+;; Set here because it's gonna run very early
+(m/set-current-implementation :vectorz)
+
+(def empty-queue clojure.lang.PersistentQueue/EMPTY)
 
 (defmacro assert-args [& pairs]
   `(do (when-not ~(first pairs)
@@ -217,7 +227,9 @@
          ~@body))
     `(do ~@body)))
 
-(defmacro if-lets [bindings then else]
+(defmacro if-lets
+  "If every binding is truthy, do the then branch, else the else branch."
+  [bindings then else]
   (assert-even-vector bindings)
   (if (seq bindings)
     `(if-let ~(subvec bindings 0 2)
@@ -229,3 +241,37 @@
 
 (defn iterate-some [f x]
   (take-while (complement nil?) (iterate #(when % (f %)) x)))
+
+(defn ensure-vec [v]
+  (if (vector? v) v [v v]))
+
+(defn vectorize [form]
+  (walk/postwalk (fn [form] (if (seq? form) (vec form) form)) form))
+
+(defn repeat-str [n s]
+  (apply str (repeat n s)))
+
+(defn pair-cycle [coll]
+  (take (count coll) (partition 2 1 (cycle coll))))
+
+(defn print-methods [object]
+  (pp/print-table
+   (sort-by :name (filter :exception-types (:members (r/reflect object))))))
+
+(defmacro log-fn-io
+  "Replace the function named with a function that wraps it, and prints its
+   input and output."
+  [fn-sym]
+  `(alter-var-root
+    #'~fn-sym
+    (fn [f#]
+      (fn [& args#]
+        (println "Input to" '~fn-sym)
+        (pp/pprint args#)
+        (let [r# (apply f# args#)]
+          (println "Output from" '~fn-sym)
+          (pp/pprint r#)
+          r#)))))
+
+(defmacro ->$ [x & forms]
+  `(as-> ~x ~'$ ~@forms))
