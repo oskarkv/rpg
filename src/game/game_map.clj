@@ -1,19 +1,23 @@
-(ns game.game-map
-  (:require [clojure.walk :as walk]
-            (game [mobs :as mobs]
-                  [dungeon-generator :as dg])))
+(ns game.game-map)
+
+(def tile-types (zipmap [:wall :floor :monster :start :end] (range)))
+
+(defn tile-type [x]
+  (if (keyword? x) (x tile-types) x))
+
+(def wall? zero?)
+
+(defn wall-in? [m]
+  #(wall? (get-in m %)))
 
 (defn walkable-type? [type]
-  (not= type (:wall dg/tile-types)))
-
-(defn vectorize [form]
-  (walk/postwalk (fn [form] (if (seq? form) (vec form) form)) form))
+  (not= type (:wall tile-types)))
 
 (defn adjust-pos [pos]
   (map #(+ 0.5 %) pos))
 
-(defn load-game-map []
-  (let [{:keys [terrain spawns start end]} (dg/make-round-rooms 2 10 10 0.45)]
+(defn load-game-map [game-map]
+  (let [{:keys [terrain spawns start end]} game-map]
     {:terrain terrain
      :player-spawn (adjust-pos start)
      :spawns

@@ -7,7 +7,8 @@
             (game.key-value-store [core :as kvs.core]
                                   [protocols :as kvs])
             (game [game-map :as gmap]
-                  [constants :as const])
+                  [constants :as const]
+                  [dungeon-generator :as dg])
             (game.server [ai :as ai]
                          [base :as b]
                          [mobs-and-looting :as ml]
@@ -113,7 +114,7 @@
   (-> {:chars {} :player-ids #{} :corpses (pm/priority-map-keyfn :decay-time)
        :last-move (current-time-ms) :last-regen (current-time-ms)
        :effects (pm/priority-map-keyfn :decay-time)}
-    (merge (gmap/load-game-map))
+    (merge (gmap/load-game-map (dg/make-round-rooms 2 10 10 0.45)))
     (as-> gs
       (assoc gs :to-spawn (create-to-spawn-queue (:spawns gs))))))
 
