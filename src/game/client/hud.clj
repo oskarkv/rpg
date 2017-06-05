@@ -4,38 +4,39 @@
 
 (ns game.client.hud
   (:use game.utils)
-  (:require (game.common [core :as cc]
-                         [core-functions :as ccfns]
-                         [items :as items]
-                         [spells :as csp])
-            [game.constants :as const]
-            [game.common.jme-utils :as ju]
-            [game.math :as math]
-            [clojure.set :as set])
-  (:import (com.jme3x.jfx GuiManager AbstractHud)
-           (com.jme3.texture.plugins AWTLoader)
-           (com.jme3.texture Texture2D)
-           (com.jme3.scene Node Geometry)
-           (com.jme3.scene.shape Quad)
-           (com.jme3.material Material)
-           (com.jme3x.jfx.cursor ICursorDisplayProvider)
-           (javafx.embed.swing SwingFXUtils)
-           (javafx.event EventHandler EventType Event ActionEvent)
-           (javafx.geometry Point3D Rectangle2D)
-           (javafx.scene Scene)
-           (javafx.scene.input MouseEvent MouseButton)
-           (javafx.scene.control Button TextField Label LabelBuilder
-                                 ProgressBar)
-           (javafx.scene.image Image ImageView)
-           (javafx.scene.layout Region Pane StackPane HBox VBox GridPane
-                                TilePane)
-           (javafx.scene.shape Arc ArcType Rectangle)
-           (javafx.scene.transform Scale)
-           (javafx.application Platform)))
+  (:require
+   [clojure.set :as set]
+   [game.common.core :as cc]
+   [game.common.core-functions :as ccfns]
+   [game.common.items :as items]
+   [game.common.jme-utils :as ju]
+   [game.common.spells :as csp]
+   [game.constants :as const]
+   [game.math :as math])
+  (:import
+   (com.jme3.material Material)
+   (com.jme3.scene Node Geometry)
+   (com.jme3.scene.shape Quad)
+   (com.jme3.texture Texture2D)
+   (com.jme3.texture.plugins AWTLoader)
+   (com.jme3x.jfx GuiManager AbstractHud)
+   (com.jme3x.jfx.cursor ICursorDisplayProvider)
+   (javafx.application Platform)
+   (javafx.embed.swing SwingFXUtils)
+   (javafx.event EventHandler EventType Event ActionEvent)
+   (javafx.geometry Point3D Rectangle2D)
+   (javafx.scene Scene)
+   (javafx.scene.control Button TextField Label LabelBuilder ProgressBar)
+   (javafx.scene.image Image ImageView)
+   (javafx.scene.input MouseEvent MouseButton)
+   (javafx.scene.layout Region Pane StackPane HBox VBox GridPane TilePane)
+   (javafx.scene.shape Arc ArcType Rectangle)
+   (javafx.scene.transform Scale)))
 
 (defmacro defsetter [name & methods]
   (with-gensyms [obj x y]
     `(defn ~name
+       ;; use ensure-vec here instead
        ([obj# arg#] (if (vector? arg#)
                       (~name obj# (arg# 0) (arg# 1))
                       (~name obj# arg# arg#)))
