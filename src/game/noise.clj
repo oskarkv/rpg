@@ -1,7 +1,7 @@
 (ns game.noise
-  (:require [game.math :as math]
-            [mikera.image.core :as imz])
-  (:use game.utils))
+  (:require
+   [game.math :as math]
+   [game.utils :refer :all]))
 
 ;; The number of different gradients, spread out on the unit circle, to use
 (def different-gradients 8)
@@ -84,14 +84,25 @@
           (+ 1)
           (* 0.5))))))
 
-(defn noise-map [size scale]
-  (let [nf (simplex-noise-fn)
-        px #(* scale (/ % size))
-        to-int (fn [v] (let [iv (int (* v 256))]
-                         (+ (unchecked-int 0xff000000)
-                            iv (* 256 iv) (* 256 256 iv))))
-        img (imz/new-image size size)]
-    (dotimes* [x size y size]
-      (let [v (nf (px x) (px y))]
-        (imz/set-pixel img x y (to-int v))))
-    (imz/show (imz/scale img 3))))
+(defn make-matrix
+  "Make a matrix of size, using values from f. The inputs to f are distributed
+   from 0 to input-max. Size and input-max can be a scalar or a vector of size
+   2."
+  [size input-max f]
+  (let [[x-size y-size] (ensure-vec size)
+        [x-max y-max] (ensure-vec input-max)
+        scale-fn (fn [x scale size] (* scale (/ x size)))]
+    (->> (for [x (map #(scale-fn % x-max x-size) (range x-size))]
+           (for [y (map #(scale-fn % y-max y-size) (range y-size))]
+             (f x y)))
+      (vectorize))))
+
+(defn fbm-fn [displacement period]
+  (let [noisex (simplex-noise-fn)
+        noisey (simplex-noise-fn)
+        half-disp (/ displacement 2)]
+    (fn [[x y]]
+      (let [sx (/ x period)
+            sy (/ y period)]
+        [(int (+ x (- (* displacement (noisex sx sy)) half-disp)))
+         (int (+ y (- (* displacement (noisey sx sy)) half-disp)))]))))
