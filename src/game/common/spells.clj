@@ -1,5 +1,4 @@
-(ns game.common.spells
-  (:use game.utils))
+(ns game.common.spells)
 
 (defmacro make-map [& syms]
   (into {} (for [sym syms]

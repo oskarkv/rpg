@@ -4,7 +4,8 @@
    [clojure.pprint :as pp]
    [clojure.reflect :as r]
    [clojure.walk :as walk])
-  (:import java.util.Random))
+  (:import
+   (java.util Random)))
 
 ;; Set here because it's gonna run very early
 (m/set-current-implementation :vectorz)

@@ -1,21 +1,23 @@
 (ns game.client.core
-  (:import (com.jme3.system AppSettings JmeContext$Type)
-           (com.jme3.app FlyCamAppState)
-           (com.jme3.app.state AbstractAppState))
-  (:require [game.networking.core :as net]
-            [game.game-map :as gmap]
-            [game.constants :as consts]
-            (game.client [input :as ci]
-                         [hud :as hud])
-            (game.common [core :as cc]
-                         [core-functions :as ccfns]
-                         [input :as cmi]
-                         [graphics :as gfx]
-                         [items :as items]
-                         [spells :as csp])
-            [game.math :as math]
-            [clojure.set :as set])
-  (:use game.utils))
+  (:require
+   [clojure.set :as set]
+   [game.client.hud :as hud]
+   [game.client.input :as ci]
+   [game.common.core :as cc]
+   [game.common.core-functions :as ccfns]
+   [game.common.graphics :as gfx]
+   [game.common.input :as cmi]
+   [game.common.items :as items]
+   [game.common.spells :as csp]
+   [game.constants :as consts]
+   [game.game-map :as gmap]
+   [game.math :as math]
+   [game.networking.core :as net]
+   [game.utils :refer :all])
+  (:import
+   (com.jme3.app FlyCamAppState)
+   (com.jme3.app.state AbstractAppState)
+   (com.jme3.system AppSettings)))
 
 (def event-queue (ref []))
 

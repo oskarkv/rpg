@@ -1,11 +1,10 @@
 (ns game.server.combat
-  (:require (game.common [core-functions :as ccfns]
-                         [items :as items]
-                         [stats :as stats])
-            (game.server [base :as b])
-            (game [constants :as const]
-                  [mobs :as mobs]))
-  (:use game.utils))
+  (:require
+   [game.common.core-functions :as ccfns]
+   [game.common.stats :as stats]
+   [game.constants :as const]
+   [game.server.base :as b]
+   [game.utils :refer :all]))
 
 (defn pool-max-key [pool-key]
   (keyword (str "max-" (name pool-key))))

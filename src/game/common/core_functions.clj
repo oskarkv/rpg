@@ -1,11 +1,12 @@
 (ns game.common.core-functions
-  (:import (com.jme3.app SimpleApplication))
-  (:require (game.common [core :as cc]
-                         [items :as items]
-                         [stats :as stats])
-            [game.math :as math]
-            [game.constants :as consts])
-  (:use game.utils))
+  (:require
+   [game.common.core :as cc]
+   [game.common.items :as items]
+   [game.common.stats :as stats]
+   [game.math :as math]
+   [game.utils :refer :all])
+  (:import
+   (com.jme3.app SimpleApplication)))
 
 (let [id-counter (atom 0)]
   (defn get-new-id []

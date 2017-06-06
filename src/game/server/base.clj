@@ -1,6 +1,7 @@
 (ns game.server.base
-  (:require (game.common [core-functions :as ccfns]))
-  (:use game.utils))
+  (:require
+   [game.common.core-functions :as ccfns]
+   [game.utils :refer :all]))
 
 (def event-queue (ref []))
 

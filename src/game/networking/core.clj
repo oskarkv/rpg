@@ -1,9 +1,9 @@
 (ns game.networking.core
-  (:import java.util.LinkedList)
-  (:require [game.networking.implementations.kryonet :as impl]
-            [game.networking.protocols :as protocols]
-            (game.common [core :as cc]
-                         [core-functions :as ccfns])))
+  (:require
+   [game.common.core :as cc]
+   [game.common.core-functions :as ccfns]
+   [game.networking.implementations.kryonet :as impl]
+   [game.networking.protocols :as protocols]))
 
 (deftype NetworkingSystem [send-msg-fn msg-queue-ref impl-sys msg-types-set]
   cc/Lifecycle

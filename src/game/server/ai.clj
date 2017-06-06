@@ -1,8 +1,9 @@
 (ns game.server.ai
-  (:require (game [math :as math]
-                  [constants :as consts])
-            (game.server [pathfinding :as pf]))
-  (:use game.utils))
+  (:require
+   [game.constants :as consts]
+   [game.math :as math]
+   [game.server.pathfinding :as pf]
+   [game.utils :refer :all]))
 
 (defn attack-nearest [game-state mob players]
   (let [{:keys [pos]} mob

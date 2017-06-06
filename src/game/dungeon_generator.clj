@@ -4,8 +4,8 @@
    [clojure.set :as set]
    [game.game-map :as gmap]
    [game.math :as math]
-   [game.tile-sets :as ts])
-  (:use game.utils))
+   [game.tile-sets :as ts]
+   [game.utils :refer :all]))
 
 (def extra-dist-between-points 1.05)
 

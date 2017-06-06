@@ -1,16 +1,14 @@
 (ns game.editor.gui
-  (:import (java.awt Dimension EventQueue FlowLayout Image)
-           (java.awt.event ActionListener ComponentListener WindowAdapter
-                           WindowEvent WindowListener WindowStateListener)
-           (javax.swing ImageIcon JButton JFrame JLayeredPane JTextField
-                        JMenu JMenuBar JMenuItem JPanel JLabel JWindow JDialog
-                        JTextArea JToolBar SwingConstants))
-  (:require (game [constants :as consts])
-            (game.common [core :as cc])
-            (game.editor [editor-functions :as e-fns])
-            (clojure [reflect :as refl])
-            (seesaw [core :as ssw-c]
-                    [mig :as ssw-mig])))
+  (:require
+   [game.common.core :as cc]
+   [game.constants :as consts]
+   [game.editor.editor-functions :as e-fns]
+   [seesaw.core :as ssw-c]
+   [seesaw.mig :as ssw-mig])
+  (:import
+   (java.awt Dimension EventQueue)
+   (java.awt.event WindowStateListener)
+   (javax.swing ImageIcon JFrame JMenuBar)))
 
 (defn stop-application [app j-frame]
   (cc/stop app)

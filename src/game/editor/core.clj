@@ -1,15 +1,15 @@
 (ns game.editor.core
-  (:import (com.jme3.system AppSettings JmeCanvasContext)
-           (com.jme3.app FlyCamAppState))
-  (:require (game [game-map :as game-map])
-            (game.common [core :as cc]
-                         [core-functions :as ccfns]
-                         [graphics :as gfx]
-                         [input :as cmn-input])
-            (game.editor [input :as e-input]
-                         [editor-functions :as efns]
-                         [gui :as gui])
-            (game.key-value-store [protocols :as kvs])))
+  (:require
+   [game.common.core :as cc]
+   [game.common.core-functions :as ccfns]
+   [game.common.graphics :as gfx]
+   [game.common.input :as cmn-input]
+   [game.editor.editor-functions :as efns]
+   [game.editor.gui :as gui]
+   [game.editor.input :as e-input])
+  (:import
+   (com.jme3.app FlyCamAppState)
+   (com.jme3.system AppSettings)))
 
 (defmulti process-event (fn [game-state event args-map] (event :type)))
 

@@ -1,22 +1,22 @@
 (ns game.server.core
-  (:require [clojure.data.priority-map :as pm]
-            [game.networking.core :as net]
-            (game.common [core :as cc]
-                         [core-functions :as ccfns]
-                         [items :as items])
-            (game.key-value-store [core :as kvs.core]
-                                  [protocols :as kvs])
-            (game [game-map :as gmap]
-                  [constants :as const]
-                  [dungeon-generator :as dg])
-            (game.server [ai :as ai]
-                         [base :as b]
-                         [mobs-and-looting :as ml]
-                         [combat :as cb]
-                         [movement :as mv]
-                         [spells :as sp]
-                         [inventory :as inv]))
-  (:use game.utils))
+  (:require
+   [clojure.data.priority-map :as pm]
+   [game.common.core :as cc]
+   [game.common.core-functions :as ccfns]
+   [game.common.items :as items]
+   [game.constants :as const]
+   [game.dungeon-generator :as dg]
+   [game.game-map :as gmap]
+   [game.key-value-store.core :as kvs.core]
+   [game.key-value-store.protocols :as kvs]
+   [game.networking.core :as net]
+   [game.server.ai :as ai]
+   [game.server.base :as b]
+   [game.server.combat :as cb]
+   [game.server.mobs-and-looting :as ml]
+   [game.server.movement :as mv]
+   [game.server.spells :as sp]
+   [game.utils :refer :all]))
 
 (defn new-player [username spawn-pos]
   (->

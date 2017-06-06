@@ -1,11 +1,13 @@
 (ns game.editor.main
-  (:import  (java.util LinkedList))
-  (:require (game [game-map :as game-map])
-            (game.common [core :as cc])
-            (game.editor [core :as ec]
-                         [gui :as gui]
-                         [editor-functions :as efns])
-            (game.key-value-store [core :as kvs.core])))
+  (:require
+   [game.common.core :as cc]
+   [game.editor.core :as ec]
+   [game.editor.editor-functions :as efns]
+   [game.editor.gui :as gui]
+   [game.game-map :as game-map]
+   [game.key-value-store.core :as kvs.core])
+  (:import
+   (java.util LinkedList)))
 
 (defrecord Editor [app j-frame key-value-store]
   cc/Lifecycle

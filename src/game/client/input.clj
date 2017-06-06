@@ -1,5 +1,6 @@
 (ns game.client.input
-  (:require [game.constants :as const]))
+  (:require
+   [game.constants :as const]))
 
 (defn load-key-bindings []
   (->

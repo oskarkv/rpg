@@ -1,11 +1,11 @@
 (ns game.server.mobs-and-looting
-  (:require (game.common [core-functions :as ccfns]
-                         [items :as items]
-                         [stats :as stats])
-            (game.server [base :as b])
-            (game [constants :as consts]
-                  [mobs :as mobs]))
-  (:use game.utils))
+  (:require
+   [game.common.core-functions :as ccfns]
+   [game.common.items :as items]
+   [game.constants :as consts]
+   [game.mobs :as mobs]
+   [game.server.base :as b]
+   [game.utils :refer :all]))
 
 (defn roll-for-mob [mobs]
   (let [total (apply + (map :rel-chance mobs))]

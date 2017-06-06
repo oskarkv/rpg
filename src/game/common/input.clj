@@ -1,15 +1,11 @@
 (ns game.common.input
-  (:require [game.common.core :as cc]
-            [game.common.core-functions :as ccfns]
-            [clojure.string :as str])
-  (:use game.utils)
-  (:import (com.jme3.input
-            KeyInput
-            MouseInput)
-           (com.jme3.input.controls
-            KeyTrigger
-            MouseButtonTrigger
-            ActionListener)))
+  (:require
+   [clojure.string :as str]
+   [game.common.core :as cc]
+   [game.common.core-functions :as ccfns])
+  (:import
+   (com.jme3.input KeyInput MouseInput)
+   (com.jme3.input.controls ActionListener KeyTrigger MouseButtonTrigger)))
 
 (defn string->trigger [s]
   (let [[input trigger prefix s]

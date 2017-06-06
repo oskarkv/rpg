@@ -1,9 +1,10 @@
 (ns game.common.items
-  (:require [game.math :as math]
-            [clojure.string :as str]
-            [game.constants :as consts])
-  (:use game.utils
-        clojure.set))
+  (:require
+   [clojure.set :as set]
+   [clojure.string :as str]
+   [game.constants :as consts]
+   [game.math :as math]
+   [game.utils :refer :all]))
 
 (declare items)
 
@@ -20,9 +21,9 @@
                  :shoulders :arms :wrist :hands :finger :ear}
    held-slots #{:main-hand :off-hand :ranged}
    left-right-slots #{:ear :finger :wrist}
-   gear-slots (-> (union armor-slots held-slots)
-                (difference left-right-slots)
-                (union (mapcat left-right left-right-slots)))
+   gear-slots (-> (set/union armor-slots held-slots)
+                (set/difference left-right-slots)
+                (set/union (mapcat left-right left-right-slots)))
    gear-slots-vector (check-gear-slots
                       gear-slots
                       [:left-ear :head :face :right-ear
@@ -36,8 +37,8 @@
    armor-types #{:cloth :leather :mail :plate :jewelry}
    weapons #{:ranged :melee}
    non-equip #{:trade :quest :consumable}
-   abstract-slots (union armor-slots held-slots)
-   types (union melee-weapons ranged-weapons non-equip armor-types)
+   abstract-slots (set/union armor-slots held-slots)
+   types (set/union melee-weapons ranged-weapons non-equip armor-types)
    classes #{:paladin :druid :warrior :wizard}
    races #{:gnome :dwarf :human :darkelf :troll :ogre}
    stats #{:damage :delay :hp :mana :armor}])
@@ -124,7 +125,7 @@
                  abstract-slots))))
 
 (defn item [name icon & info]
-  (-> (apply merge-with union
+  (-> (apply merge-with set/union
              {:name name :icon icon}
              (for [e info]
                (condf e

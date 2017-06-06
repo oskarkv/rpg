@@ -1,24 +1,24 @@
 (ns game.common.graphics
-  (:import (com.jme3.math ColorRGBA Vector2f Vector3f Ray)
-           com.jme3.asset.plugins.FileLocator
-           (com.jme3.scene Geometry Mesh VertexBuffer VertexBuffer$Type Node)
-           (com.jme3.scene.control BillboardControl BillboardControl$Alignment)
-           com.jme3.scene.shape.Box
-           com.jme3.input.ChaseCamera
-           com.jme3.collision.CollisionResults
-           com.jme3.util.BufferUtils
-           (com.jme3.material Material RenderState$BlendMode)
-           (com.jme3.effect.shapes EmitterShape EmitterPointShape)
-           (com.jme3.effect ParticleEmitter ParticleMesh$Type)
-           com.jme3.renderer.queue.RenderQueue$Bucket
-           (com.jme3.font BitmapText BitmapFont$Align Rectangle))
-  (:require (game.common [core :as cc]
-                         [jme-utils :as ju])
-            (game [game-map :as gmap])
-            [game.constants :as consts]
-            [clojure.set :as set]
-            [game.math :as math])
-  (:use game.utils))
+  (:require
+   [game.common.core :as cc]
+   [game.common.jme-utils :as ju]
+   [game.constants :as consts]
+   [game.game-map :as gmap]
+   [game.math :as math]
+   [game.utils :refer :all])
+  (:import
+   (com.jme3.asset.plugins FileLocator)
+   (com.jme3.effect ParticleEmitter ParticleMesh$Type)
+   (com.jme3.effect.shapes EmitterPointShape EmitterShape)
+   (com.jme3.font BitmapFont$Align BitmapText Rectangle)
+   (com.jme3.input ChaseCamera)
+   (com.jme3.material Material)
+   (com.jme3.math ColorRGBA Vector2f Vector3f)
+   (com.jme3.renderer.queue RenderQueue$Bucket)
+   (com.jme3.scene Geometry Mesh Node VertexBuffer VertexBuffer$Type)
+   (com.jme3.scene.control BillboardControl BillboardControl$Alignment)
+   (com.jme3.scene.shape Box)
+   (com.jme3.util BufferUtils)))
 
 (defn make-quad [x y]
   {:vertices (map #(Vector3f. (+ x %1) 0 (- (+ y %2)))

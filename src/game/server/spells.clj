@@ -1,10 +1,11 @@
 (ns game.server.spells
-  (:require [game.constants :as const]
-            (game.common [core-functions :as ccfns]
-                         [spells :as comsp])
-            (game.server [base :as b]
-                         [combat :as cb]))
-  (:use game.utils))
+  (:require
+   [game.common.core-functions :as ccfns]
+   [game.common.spells :as comsp]
+   [game.constants :as const]
+   [game.server.base :as b]
+   [game.server.combat :as cb]
+   [game.utils :refer :all]))
 
 (defn heal-over-time-tick [game-state e]
   (let [{:keys [target ticks-left amount source tick-time]} e]

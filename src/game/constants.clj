@@ -1,6 +1,8 @@
 (ns game.constants
-  (:use game.utils)
-  (:import (com.jme3.input MouseInput)))
+  (:require
+   [game.utils :refer :all])
+  (:import
+   (com.jme3.input MouseInput)))
 
 (defmacro defconstants [& pairs]
   (assert-args (even? (count pairs)) "an even number of arguments")

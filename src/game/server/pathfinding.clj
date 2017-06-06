@@ -1,9 +1,9 @@
 (ns game.server.pathfinding
-  (:use game.utils)
-  (:require [clojure.data.priority-map :as pm]
-            (game [math :as math]
-                  [constants :as consts]
-                  [game-map :as gmap])))
+  (:require
+   [clojure.data.priority-map :as pm]
+   [game.constants :as consts]
+   [game.game-map :as gmap]
+   [game.math :as math]))
 
 (defn walkable? [x]
   (and x (gmap/walkable-type? x)))

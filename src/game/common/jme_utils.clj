@@ -1,10 +1,12 @@
 (ns game.common.jme-utils
   (:refer-clojure :exclude [vec])
-  (:require [game.constants :as consts]
-            (game.common [core-functions :as ccfns]))
-  (:import (com.jme3.math Vector2f Vector3f Ray)
-           (com.jme3.scene Node)
-           (com.jme3.collision CollisionResults)))
+  (:require
+   [game.common.core-functions :as ccfns]
+   [game.constants :as consts])
+  (:import
+   (com.jme3.collision CollisionResults)
+   (com.jme3.math Ray Vector2f Vector3f)
+   (com.jme3.scene Node)))
 
 (defprotocol Vecable
   (vec [this]))

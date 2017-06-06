@@ -1,8 +1,8 @@
 (ns game.math
   (:require
+   [clojure.core.matrix :as m]
    [clojure.math.numeric-tower]
-   [clojure.core.matrix :as m])
-  (:use game.utils))
+   [game.utils :refer :all]))
 
 (defn intern-from-ns [ns sym-list]
   (runmap (fn [sym]

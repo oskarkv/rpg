@@ -1,7 +1,8 @@
 (ns game.editor.editor-functions
-  (:require (game.key-value-store [protocols :as kvs])
-            (game.common [graphics :as gfx])
-            (game [constants :as consts])))
+  (:require
+   [game.common.graphics :as gfx]
+   [game.constants :as consts]
+   [game.key-value-store.protocols :as kvs]))
 
 (defn- set-spawn-id-ctr [start]
   (let [spawn-id-counter (atom start)]

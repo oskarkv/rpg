@@ -3,8 +3,8 @@
    [clojure.core.matrix :as m]
    [clojure.set :as set]
    [game.game-map :as gmap]
-   [game.math :as math])
-  (:use game.utils))
+   [game.math :as math]
+   [game.utils :refer :all]))
 
 (defn make-map
   "Make an x by y map (matrix), initialized with the optional value v. If v is

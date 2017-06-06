@@ -3,7 +3,6 @@
 (javafx.application.Platform/setImplicitExit false)
 
 (ns game.client.hud
-  (:use game.utils)
   (:require
    [clojure.set :as set]
    [game.common.core :as cc]
@@ -12,26 +11,24 @@
    [game.common.jme-utils :as ju]
    [game.common.spells :as csp]
    [game.constants :as const]
-   [game.math :as math])
+   [game.utils :refer :all])
   (:import
    (com.jme3.material Material)
-   (com.jme3.scene Node Geometry)
+   (com.jme3.scene Geometry Node)
    (com.jme3.scene.shape Quad)
-   (com.jme3.texture Texture2D)
    (com.jme3.texture.plugins AWTLoader)
-   (com.jme3x.jfx GuiManager AbstractHud)
+   (com.jme3.texture Texture2D)
+   (com.jme3x.jfx AbstractHud GuiManager)
    (com.jme3x.jfx.cursor ICursorDisplayProvider)
    (javafx.application Platform)
    (javafx.embed.swing SwingFXUtils)
-   (javafx.event EventHandler EventType Event ActionEvent)
-   (javafx.geometry Point3D Rectangle2D)
-   (javafx.scene Scene)
-   (javafx.scene.control Button TextField Label LabelBuilder ProgressBar)
+   (javafx.event ActionEvent EventHandler)
+   (javafx.scene.control Button Label ProgressBar)
    (javafx.scene.image Image ImageView)
-   (javafx.scene.input MouseEvent MouseButton)
-   (javafx.scene.layout Region Pane StackPane HBox VBox GridPane TilePane)
-   (javafx.scene.shape Arc ArcType Rectangle)
-   (javafx.scene.transform Scale)))
+   (javafx.scene.input MouseButton MouseEvent)
+   (javafx.scene.layout HBox Pane TilePane VBox)
+   (javafx.scene Scene)
+   (javafx.scene.shape Arc ArcType Rectangle)))
 
 (defmacro defsetter [name & methods]
   (with-gensyms [obj x y]

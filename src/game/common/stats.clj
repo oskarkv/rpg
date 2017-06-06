@@ -1,7 +1,8 @@
 (ns game.common.stats
-  (:require [game.math :as math]
-            [game.constants :as consts])
-  (:use game.utils))
+  (:require
+   [game.constants :as consts]
+   [game.math :as math]
+   [game.utils :refer :all]))
 
 (def zero-stats
   (zipmap [:strength :agility :stamina :intelligence :wisdom :spirit :armor]

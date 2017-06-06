@@ -1,9 +1,10 @@
 (ns game.server.movement
-  (:require (game.common [core-functions :as ccfns])
-            (game.server [base :as b])
-            (game [math :as math]
-                  [constants :as consts]))
-  (:use game.utils))
+  (:require
+   [game.common.core-functions :as ccfns]
+   [game.constants :as consts]
+   [game.math :as math]
+   [game.server.base :as b]
+   [game.utils :refer :all]))
 
 (defmethod b/process-event :c-move [game-state {:keys [id pos move-dir]}]
   (-> game-state
