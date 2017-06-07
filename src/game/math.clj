@@ -62,8 +62,10 @@
 (defn norm-diff [v v2]
   (normalize (map - v v2)))
 
-(defn squared-distance [p p2]
-  (apply + (map #(* % %) (m/sub p p2))))
+(defn squared-distance [[^double x ^double y] [^double x2 ^double y2]]
+  (let [dx (- x2 x)
+        dy (- y2 y)]
+    (+ (* dx dx) (* dy dy))))
 
 (defn distance [p p2]
   (sqrt (squared-distance p p2)))
