@@ -2,6 +2,7 @@
   (:require
    [clojure.core.matrix :as m]
    [clojure.math.numeric-tower]
+   [clojure.set :as set]
    [game.utils :refer :all]))
 
 (defn intern-from-ns [ns sym-list]
@@ -165,3 +166,12 @@
   (->> (pair-cycle polygon)
     (filter #(line-crossed? p %))
     count odd?))
+
+(defn difference [& colls]
+  (apply set/difference (map set colls)))
+
+(defn union [& colls]
+  (apply set/union (map set colls)))
+
+(defn intersection [& colls]
+  (apply set/intersection (map set colls)))
