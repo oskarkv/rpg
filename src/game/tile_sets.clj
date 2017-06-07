@@ -67,10 +67,13 @@
      (fill m (take number (shuffle (all-poses m))) v))))
 
 (defn remove-illegal-poses
-  "Returns only the positions of poses that are legal in m."
-  [m poses]
-  (let [[xs ys] (math/mat-size m)]
-    (remove (fn [[x y]] (or (< x 0) (< y 0) (>= x xs) (>= y ys))) poses)))
+  "Returns only the positions of poses that are legal in m. Returns a
+   transducer if called with 1 argument."
+  ([m]
+   (let [[xs ys] (math/mat-size m)]
+     (remove (fn [[x y]] (or (< x 0) (< y 0) (>= x xs) (>= y ys))))))
+  ([m poses]
+   (into #{} (remove-illegal-poses m) poses)))
 
 (defn all-neighbors
   "Returns all neighbors of pos, including pos itself, at manhattan distance
@@ -86,12 +89,14 @@
 (defn cross-neighbors
   "Returns the neighbors, in a cross, of pos in m. If more positions, returns
    the union of their neighbors."
-  ([m pos]
+  ([pos]
    (let [[x y] pos]
-     (set (remove-illegal-poses
-           m [[(inc x) y] [(dec x) y] [x (inc y)] [x (dec y)]]))))
-  ([m pos & more]
-   (set/union (cross-neighbors m pos) (apply cross-neighbors m more))))
+     (set [[(inc x) y] [(dec x) y] [x (inc y)] [x (dec y)]])))
+  ([pos & more]
+   (set/union (cross-neighbors pos) (apply cross-neighbors more))))
+
+(defn legal-cross-neighbors [m & poses]
+  (remove-illegal-poses m (apply cross-neighbors poses)))
 
 (defn flood-fill
   "Returns a set of all poses connected with start-pos in m, via poses whose
@@ -104,7 +109,7 @@
      (if-not (peek queue)
        visited
        (let [c (peek queue)
-             adj (filter #(test-fn (get-in m %)) (cross-neighbors m c))
+             adj (filter #(test-fn (get-in m %)) (legal-cross-neighbors m c))
              new-adj (remove visited adj)]
          (recur (into (pop queue) new-adj) (into visited new-adj)))))))
 
