@@ -82,7 +82,7 @@
             (map close-to [(first points) (last points)]))))
 
 (defn monster-spawns [m monsters]
-  (take monsters (shuffle (remove (gmap/wall-in? m) (ts/all-poses m)))))
+  (take monsters (shuffle (remove (gmap/wall-in?-fn m) (ts/all-poses m)))))
 
 (defn make-round-rooms [num-points radius monsters ratio]
   (let [points (random-points-chain num-points)

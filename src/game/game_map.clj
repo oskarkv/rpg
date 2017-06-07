@@ -7,7 +7,7 @@
 
 (def wall? zero?)
 
-(defn wall-in? [m]
+(defn wall-in?-fn [m]
   #(wall? (get-in m %)))
 
 (defn walkable-type? [type]

@@ -8,13 +8,14 @@
 
 (defn make-map
   "Make an x by y map (matrix), initialized with the optional value v. If v is
-   not provided, use the value for floor."
-  ([x y] (make-map x y :floor))
+   not provided, use 0."
+  ([x y] (make-map x y 0))
   ([x y v]
-   (vec (repeat x (vec (repeat y (gmap/tile-type v)))))))
+   (vec (repeat x (vec (repeat y v))))))
 
 (defn find-bounds
-  "Find the bounding rectangle of points."
+  "Find the bounding rectangle of points. Returns [bottom top]. Bottom and top
+   may include floating-point numbers."
   [points]
   (let [xs (map first points)
         ys (map second points)]
@@ -22,14 +23,12 @@
      [(apply max xs) (apply max ys)]]))
 
 (defn find-int-bounds [points]
-  (let [[bottom top] (find-bounds points)]
-    [(mapv int bottom)
-     (mapv (comp int math/ceil) top)]))
+  (m/emap int (find-bounds points)))
 
 (defn poses-between
   "Returns a set of the tile positions that exist in a rectangle defined by the
-   2d points bottom and top, inclusive. Note that top should have a larger x
-   and a larger y than bottom."
+   2d points bottom and top, inclusive. Top should have a larger x and a larger
+   y than bottom."
   [bottom top]
   (let [[bx by] bottom
         [tx ty] (map inc top)]
@@ -37,7 +36,10 @@
                x (range bx tx)]
            [x y]))))
 
-(defn poses-in-polygon [verts]
+(defn poses-in-polygon
+  "Find the poses inside the polygon defined by verts, a sequence of points.
+   The verts must be in cyclic order."
+  [verts]
   (let [[bottom top] (find-int-bounds verts)
         poses (poses-between bottom top)]
     (filter #(math/inside? % verts) poses)))
@@ -61,7 +63,7 @@
   ([m ratio] (fill-randomly m ratio :wall))
   ([m ratio v]
    (let [[x y] (math/mat-size m)
-         number (math/floor (* ratio (* x y)))]
+         number (int (* ratio (* x y)))]
      (fill m (take number (shuffle (all-poses m))) v))))
 
 (defn remove-illegal-poses
@@ -72,13 +74,14 @@
 
 (defn all-neighbors
   "Returns all neighbors of pos, including pos itself, at manhattan distance
-   dist, in m."
-  [m dist pos]
-  (let [[x y] pos
-        range* (range (- dist) (inc dist))]
-    (remove-illegal-poses
-     m (for [j range* i range*]
-         [(+ x i) (+ y j)]))))
+   dist, in m. If dist is not provided, defaults to 1."
+  ([m pos] (all-neighbors m 1 pos))
+  ([m dist pos]
+   (let [[x y] pos
+         range* (range (- dist) (inc dist))]
+     (remove-illegal-poses
+      m (for [j range* i range*]
+          [(+ x i) (+ y j)])))))
 
 (defn cross-neighbors
   "Returns the neighbors, in a cross, of pos in m. If more positions, returns
@@ -91,30 +94,46 @@
    (set/union (cross-neighbors m pos) (apply cross-neighbors m more))))
 
 (defn flood-fill
-  "Returns a set of all room tiles connected to start-pos in m."
-  [m start-pos]
-  (loop [q (conj empty-queue start-pos)
-         v #{start-pos}]
-    (if-not (peek q)
-      v
-      (let [c (peek q)
-            adj (remove (gmap/wall-in? m) (cross-neighbors m c))
-            new-adj (remove v adj)]
-        (recur (into (pop q) new-adj) (into v new-adj))))))
+  "Returns a set of all poses connected with start-pos in m, via poses whose
+   value in m satisfies test-fn. If test-fn is not provided, defaults to a set
+   of the value of start-pos in m."
+  ([m start-pos] (flood-fill m start-pos #{(get-in m start-pos)}))
+  ([m start-pos test-fn]
+   (loop [queue (conj empty-queue start-pos)
+          visited #{start-pos}]
+     (if-not (peek queue)
+       visited
+       (let [c (peek queue)
+             adj (filter #(test-fn (get-in m %)) (cross-neighbors m c))
+             new-adj (remove visited adj)]
+         (recur (into (pop queue) new-adj) (into visited new-adj)))))))
 
 (defn walls-and-rooms
   "Returns a map of :walls and :rooms, where walls is the set of all wall
    tiles, and rooms is a vector of connected sets of room tiles in m."
   [m]
   (let [all (all-poses m)
-        {walls true other false} (group-by (gmap/wall-in? m) all)]
+        {walls true other false} (group-by (gmap/wall-in?-fn m) all)]
     {:walls walls :rooms
      (loop [rooms [] left other]
        (if (seq left)
          (let [t (first left)
-               room (flood-fill m t)]
+               room (flood-fill m t gmap/walkable-type?)]
            (recur (conj rooms room) (remove room left)))
          rooms))}))
+
+(defn closest-pair
+  "Returns a pair of points from two different collections, such that they are
+   the approximately the closest pair between the two sets. Compares
+   n/take-denom tiles of each room to each other."
+  ([set1 set2] (closest-pair set1 set2 3))
+  ([set1 set2 take-denom]
+   (let [take-some #(take (/ (count %) 3) (shuffle %))
+         [a b] (apply min-key
+                      #(% 2)
+                      (for [a (take-some set1) b (take-some set2)]
+                        [a b (math/squared-distance a b)]))]
+     [a b])))
 
 (defn closest-pair
   "Returns a pair of points from different rooms, such that they are the
@@ -124,10 +143,10 @@
   (let [[room & other] rooms
         others (apply concat other)
         take-some #(take (/ (count %) 3) (shuffle %))
-        [a b] (first (sort-by
-                      #(% 2)
-                      (for [a (take-some room) b (take-some others)]
-                        [a b (math/distance a b)])))]
+        [a b] (apply min-key
+                     #(% 2)
+                     (for [a (take-some room) b (take-some others)]
+                       [a b (math/squared-distance a b)]))]
     [a b]))
 
 (defn rectangle-between-points
@@ -142,15 +161,21 @@
                      (let [[x y] fw] [[y (- x)] [(- y) x]]))]
     [(m/add p1 v1 e<-) (m/add p1 v2 e<-) (m/add p2 v2 e->) (m/add p2 v1 e->)]))
 
-(defn connect-rooms [m]
+(defn connect-rooms
+  "Connect the rooms in m so that every walkable tile in m is reachable from
+   every other."
+  [m]
   (let [{:keys [walls rooms]} (walls-and-rooms m)]
-    (if (> (count rooms) 1)
-      (let [[a b] (closest-pair rooms)
-            rect (rectangle-between-points a b 1.5 0.5)
-            to-remove (filter #(math/inside? % rect) walls)
-            new-m (fill m to-remove :floor)]
-        (recur new-m))
-      m)))
+    (loop [[room1 & others] rooms m m]
+      (if (seq others)
+        (let [room2 (first others)
+              [a b] (closest-pair room1 room2)
+              rect (rectangle-between-points a b 1.5 0.5)
+              to-remove (filter #(math/inside? % rect) walls)
+              new-m (fill m to-remove :floor)]
+          (recur (cons (set/union room1 room2 (set to-remove)) (rest others))
+                 new-m))
+        m))))
 
 (defn points-in-circle [center radius]
   (let [top (map #(+ % radius) center)
