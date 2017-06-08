@@ -78,13 +78,16 @@
 (defn all-neighbors
   "Returns all neighbors of pos, including pos itself, at manhattan distance
    dist, in m. If dist is not provided, defaults to 1."
-  ([m pos] (all-neighbors m 1 pos))
-  ([m dist pos]
+  ([pos] (all-neighbors pos 1))
+  ([pos dist]
    (let [[x y] pos
          range* (range (- dist) (inc dist))]
-     (remove-illegal-poses
-      m (for [j range* i range*]
-          [(+ x i) (+ y j)])))))
+     (for [j range* i range*]
+       [(+ x i) (+ y j)]))))
+
+(defn legal-neighbors
+  ([m pos] (legal-neighbors m pos 1))
+  ([m pos dist] (remove-illegal-poses m (all-neighbors pos dist))))
 
 (defn cross-neighbors
   "Returns the neighbors, in a cross, of pos in m. If more positions, returns
