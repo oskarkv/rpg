@@ -133,26 +133,12 @@
    n/take-denom tiles of each room to each other."
   ([set1 set2] (closest-pair set1 set2 3))
   ([set1 set2 take-denom]
-   (let [take-some #(take (/ (count %) 3) (shuffle %))
+   (let [take-some #(take (/ (count %) take-denom) (shuffle %))
          [a b] (apply min-key
                       #(% 2)
                       (for [a (take-some set1) b (take-some set2)]
                         [a b (math/squared-distance a b)]))]
      [a b])))
-
-(defn closest-pair
-  "Returns a pair of points from different rooms, such that they are the
-   approximately the closest pair between those two rooms, but not necessarily
-   the closest pair globally between different rooms."
-  [rooms]
-  (let [[room & other] rooms
-        others (apply concat other)
-        take-some #(take (/ (count %) 3) (shuffle %))
-        [a b] (apply min-key
-                     #(% 2)
-                     (for [a (take-some room) b (take-some others)]
-                       [a b (math/squared-distance a b)]))]
-    [a b]))
 
 (defn rectangle-between-points
   "Returns a rectangle (defined by 4 points) around p1 and p2, as if by first
