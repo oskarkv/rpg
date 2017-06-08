@@ -99,19 +99,26 @@
   (remove-illegal-poses m (apply cross-neighbors poses)))
 
 (defn flood-fill
+  "Flood fills starting from start. The successors of a node is given by
+   (successors node). Ends when no new nodes are discovered. Returns the set
+   of visited nodes."
+  [start successors]
+  (loop [queue (conj empty-queue start)
+         visited #{start}]
+    (if-not (peek queue)
+      visited
+      (let [current (peek queue)
+            adj (successors current)
+            new-adj (remove visited adj)]
+        (recur (into (pop queue) new-adj) (into visited new-adj))))))
+
+(defn flood-fill-map
   "Returns a set of all poses connected with start-pos in m, via poses whose
    value in m satisfies test-fn. If test-fn is not provided, defaults to a set
    of the value of start-pos in m."
-  ([m start-pos] (flood-fill m start-pos #{(get-in m start-pos)}))
+  ([m start-pos] (flood-fill-map m start-pos #{(get-in m start-pos)}))
   ([m start-pos test-fn]
-   (loop [queue (conj empty-queue start-pos)
-          visited #{start-pos}]
-     (if-not (peek queue)
-       visited
-       (let [c (peek queue)
-             adj (filter #(test-fn (get-in m %)) (legal-cross-neighbors m c))
-             new-adj (remove visited adj)]
-         (recur (into (pop queue) new-adj) (into visited new-adj)))))))
+   (flood-fill start-pos #(filter test-fn (legal-cross-neighbors m %)))))
 
 (defn walls-and-rooms
   "Returns a map of :walls and :rooms, where walls is the set of all wall
@@ -123,7 +130,7 @@
      (loop [rooms [] left other]
        (if (seq left)
          (let [t (first left)
-               room (flood-fill m t gmap/walkable-type?)]
+               room (flood-fill-map m t gmap/walkable-type?)]
            (recur (conj rooms room) (remove room left)))
          rooms))}))
 
