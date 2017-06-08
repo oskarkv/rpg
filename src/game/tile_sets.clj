@@ -178,7 +178,7 @@
               rect (rectangle-between-points a b 1.5 0.5)
               to-remove (filter #(math/inside? % rect) walls)
               new-m (fill m to-remove :floor)]
-          (recur (cons (set/union room1 room2 (set to-remove)) (rest others))
+          (recur (cons (math/union room1 room2 to-remove) (rest others))
                  new-m))
         m))))
 
