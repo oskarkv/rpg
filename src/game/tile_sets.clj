@@ -187,3 +187,12 @@
         bottom (map #(- % radius) center)]
     (remove #(> (math/distance % center) radius)
             (poses-between bottom top))))
+
+(defn unsafe-outer-border [poses]
+  (math/difference (apply cross-neighbors poses) poses))
+
+(defn outer-border [m poses]
+  (remove-illegal-poses m (unsafe-outer-border poses)))
+
+(defn border [poses]
+  (math/union (apply cross-neighbors (unsafe-outer-border poses)) poses))
