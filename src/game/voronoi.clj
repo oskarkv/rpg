@@ -3,7 +3,8 @@
    [clojure.core.matrix :as m]
    [game.math :as math]
    [game.noise :as noise]
-   [game.tile-sets :as ts]))
+   [game.tile-sets :as ts]
+   [game.utils :refer :all]))
 
 (defn random-points
   "Finds about 2.5 * n random but evently distributed points in the square from
