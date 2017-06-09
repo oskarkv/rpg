@@ -27,8 +27,8 @@
 
 (defn poses-between
   "Returns a set of the tile positions that exist in a rectangle defined by the
-   2d points bottom and top (exclusive). Top should have a larger x and a larger
-   y than bottom."
+   2d points bottom (inclusive) and top (exclusive). Top should have a larger x
+   and a larger y than bottom."
   [bottom top]
   (let [[bx by] bottom
         [tx ty] top]
