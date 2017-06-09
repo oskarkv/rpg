@@ -220,3 +220,29 @@
                                          (butlast all))]
           (recur (concat before (cons (set/union s (first after))
                                       (rest after)))))))))
+
+(defn pairs-to-graph [pairs]
+  (reduce (fn [graph [a b]]
+            (-> graph
+              (update a conj b)
+              (update b conj a)))
+          {}
+          pairs))
+
+(defn find-connections
+  "Given a collection of zones (sets of poses) and an integer tile-limit,
+   calculates the connections between the zones. Zone a are connected to zone b
+   if tile-limit poses of a are adjacent to poses in b. Returns an adjacency
+   graph (of zone indicies)."
+  ([zones] (find-connections zones 1))
+  ([zones tile-limit]
+   (let [n (count zones)
+         zone-map (zipmap (range) zones)
+         border-map (zipmap (range) (map unsafe-outer-border zones))
+         enough? (fn [z1 z2] (>= (count (math/intersection (border-map z1)
+                                                           (zone-map z2)))
+                                 tile-limit))
+         connections (for [z1 (range n) z2 (range (inc z1) n)
+                           :when (and (enough? z1 z2) (enough? z2 z1))]
+                       [z1 z2])]
+     (pairs-to-graph connections))))
