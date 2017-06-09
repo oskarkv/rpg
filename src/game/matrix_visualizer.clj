@@ -77,12 +77,12 @@
             (m/emap int (mapv #(m/add p (m/mul v %)) (range (inc d)))))))
 
 (defn show-image
-  ([m]
-   (show-image m 3))
-  ([m zoom]
+  ([m] (show-image m "show-image"))
+  ([m title]
+   (show-image m title 3))
+  ([m title zoom]
    (let [[x-size y-size :as size] (math/mat-size m)
          img (apply imz/new-image size)]
      (dotimes* [x x-size y y-size]
        (imz/set-pixel img x (- (dec y-size) y) (get-in m [x y])))
-     ;;(imz/set-pixels img (int-array (m/eseq colors)))
-     (imz/show (imz/scale img zoom)))))
+     (imz/show (imz/scale img zoom) :title title))))
