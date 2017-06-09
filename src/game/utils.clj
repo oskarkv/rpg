@@ -276,3 +276,6 @@
 
 (defmacro ->$ [x & forms]
   `(as-> ~x ~'$ ~@forms))
+
+(defn zip [& colls]
+  (apply map vector colls))
