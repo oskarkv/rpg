@@ -1,6 +1,12 @@
 (ns game.world-generator
   (:require
+   [clojure.set :as set]
+   [clojure.walk :as walk]
+   [game.math :as math]
+   [game.matrix-visualizer :as mvis]
+   [game.tile-sets :as ts]
    [game.utils :refer :all]
+   [game.voronoi :as vor]
    [loco.constraints :refer :all]
    [loco.core :as loco]
    [loom.alg :as lalg]
@@ -9,49 +15,36 @@
    [loom.io :as lio]
    [loom.label :as llabel]))
 
-(def graph {:a [:b :c]
-            :c [:a :b :e :f]
-            :d [:b :e :h]
-            :e [:d :c :f :g]
-            :f [:c :e :g]
-            :g [:f :e]
-            :b [:a :c :d :h]
-            :h [:b :d]})
-
-(def graph2 {:a [:b :c]
-             :b [:c :d :h]
-             :c [:e :f]
-             :d [:e :h]
-             :e [:f :g]
-             :f [:g]
-             :g [:e]
-             :h []})
-
-(def g (loom/graph graph))
-
 (defn distance [g k k2]
   (dec (count (lalg/bf-path g k k2))))
 
-(def model
+(defn make-model [graph loom-graph]
   (let [gks (keys graph)
-        n (count graph)]
+        n (count graph)
+        hn (int (math/ceil (/ n 2)))
+        card-map (zipmap (range 1 (inc (int (/ n 2)))) (repeat 2))]
     (concat
-     [($cardinality gks {1 2, 2 2, 3 2, 4 2})]
+     ;; How many of each can there be
+     [($cardinality gks card-map)]
+     ;; The range for each variable
      (for [k gks]
-       ($in k 1 n))
+       ($in k 1 hn))
+     ;; If k is not max level, a neighbor must be k + 1
      (for [k gks]
-       ($if ($< k 4)
+       ($if ($< k hn)
             (apply $or
-                   (for [k2 (k graph)]
+                   (for [k2 (graph k)]
                      ($= k2 ($+ k 1))))))
+     ;; If k is 1 or 2, the other 1 or 2 must not be close
      (for [k gks
            k2 gks
            :when (not= k k2)]
        ($if ($or ($= k k2 1) ($= k k2 2))
-            ($> (distance g k k2) 2)))
+            ($> (distance loom-graph k k2) 2)))
+     ;; A neighbor can not be the same level
      (for [k gks]
        ($not (apply $or
-                    (for [k2 (k graph)]
+                    (for [k2 (graph k)]
                       ($= k k2))))))))
 
 (defn add-labels [g node label & more]
@@ -60,8 +53,10 @@
       (apply add-labels ng more)
       ng)))
 
-(defn testg []
-  (let [sols (loco/solutions model)]
+(defn draw-graph [graph]
+  (let [graph (walk/postwalk (fn [n] (if (number? n) [:x n] n)) graph)
+        loom-graph (loom/graph graph)
+        sols (time [(loco/solution (make-model graph loom-graph))])]
     (println (count sols))
     (dotimes [x (count sols)]
       (let [sol (nth sols x)
