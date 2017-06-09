@@ -190,5 +190,5 @@
 (defn outer-border [m poses]
   (remove-illegal-poses m (unsafe-outer-border poses)))
 
-(defn border [poses]
+(defn inner-border [poses]
   (math/union (apply cross-neighbors (unsafe-outer-border poses)) poses))
