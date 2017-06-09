@@ -9,6 +9,7 @@
 (defn make-map
   "Make an x by y map (matrix), initialized with the optional value v. If v is
    not provided, use 0."
+  ([[x y]] (make-map x y 0))
   ([x y] (make-map x y 0))
   ([x y v]
    (vec (repeat x (vec (repeat y v))))))
