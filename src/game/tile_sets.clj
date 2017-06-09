@@ -192,7 +192,7 @@
   (remove-illegal-poses m (unsafe-outer-border poses)))
 
 (defn inner-border [poses]
-  (math/union (apply cross-neighbors (unsafe-outer-border poses)) poses))
+  (math/intersection (apply cross-neighbors (unsafe-outer-border poses)) poses))
 
 (defn connected-sets
   "Given a collection of points, return a seq of connected sets."
