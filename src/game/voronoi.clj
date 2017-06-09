@@ -54,18 +54,18 @@
 
 ;; We could break up the positions in a quad tree, and assign squares of
 ;; positions at once if all the corners have the same nearest site.
-(defn warped-voronoi [sites [max-x max-y] displacement period]
+(defn warped-voronoi [sites [width height] displacement period]
   (let [fbm (noise/fbm-fn displacement period)]
     (group-by
      (fn [p] (let [p (fbm p)]
                (apply min-key #(math/squared-distance p %) sites)))
-     (for [x (range max-x) y (range max-y)]
+     (for [x (range width) y (range height)]
        [x y]))))
 
-(defn voronoi [sites [max-x max-y]]
+(defn voronoi [sites [width height]]
   (group-by
    (fn [p] (apply min-key #(math/squared-distance p %) sites))
-   (for [x (range max-x) y (range max-y)]
+   (for [x (range width) y (range height)]
      [x y])))
 
 (defn to-color-map [zones size]
