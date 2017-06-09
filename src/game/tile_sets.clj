@@ -246,3 +246,24 @@
                            :when (and (enough? z1 z2) (enough? z2 z1))]
                        [z1 z2])]
      (pairs-to-graph connections))))
+
+(defn frame-poses
+  "Returns a set of poses that makes up a rectangular frame from bottom
+   (inclusive) to top (exclusive)."
+  ([top] (frame-poses [0 0] top))
+  ([bottom top]
+   (let [[bx by] bottom
+         [w h] top]
+     (math/union
+      (poses-between [bx by] [w (inc by)])
+      (poses-between [bx by] [(inc bx) h])
+      (poses-between [bx (dec h)] [w h])
+      (poses-between [(dec w) by] [w h])))))
+
+(defn edge-zones
+  "Returns the indicies of the zones that are on the edege of a map from
+   [0 0] to map-shape."
+  [zones map-shape]
+  (let [border (frame-poses map-shape)]
+    (keep-indexed (fn [i z] (when (seq (math/intersection border z)) i))
+                  zones)))
