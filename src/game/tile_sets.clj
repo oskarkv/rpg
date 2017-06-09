@@ -192,3 +192,25 @@
 
 (defn inner-border [poses]
   (math/union (apply cross-neighbors (unsafe-outer-border poses)) poses))
+
+(defn connected-sets [points]
+  (if (seq points)
+    (let [first-set (flood-fill
+                     (first points)
+                     #(math/intersection points (cross-neighbors %)))]
+      (->> (cons first-set (connected-sets (remove first-set points)))
+        (sort-by count >)))
+    nil))
+
+(defn heal-zone-map [zones]
+  (let [all-connected (sort-by count > (mapcat connected-sets zones))
+        n (count zones)]
+    (loop [all all-connected]
+      (if (= n (count all))
+        all
+        (let [s (last all)
+              sn (apply cross-neighbors s)
+              [before after] (split-with #(empty? (set/intersection sn %))
+                                         (butlast all))]
+          (recur (concat before (cons (set/union s (first after))
+                                      (rest after)))))))))
