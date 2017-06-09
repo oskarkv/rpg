@@ -85,4 +85,4 @@
          img (apply imz/new-image size)]
      (dotimes* [x x-size y y-size]
        (imz/set-pixel img x (- (dec y-size) y) (get-in m [x y])))
-     (imz/show (imz/scale img zoom) :title title))))
+     (imz/show img :resize zoom :title title))))
