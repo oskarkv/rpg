@@ -9,13 +9,11 @@
 (defn random-points
   "Finds about 2.5 * n random but evently distributed points in the square from
    [0 0] to [size size], by the Poisson disc sampling algorithm."
-  [n size]
-  (let [find-r (fn [n size]
-                 (-> (* size size)
-                   (/ 4 n)
-                   math/sqrt))
-        r (find-r n size)
-        k 10
+  [n [width height]]
+  (let [r (-> (* width height)
+            (/ 4 n)
+            math/sqrt)
+        k 20
         ;; A grid of r/sqrt(2) cell length is used as a "background"
         ;; to speed up distance checking.
         cell-side (/ r (math/sqrt 2))
@@ -30,8 +28,8 @@
         gen-points (fn [p]
                      (take k
                            (filter
-                            (fn [[x y]] (and (<= 0 x size)
-                                             (<= 0 y size)))
+                            (fn [[x y]] (and (< 0 x width)
+                                             (< 0 y height)))
                             (map #(m/add p %)
                                  (repeatedly
                                   #(math/rotate-vec [(+ r (rand r)) 0]
@@ -42,7 +40,7 @@
                                (keep grid (get-cells (grid-pos p))))
                        nil
                        p))
-        first-sample [(rand size) (rand size)]]
+        first-sample [(rand width) (rand height)]]
     (loop [active #{first-sample}
            inactive []
            grid {(grid-pos first-sample) first-sample}]
