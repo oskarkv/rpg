@@ -204,7 +204,11 @@
         (sort-by count >)))
     nil))
 
-(defn heal-zone-map [zones]
+(defn heal-zone-map
+  "Given a list of zones (possibly disconnected sets of poses), merge small
+   connected components into larger ones, and return a seq of connected zones,
+   as many as the input zones."
+  [zones]
   (let [all-connected (sort-by count > (mapcat connected-sets zones))
         n (count zones)]
     (loop [all all-connected]
