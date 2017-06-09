@@ -194,6 +194,12 @@
 (defn inner-border [poses]
   (math/intersection (apply cross-neighbors (unsafe-outer-border poses)) poses))
 
+(defn shrink-zone [zone]
+  (math/difference zone (inner-border zone)))
+
+(defn grow-zone [zone]
+  (math/union zone (unsafe-outer-border zone)))
+
 (defn connected-sets
   "Given a collection of points, return a seq of connected sets."
   [points]
@@ -229,6 +235,16 @@
               (update b conj a)))
           {}
           pairs))
+
+(defn prune-zone
+  "Remove areas that are going to become inaccessible after walling the zone
+   in."
+  [zone]
+  (->> zone
+    shrink-zone
+    connected-sets
+    first
+    grow-zone))
 
 (defn find-connections
   "Given a collection of zones (sets of poses) and an integer tile-limit,
@@ -268,3 +284,6 @@
   (let [border (frame-poses map-shape)]
     (keep-indexed (fn [i z] (when (seq (math/intersection border z)) i))
                   zones)))
+
+(defn wall-border [m zone]
+  (fill m (inner-border zone)))
