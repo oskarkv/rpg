@@ -67,13 +67,13 @@
    (for [x (range max-x) y (range max-y)]
      [x y])))
 
-(defn to-color-map [groups size]
+(defn to-color-map [zones size]
   (let [m (ts/make-map size size)]
-    (reduce (fn [m [site points]]
+    (reduce (fn [m points]
               (let [color (+ 0xff000000 (rand-int 0xffffff))]
                 (reduce (fn [m [x y]]
                           (m/mset m x y color))
                         m
                         points)))
             m
-            groups)))
+            zones)))
