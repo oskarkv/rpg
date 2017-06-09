@@ -279,3 +279,7 @@
 
 (defn zip [& colls]
   (apply map vector colls))
+
+(defn reject-indices [v indices]
+  (let [iset (set indices)]
+    (vec (keep-indexed (fn [i x] (if-not (iset i) x)) v))))
