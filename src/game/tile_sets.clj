@@ -193,7 +193,9 @@
 (defn inner-border [poses]
   (math/union (apply cross-neighbors (unsafe-outer-border poses)) poses))
 
-(defn connected-sets [points]
+(defn connected-sets
+  "Given a collection of points, return a seq of connected sets."
+  [points]
   (if (seq points)
     (let [first-set (flood-fill
                      (first points)
