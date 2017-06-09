@@ -27,11 +27,11 @@
 
 (defn poses-between
   "Returns a set of the tile positions that exist in a rectangle defined by the
-   2d points bottom and top, inclusive. Top should have a larger x and a larger
+   2d points bottom and top (exclusive). Top should have a larger x and a larger
    y than bottom."
   [bottom top]
   (let [[bx by] bottom
-        [tx ty] (map inc top)]
+        [tx ty] top]
     (set (for [y (range by ty)
                x (range bx tx)]
            [x y]))))
@@ -46,7 +46,7 @@
 
 (defn all-poses [m & {:keys [indent bottom top]
                       :or {indent 0 bottom [0 0]
-                           top (map dec (math/mat-size m))}}]
+                           top (math/mat-size m)}}]
   (let [bottom (map #(+ % indent) bottom)
         top (map #(- % indent) top)]
     (poses-between bottom top)))
@@ -179,8 +179,8 @@
         m))))
 
 (defn points-in-circle [center radius]
-  (let [top (map #(+ % radius) center)
-        bottom (map #(- % radius) center)]
+  (let [top (map (comp int math/ceil #(+ % radius)) center)
+        bottom (map (comp int #(- % radius)) center)]
     (remove #(> (math/distance % center) radius)
             (poses-between bottom top))))
 
