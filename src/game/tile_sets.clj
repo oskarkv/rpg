@@ -210,15 +210,15 @@
    connected components into larger ones, and return a seq of connected zones,
    as many as the input zones."
   [zones]
-  (let [all-connected (sort-by count > (mapcat connected-sets zones))
-        n (count zones)]
-    (loop [all all-connected]
+  (let [n (count zones)
+        all-areas (sort-by count < (mapcat connected-sets zones))]
+    (loop [all all-areas]
       (if (= n (count all))
         all
-        (let [s (last all)
+        (let [s (first all)
               sn (apply cross-neighbors s)
               [before after] (split-with #(empty? (set/intersection sn %))
-                                         (butlast all))]
+                                         (rest all))]
           (recur (concat before (cons (set/union s (first after))
                                       (rest after)))))))))
 
