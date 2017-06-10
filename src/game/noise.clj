@@ -15,7 +15,7 @@
 (def simplex-power 4)
 
 (defn random-spread-unit-vectors [n]
-  (let [slice (/ (* 2 math/pi) n)
+  (let [slice (/ math/tau n)
         offset (rand slice)
         unit-vec [1 0]]
     (map #(math/rotate-vec unit-vec %)

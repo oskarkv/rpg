@@ -83,7 +83,7 @@
 (defn min-angle-between [v1 v2]
   (let [abv (abs (angle-between v1 v2))]
     (min abv
-         (- (* 2 pi) abv))))
+         (- tau abv))))
 
 (defn rotate-vec [[x y] angle]
   [(- (* (cos angle) x) (* (sin angle) y))

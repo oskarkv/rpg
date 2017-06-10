@@ -166,14 +166,14 @@
   (let [rand-normal (fn [] (vec (take 3 (repeatedly #(rand-uniform -1 1)))))]
     {:circle
      (emitter-shape
-      (fn [] (let [v (rand-uniform (* 2 math/pi))]
+      (fn [] (let [v (rand-uniform math/tau)]
                [(* 0.5 (math/cos v)) 0 (* 0.5 (math/sin v))]))
       rand-normal)
      :time-circle
      (emitter-shape
       (fn [] (let [period 500
                    v (* (/ (mod (current-time-ms) period) period)
-                        2 math/pi (rand-uniform 0.9 1.1))]
+                        math/tau (rand-uniform 0.9 1.1))]
                [(* 0.5 (math/cos v)) 0 (* 0.5 (math/sin v))]))
       rand-normal)}))
 
