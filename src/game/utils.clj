@@ -274,8 +274,24 @@
           (pp/pprint r#)
           r#)))))
 
-(defmacro ->$ [x & forms]
-  `(as-> ~x ~'$ ~@forms))
+(letfn [(contains-$? [form]
+          (some #{'$} (tree-seq coll? seq form)))
+        (insert-$-if-missing [arrow forms]
+          (map (fn [form]
+                 (cond (symbol? form) (list form '$)
+                       (contains-$? form) form
+                       :else (list arrow '$ form)))
+               forms))]
+  (defmacro ->$
+    "Acts like (as-> x $ form) if a form contains $, otherwise acts like ->."
+    [x & forms]
+    `(as-> ~x ~'$
+           ~@(insert-$-if-missing '-> forms)))
+  (defmacro ->>$
+    "Acts like (as-> x $ form) if a form contains $, otherwise acts like ->>."
+    [x & forms]
+    `(as-> ~x ~'$
+           ~@(insert-$-if-missing '->> forms))))
 
 (defn zip [& colls]
   (apply map vector colls))
