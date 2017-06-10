@@ -52,7 +52,7 @@
             vec)))
 
 (defn get-closest-model-collision [results geoms->ids]
-  (first (remove nil? (map #(-> % .getGeometry geoms->ids) results))))
+  (first (keep #(-> % .getGeometry geoms->ids) results)))
 
 (defn pick-target [ray node geoms->things]
   (-> (get-collisions node ray)

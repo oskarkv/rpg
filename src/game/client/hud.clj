@@ -368,7 +368,7 @@
       (remove-children chars-pane
                        (map #(get-in hud-state [:chars-state (first %) :node])
                             changed))
-      (add-children chars-pane (remove nil? (map #(% 2) changed+nodes))))
+      (add-children chars-pane (keep #(% 2) changed+nodes)))
     (reduce (fn [hs [k id node]]
               (assoc-in hs [:chars-state k]
                         {:node node :old-hash (hash-char (chars id))}))

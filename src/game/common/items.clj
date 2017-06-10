@@ -184,15 +184,13 @@
         list-fn (fn [k] (when (k item)
                           (str (name k) ": "
                                (str/join ", " (map name (k item))))))]
-    (->$
-        [(:name item)
-         (when type (name type))
-         (when damage (str "damage / delay: " damage " / " delay))]
-      (into $ (for [[s v] stats]
-                (str (name s) ": " v)))
-      (into $ (map list-fn [:classes :slots :races]))
-      (remove nil? $)
-      (str/join "\n" $))))
+    (->$ [(:name item)
+          (when type (name type))
+          (when damage (str "damage / delay: " damage " / " delay))]
+      (into (for [[s v] stats]
+              (str (name s) ": " v)))
+      (into (keep list-fn [:classes :slots :races]))
+      (str/join "\n" &))))
 
 (def items
   (check-items

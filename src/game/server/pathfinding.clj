@@ -115,9 +115,8 @@
                 (->> (pair-cycle adj)
                   (map (fn [[t t2]]
                          (list* (map + t t2) (map add-pos [t t2]))))
-                  (map (fn [[d t t2]]
-                         (if (every? free-tile? [t t2]) d nil)))
-                  (remove nil?)
+                  (keep (fn [[d t t2]]
+                          (if (every? free-tile? [t t2]) d nil)))
                   (concat adj)
                   (map add-pos)
                   (remove (fn [[x y :as tile]]
