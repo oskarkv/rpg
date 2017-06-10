@@ -26,10 +26,10 @@
 (defn find-int-bounds [points]
   (m/emap int (find-bounds points)))
 
-(defn poses-between
-  "Returns a set of the tile positions that exist in a rectangle defined by the
-   2d points bottom (inclusive) and top (exclusive). Top should have a larger x
-   and a larger y than bottom."
+(defn tiles-between
+  "Returns a set of the tiles that exist in a rectangle defined by the 2d points
+   bottom (inclusive) and top (exclusive). Top should have a larger x and a
+   larger y than bottom."
   [bottom top]
   (let [[bx by] bottom
         [tx ty] top]
@@ -37,26 +37,26 @@
                x (range bx tx)]
            [x y]))))
 
-(defn poses-in-polygon
-  "Find the poses inside the polygon defined by verts, a sequence of points.
+(defn tiles-in-polygon
+  "Find the tiles inside the polygon defined by verts, a sequence of points.
    The verts must be in cyclic order."
   [verts]
   (let [[bottom top] (find-int-bounds verts)
-        poses (poses-between bottom top)]
-    (filter #(math/inside? % verts) poses)))
+        tiles (tiles-between bottom top)]
+    (filter #(math/inside? % verts) tiles)))
 
-(defn all-poses [m & {:keys [indent bottom top]
+(defn all-tiles [m & {:keys [indent bottom top]
                       :or {indent 0 bottom [0 0]
                            top (math/mat-size m)}}]
   (let [bottom (map #(+ % indent) bottom)
         top (map #(- % indent) top)]
-    (poses-between bottom top)))
+    (tiles-between bottom top)))
 
 (defn fill
-  ([m poses] (fill m poses :wall))
-  ([m poses v]
+  ([m tiles] (fill m tiles :wall))
+  ([m tiles v]
    (reduce (fn [m path] (assoc-in m path (gmap/tile-type v)))
-           m poses)))
+           m tiles)))
 
 (defn fill-randomly
   "Fill ratio of m randomly with the value v (defaults to the wall value if
@@ -65,42 +65,42 @@
   ([m ratio v]
    (let [[x y] (math/mat-size m)
          number (int (* ratio (* x y)))]
-     (fill m (take number (shuffle (all-poses m))) v))))
+     (fill m (take number (shuffle (all-tiles m))) v))))
 
-(defn remove-illegal-poses
-  "Returns only the positions of poses that are legal in m. Returns a
-   transducer if called with 1 argument."
+(defn remove-illegal-tiles
+  "Returns a seq of only the tiles that are legal in m. Returns a transducer if
+   called with 1 argument."
   ([m]
    (let [[xs ys] (math/mat-size m)]
      (remove (fn [[x y]] (or (< x 0) (< y 0) (>= x xs) (>= y ys))))))
-  ([m poses]
-   (into #{} (remove-illegal-poses m) poses)))
+  ([m tiles]
+   (into #{} (remove-illegal-tiles m) tiles)))
 
 (defn all-neighbors
-  "Returns all neighbors of pos, including pos itself, at manhattan distance
+  "Returns all neighbors of tile, including tile itself, at manhattan distance
    dist, in m. If dist is not provided, defaults to 1."
-  ([pos] (all-neighbors pos 1))
-  ([pos dist]
-   (let [[x y] pos
+  ([tile] (all-neighbors tile 1))
+  ([tile dist]
+   (let [[x y] tile
          range* (range (- dist) (inc dist))]
      (for [j range* i range*]
        [(+ x i) (+ y j)]))))
 
 (defn legal-neighbors
-  ([m pos] (legal-neighbors m pos 1))
-  ([m pos dist] (remove-illegal-poses m (all-neighbors pos dist))))
+  ([m tile] (legal-neighbors m tile 1))
+  ([m tile dist] (remove-illegal-tiles m (all-neighbors tile dist))))
 
 (defn cross-neighbors
-  "Returns the neighbors, in a cross, of pos in m. If more positions, returns
-   the union of their neighbors."
-  ([pos]
-   (let [[x y] pos]
+  "Returns the neighbors, in a cross, of tile in m. If more tiles, returns the
+   union of their neighbors."
+  ([tile]
+   (let [[x y] tile]
      (set [[(inc x) y] [(dec x) y] [x (inc y)] [x (dec y)]])))
-  ([pos & more]
-   (set/union (cross-neighbors pos) (apply cross-neighbors more))))
+  ([tile & more]
+   (set/union (cross-neighbors tile) (apply cross-neighbors more))))
 
-(defn legal-cross-neighbors [m & poses]
-  (remove-illegal-poses m (apply cross-neighbors poses)))
+(defn legal-cross-neighbors [m & tiles]
+  (remove-illegal-tiles m (apply cross-neighbors tiles)))
 
 (defn flood-fill
   "Flood fills starting from start. The successors of a node is given by
@@ -117,18 +117,18 @@
         (recur (into (pop queue) new-adj) (into visited new-adj))))))
 
 (defn flood-fill-map
-  "Returns a set of all poses connected with start-pos in m, via poses whose
+  "Returns a set of all tiles connected with start-tile in m, via tiles whose
    value in m satisfies test-fn. If test-fn is not provided, defaults to a set
-   of the value of start-pos in m."
-  ([m start-pos] (flood-fill-map m start-pos #{(get-in m start-pos)}))
-  ([m start-pos test-fn]
-   (flood-fill start-pos #(filter test-fn (legal-cross-neighbors m %)))))
+   of the value of start-tile in m."
+  ([m start-tile] (flood-fill-map m start-tile #{(get-in m start-tile)}))
+  ([m start-tile test-fn]
+   (flood-fill start-tile #(filter test-fn (legal-cross-neighbors m %)))))
 
 (defn walls-and-rooms
   "Returns a map of :walls and :rooms, where walls is the set of all wall
    tiles, and rooms is a vector of connected sets of room tiles in m."
   [m]
-  (let [all (all-poses m)
+  (let [all (all-tiles m)
         {walls true other false} (group-by (gmap/wall-in?-fn m) all)]
     {:walls walls :rooms
      (loop [rooms [] left other]
@@ -183,16 +183,16 @@
   (let [top (map (comp int math/ceil #(+ % radius)) center)
         bottom (map (comp int #(- % radius)) center)]
     (remove #(> (math/distance % center) radius)
-            (poses-between bottom top))))
+            (tiles-between bottom top))))
 
-(defn unsafe-outer-border [poses]
-  (math/difference (apply cross-neighbors poses) poses))
+(defn unsafe-outer-border [tiles]
+  (math/difference (apply cross-neighbors tiles) tiles))
 
-(defn outer-border [m poses]
-  (remove-illegal-poses m (unsafe-outer-border poses)))
+(defn outer-border [m tiles]
+  (remove-illegal-tiles m (unsafe-outer-border tiles)))
 
-(defn inner-border [poses]
-  (math/intersection (apply cross-neighbors (unsafe-outer-border poses)) poses))
+(defn inner-border [tiles]
+  (math/intersection (apply cross-neighbors (unsafe-outer-border tiles)) tiles))
 
 (defn shrink-zone [zone]
   (math/difference zone (inner-border zone)))
@@ -212,7 +212,7 @@
     nil))
 
 (defn heal-zone-map
-  "Given a list of zones (possibly disconnected sets of poses), merge small
+  "Given a list of zones (possibly disconnected sets of tiles), merge small
    connected components into larger ones, and return a seq of connected zones,
    as many as the input zones."
   [zones]
@@ -247,9 +247,9 @@
     grow-zone))
 
 (defn find-connections
-  "Given a collection of zones (sets of poses) and an integer tile-limit,
+  "Given a collection of zones (sets of tiles) and an integer tile-limit,
    calculates the connections between the zones. Zone a are connected to zone b
-   if tile-limit poses of a are adjacent to poses in b. Returns an adjacency
+   if tile-limit tiles of a are adjacent to tiles in b. Returns an adjacency
    graph (of zone indicies)."
   ([zones] (find-connections zones 1))
   ([zones tile-limit]
@@ -264,24 +264,24 @@
                        [z1 z2])]
      (pairs-to-graph connections))))
 
-(defn frame-poses
-  "Returns a set of poses that makes up a rectangular frame from bottom
+(defn frame-tiles
+  "Returns a set of tiles that makes up a rectangular frame from bottom
    (inclusive) to top (exclusive)."
-  ([top] (frame-poses [0 0] top))
+  ([top] (frame-tiles [0 0] top))
   ([bottom top]
    (let [[bx by] bottom
          [w h] top]
      (math/union
-      (poses-between [bx by] [w (inc by)])
-      (poses-between [bx by] [(inc bx) h])
-      (poses-between [bx (dec h)] [w h])
-      (poses-between [(dec w) by] [w h])))))
+      (tiles-between [bx by] [w (inc by)])
+      (tiles-between [bx by] [(inc bx) h])
+      (tiles-between [bx (dec h)] [w h])
+      (tiles-between [(dec w) by] [w h])))))
 
 (defn edge-zones
   "Returns the indicies of the zones that are on the edege of a map from
    [0 0] to map-shape."
   [zones map-shape]
-  (let [border (frame-poses map-shape)]
+  (let [border (frame-tiles map-shape)]
     (keep-indexed (fn [i z] (when (seq (math/intersection border z)) i))
                   zones)))
 

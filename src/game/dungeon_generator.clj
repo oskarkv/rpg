@@ -14,7 +14,7 @@
    limit tiles within distance dist is also a floor."
   ([m dist limit]
    (let [get-vals (fn [m poses] (map #(get-in m %) poses))
-         ps (ts/all-poses m :indent dist)]
+         ps (ts/all-tiles m :indent dist)]
      (->> ps
        (map #(reduce + (get-vals m (ts/all-neighbors m dist %))))
        (map vector ps)
@@ -27,8 +27,8 @@
   "Fills the edge of width width of m with walls."
   [m width]
   (let [[x y] (math/mat-size m)]
-    (ts/fill m (set/difference (ts/all-poses m)
-                               (ts/all-poses m :indent width)))))
+    (ts/fill m (set/difference (ts/all-tiles m)
+                               (ts/all-tiles m :indent width)))))
 
 (defn random-points-chain
   "Returns a seq of random points starting with [0 0], such that any two
@@ -82,7 +82,7 @@
             (map close-to [(first points) (last points)]))))
 
 (defn monster-spawns [m monsters]
-  (take monsters (shuffle (remove (gmap/wall-in?-fn m) (ts/all-poses m)))))
+  (take monsters (shuffle (remove (gmap/wall-in?-fn m) (ts/all-tiles m)))))
 
 (defn make-round-rooms [num-points radius monsters ratio]
   (let [points (random-points-chain num-points)
