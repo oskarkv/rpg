@@ -111,12 +111,11 @@
   (apply pm/priority-map (interleave (keys spawns) (repeat 0))))
 
 (defn create-game-state []
-  (-> {:chars {} :player-ids #{} :corpses (pm/priority-map-keyfn :decay-time)
-       :last-move (current-time-ms) :last-regen (current-time-ms)
-       :effects (pm/priority-map-keyfn :decay-time)}
-    (merge (gmap/load-game-map (dg/make-round-rooms 2 10 10 0.45)))
-    (as-> gs
-      (assoc gs :to-spawn (create-to-spawn-queue (:spawns gs))))))
+  (->$ {:chars {} :player-ids #{} :corpses (pm/priority-map-keyfn :decay-time)
+        :last-move (current-time-ms) :last-regen (current-time-ms)
+        :effects (pm/priority-map-keyfn :decay-time)}
+    (merge $ (gmap/load-game-map (dg/make-round-rooms 2 10 10 0.45)))
+    (assoc $ :to-spawn (create-to-spawn-queue (:spawns $)))))
 
 (defn init-server [port]
   (let [game-state (create-game-state)

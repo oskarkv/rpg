@@ -268,14 +268,14 @@
     nil))
 
 (defmethod process-event :inv-click [game-state {:keys [path button pressed]}]
-  (-> (cond
-        (and pressed (= button consts/mouse-left) (#{:inv :gear} (path 0)))
-        (pick-up-or-drop-item game-state path)
-        (and pressed (= button consts/mouse-right))
-        (activate-item game-state path))
-    (#(if %
-        (dissoc % :destroying-item)
-        (dissoc game-state :destroying-item)))))
+  (->$ (cond
+         (and pressed (= button consts/mouse-left) (#{:inv :gear} (path 0)))
+         (pick-up-or-drop-item game-state path)
+         (and pressed (= button consts/mouse-right))
+         (activate-item game-state path))
+    (if $
+      (dissoc $ :destroying-item)
+      (dissoc game-state :destroying-item))))
 
 (defmethod process-event :inv-swap [game-state {paths :paths :as event}]
   (when (every? my-stuff? paths)

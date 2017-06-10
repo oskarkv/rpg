@@ -181,19 +181,18 @@
 (defn get-tooltip [item]
   (let [{:keys [type damage delay stats] :as item}
         (all-info item)
-        n "\n"
         list-fn (fn [k] (when (k item)
                           (str (name k) ": "
                                (str/join ", " (map name (k item))))))]
-    (->>
-      [(:name item)
-       (when type (name type))
-       (when damage (str "damage / delay: " damage " / " delay))]
-      (#(into % (for [[s v] stats]
-                  (str (name s) ": " v))))
-      (#(into % (map list-fn [:classes :slots :races])))
-      (remove nil?)
-      (str/join n))))
+    (->$
+        [(:name item)
+         (when type (name type))
+         (when damage (str "damage / delay: " damage " / " delay))]
+      (into $ (for [[s v] stats]
+                (str (name s) ": " v)))
+      (into $ (map list-fn [:classes :slots :races]))
+      (remove nil? $)
+      (str/join "\n" $))))
 
 (def items
   (check-items

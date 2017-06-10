@@ -54,7 +54,7 @@
     (recur name-vars (next wrappers))))
 
 (defn get-ns-name-vars [ns-sym]
-  (-> (the-ns ns-sym) (#(.name %)) ns-interns))
+  (-> (the-ns ns-sym) .name ns-interns))
 
 (defn add-hooks-to-ns [ns-sym & wrappers]
   (apply add-hooks (get-ns-name-vars ns-sym) wrappers))
