@@ -293,8 +293,10 @@
     `(as-> ~x ~'$
            ~@(insert-$-if-missing '->> forms))))
 
-(defn zip [& colls]
-  (apply map vector colls))
+(defn zip
+  ([a b] (map vector a b))
+  ([a b & more]
+   (apply map vector a b more)))
 
 (defn reject-indices [v indices]
   (let [iset (set indices)]
