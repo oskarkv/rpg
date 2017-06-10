@@ -87,11 +87,11 @@
 (defn make-round-rooms [num-points radius monsters ratio]
   (let [points (random-points-chain num-points)
         r+1 (+ radius 1)
-        centers (-> points
+        centers (->$ points
                   add-intermediate-points
                   translate-to-min-0
                   (m/mul (* 3 radius))
-                  (#(m/emap math/round %))
+                  (m/emap math/round $)
                   (m/add [r+1 r+1]))
         [bottom top] (ts/find-bounds centers)
         ;; + 1 because if a point is at n, it's really betwen n and n + 1
