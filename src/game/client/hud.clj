@@ -345,7 +345,7 @@
   (hash (select-keys char [:level :hp :max-hp :mana :max-mana])))
 
 (defn changed-char-panes [hud-state game-state ckeys ids]
-  (let [keys-ids (map vector ckeys ids)
+  (let [keys-ids (zip ckeys ids)
         chars (:chars game-state)]
     (filterv (fn [[k i]]
                (not= (get-in hud-state [:chars-state k :old-hash])

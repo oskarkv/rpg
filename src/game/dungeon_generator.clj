@@ -17,7 +17,7 @@
          ps (ts/all-tiles m :indent dist)]
      (->> ps
        (map #(reduce + (get-vals m (ts/all-neighbors m dist %))))
-       (map vector ps)
+       (zip ps)
        (reduce (fn [m [pos v]]
                  (assoc-in m pos (if (>= v limit) 1 0)))
                m))))

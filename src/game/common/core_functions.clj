@@ -183,7 +183,7 @@
                                    (< (:quantity item) size))))
                     (map (fn [[idx item]] [idx (- size (:quantity item))])))
         distribution (divide-into-piles (map second idx-place) quantity)
-        will-use (map vector (map first idx-place) distribution)
+        will-use (zip (map first idx-place) distribution)
         need-extra-slot (< (count will-use) (count distribution))
         first-nil (find-first-nil inv)]
     (conj-some {:add-to will-use}
