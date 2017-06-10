@@ -3,7 +3,8 @@
    [clojure.data.priority-map :as pm]
    [game.constants :as consts]
    [game.game-map :as gmap]
-   [game.math :as math]))
+   [game.math :as math]
+   [game.utils :refer :all]))
 
 (defn walkable? [x]
   (and x (gmap/walkable-type? x)))
@@ -111,7 +112,7 @@
             (expand [closed pos]
               (let [adj [[1 0] [0 1] [-1 0] [0 -1]]
                     add-pos (partial mapv + pos)]
-                (->> (take 4 (partition 2 1 (cycle adj)))
+                (->> (pair-cycle adj)
                   (map (fn [[t t2]]
                          (list* (map + t t2) (map add-pos [t t2]))))
                   (map (fn [[d t t2]]

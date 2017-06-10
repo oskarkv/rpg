@@ -65,7 +65,7 @@
     (take (dec (* 2 (count points)))
           (interleave points
                       (map (fn [[p1 p2]] (mapv (comp #(/ % 2) +) p1 p2))
-                           (cycle (partition 2 1 points)))))))
+                           (pair-cycle points))))))
 
 (defn select-close-point [m point]
   (first (sort-by #(math/distance % point)
