@@ -190,7 +190,7 @@
       (into (for [[s v] stats]
               (str (name s) ": " v)))
       (into (keep list-fn [:classes :slots :races]))
-      (str/join "\n" &))))
+      (str/join "\n" $))))
 
 (def items
   (check-items
