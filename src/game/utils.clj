@@ -174,8 +174,11 @@
     ([max] (.nextInt r (inc max)))
     ([min max] (+ min (.nextInt r (inc (- max min)))))))
 
-(defmacro def-let [bindings]
-  (let [let-expr (macroexpand `(let ~bindings))
+(defmacro defs
+  "Like def, but can take several symbol-value pairs, and can destructure like
+   let."
+  [& bindings]
+  (let [let-expr (macroexpand `(let ~(vec bindings)))
         vars (filter #(not (.contains (str %) "__"))
                      (map first (partition 2 (second let-expr))))
         defs (map (fn [v] `(def ~v ~v)) vars)]

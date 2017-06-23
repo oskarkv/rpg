@@ -20,33 +20,34 @@
     gear-vector
     (throw-error "gear-slots and gear-slots-vector do not match")))
 
-(def-let
-  [armor-slots #{:head :face :neck :chest :back :waist :legs :feet
-                 :shoulders :arms :wrist :hands :finger :ear}
-   held-slots #{:main-hand :off-hand :ranged}
-   left-right-slots #{:ear :finger :wrist}
-   gear-slots (-> (set/union armor-slots held-slots)
-                (set/difference left-right-slots)
-                (set/union (mapcat left-right left-right-slots)))
-   ;; Used to decide the order in the gear panel
-   gear-slots-vector (check-gear-slots
-                      gear-slots
-                      [:left-ear :head :face :right-ear
-                       :arms :shoulders :neck :back
-                       :left-wrist :chest :waist :right-wrist
-                       :left-finger :legs :feet :right-finger
-                       :main-hand :off-hand :ranged :hands])
-   equip-slots #{:held :armor}
-   melee-weapons #{:sword :staff :club :dagger :spear :axe}
-   ranged-weapons #{:crossbow :bow :wand}
-   armor-types #{:cloth :leather :mail :plate :jewelry}
-   weapons #{:ranged :melee}
-   non-equip #{:trade :quest :consumable}
-   abstract-slots (set/union armor-slots held-slots)
-   types (set/union melee-weapons ranged-weapons non-equip armor-types)
-   classes #{:paladin :druid :warrior :wizard}
-   races #{:gnome :dwarf :human :darkelf :troll :ogre}
-   stats #{:damage :delay :hp :mana :armor}])
+(defs
+  armor-slots #{:head :face :neck :chest :back :waist :legs :feet
+                :shoulders :arms :wrist :hands :finger :ear}
+  held-slots #{:main-hand :off-hand :ranged}
+  left-right-slots #{:ear :finger :wrist}
+  gear-slots (-> (set/union armor-slots held-slots)
+               (set/difference left-right-slots)
+               (set/union (mapcat left-right left-right-slots)))
+  ;; Used to decide the order in the gear panel
+  gear-slots-vector (check-gear-slots
+                     gear-slots
+                     [:left-ear :head :face :right-ear
+                      :arms :shoulders :neck :back
+                      :left-wrist :chest :waist :right-wrist
+                      :left-finger :legs :feet :right-finger
+                      :main-hand :off-hand :ranged :hands])
+  equip-slots #{:held :armor}
+  melee-weapons #{:sword :staff :club :dagger :spear :axe}
+  ranged-weapons #{:crossbow :bow :wand}
+  armor-types #{:cloth :leather :mail :plate :jewelry}
+  weapons #{:ranged :melee}
+  non-equip #{:trade :quest :consumable}
+  abstract-slots (set/union armor-slots held-slots)
+  types (set/union melee-weapons ranged-weapons non-equip armor-types)
+  classes #{:warrior :rogue :paladin :shadow-knight :shaman :druid :cleric
+            :wizard :enchanter :necromancer}
+  races #{:gnome :dwarf :human :darkelf :troll :ogre}
+  stats #{:damage :delay :hp :mana :armor})
 
 
 (defn random-variables-with-mean
