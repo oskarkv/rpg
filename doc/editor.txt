@@ -1,7 +1,7 @@
 Terräng
 -------
 
-Man jobbar på en zon i tagen. En zon borde vara en inte så konstig
+Man jobbar på en zon i taget. En zon borde vara en inte så konstig
 form, uppbyggd av halvstora kvadrader av standardstorlek. En
 standardkvadrat kanske är 16x16 tiles, eller 32x32. En zon kanske
 sedan är 4x6 kvadrater, t.ex.
