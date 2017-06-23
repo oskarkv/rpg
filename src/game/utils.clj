@@ -3,6 +3,7 @@
    [clojure.core.matrix :as m]
    [clojure.pprint :as pp]
    [clojure.reflect :as r]
+   [clojure.string :as str]
    [clojure.walk :as walk])
   (:import
    (java.util Random)))
@@ -179,10 +180,13 @@
    let."
   [& bindings]
   (let [let-expr (macroexpand `(let ~(vec bindings)))
-        vars (filter #(not (.contains (str %) "__"))
-                     (map first (partition 2 (second let-expr))))
-        defs (map (fn [v] `(def ~v ~v)) vars)]
-    (concat let-expr defs)))
+        new-let-bindings (vec (mapcat
+                               (fn [[sym expr]]
+                                 (if (str/includes? (str sym) "__")
+                                   [sym expr]
+                                   [sym expr '_ `(def ~sym ~sym)]))
+                               (partition 2 (second let-expr))))]
+    `(let* ~(vec new-let-bindings))))
 
 (defmacro condf [obj & pairs]
   (assert-args
