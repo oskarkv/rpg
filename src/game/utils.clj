@@ -301,3 +301,7 @@
 (defn reject-indices [v indices]
   (let [iset (set indices)]
     (vec (keep-indexed (fn [i x] (if-not (iset i) x)) v))))
+
+(defn derive-many [hierarchy coll parent]
+  (reduce (fn [h elem] (derive h elem parent))
+          hierarchy coll))

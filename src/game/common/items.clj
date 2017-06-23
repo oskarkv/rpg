@@ -97,10 +97,6 @@
                    (dissoc item :quantity)))
          stacks)))
 
-(defn derive-many [hierarchy coll parent]
-  (reduce (fn [h elem] (derive h elem parent))
-          hierarchy coll))
-
 (def item-type-hierarchy
   (-> (make-hierarchy)
     (derive-many armor-slots :armor)
