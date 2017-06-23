@@ -70,6 +70,18 @@ Warrior
 - Mortal Strike
 - Execute
 
+SK (offensiv tank)
+- Fear (melee kanske)
+- Vampiric Strike
+- Darkness (slow, dot)
+- Lifetap
+- Harm Touch
+- Vampiric Nånting (Life steal under ett tag)
+- Freeze i fear (mezz)
+- Life Drain Aura (drar hp när han är nära)
+- Haunt (kopior som attackerar)
+- Gör skada runt omkring när han tar skada (som Spectre
+
 Shaman
 - Ancestral Awakening
 - Flametongue Attack
@@ -83,7 +95,15 @@ Shaman
 Dåliga
 - Invis
 
-
+Spells
+- Som winter wyvern
+- Som pugna
+- Som abaddon
+- Chain Heal
+- Ancient Apparition
+- Surge (dark seer)
+- Vacuum (Dark seer)
+- Kinetic field (disruptor)
 
 Klasser att ha:
 
