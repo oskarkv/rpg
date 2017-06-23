@@ -42,6 +42,7 @@
   armor-types #{:cloth :leather :mail :plate :jewelry}
   weapons #{:ranged :melee}
   non-equip #{:trade :quest :consumable}
+  ;; With :wrist instead of :left-wrist and :right-wrist.
   abstract-slots (set/union armor-slots held-slots)
   types (set/union melee-weapons ranged-weapons non-equip armor-types)
   classes #{:warrior :rogue :paladin :shadow-knight :shaman :druid :cleric
