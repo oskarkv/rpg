@@ -8,10 +8,14 @@
 
 (declare items)
 
-(defn left-right [slot]
+(defn left-right
+  "Create left-slot and right-slot keywords."
+  [slot]
   (map #(keyword (str % "-" (name slot))) ["left" "right"]))
 
-(defn check-gear-slots [gear-set gear-vector]
+(defn check-gear-slots
+  "Check if gear-set and gear-vector have the same elements."
+  [gear-set gear-vector]
   (if (= gear-set (set gear-vector))
     gear-vector
     (throw-error "gear-slots and gear-slots-vector do not match")))
@@ -24,6 +28,7 @@
    gear-slots (-> (set/union armor-slots held-slots)
                 (set/difference left-right-slots)
                 (set/union (mapcat left-right left-right-slots)))
+   ;; Used to decide the order in the gear panel
    gear-slots-vector (check-gear-slots
                       gear-slots
                       [:left-ear :head :face :right-ear
@@ -43,27 +48,34 @@
    races #{:gnome :dwarf :human :darkelf :troll :ogre}
    stats #{:damage :delay :hp :mana :armor}])
 
-(defn adjusting-fn [mean target]
-  (if (> mean target)
-    #(* (/ target mean) %)
-    #(+ % (* (- 1 %) (/ (- target mean) (- 1 mean))))))
 
-(defn random-variables-with-mean [mean num-vars]
+(defn random-variables-with-mean
+  "Returns num-vars random variables between 0 and 1, with average value avg."
+  [avg num-vars]
   (when (pos? num-vars)
     (let [vars (repeatedly num-vars rand)
-          vars-mean (/ (apply + vars) num-vars)]
-      (map (adjusting-fn vars-mean mean) vars))))
+          vars-avg (/ (apply + vars) num-vars)
+          adjusting-fn (fn [avg target]
+                         (if (> avg target)
+                           #(* (/ target avg) %)
+                           #(+ % (* (- 1 %) (/ (- target avg) (- 1 avg))))))]
+      (map (adjusting-fn vars-avg avg) vars))))
 
-(defn random-variables->stats-factors [vars]
-  (map #(+ 1 (* consts/stats-random-part (- (* % 2) 1))) vars))
+(defn rolls->stats
+  "Takes a map of stats (from stat name to magnitude) and a set of rolls
+   (numbers between 0 and 1) and modifies the stats of the map depending on the
+   rolls and consts/stats-random-part."
+  [base-stats rolls]
+  (letfn [(rolls->stats-factors [vars]
+            (map #(+ 1 (* consts/stats-random-part (- (* % 2) 1))) vars))]
+    (into {} (map (fn [[stat magnitude] factor]
+                    [stat (math/round (* factor magnitude))])
+                  base-stats
+                  (rolls->stats-factors rolls)))))
 
-(defn rolls->stats [base-stats rolls]
-  (into {} (map (fn [[stat magnitude] factor]
-                  [stat (math/round (* factor magnitude))])
-                base-stats
-                (random-variables->stats-factors rolls))))
-
-(defn roll-for-stats [{id :id :as item}]
+(defn roll-for-stats
+  "Returns a new item with the stats randomly modified up or down a bit."
+  [{id :id :as item}]
   (if-let [stats (get-in items [id :stats])]
     (let [rolls (random-variables-with-mean (rand) (count stats))
           actual-stats (rolls->stats stats rolls)]
