@@ -7,7 +7,7 @@
    [game.common.core-functions :as ccfns]
    [game.common.graphics :as gfx]
    [game.common.input :as cmi]
-   [game.common.items :as items]
+   [game.stats-and-items :as sni]
    [game.common.spells :as csp]
    [game.constants :as consts]
    [game.game-map :as gmap]
@@ -252,7 +252,7 @@
   (enqueue-events {:type :c-loot-item :from-path path}))
 
 (defn get-prioritized-slot [{:keys [gear] :as game-state} item]
-  (let [slots (:slots (items/all-info item))
+  (let [slots (:slots (sni/all-info item))
         empty-slots (remove #(% gear) slots)]
     (first (concat empty-slots slots))))
 

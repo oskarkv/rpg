@@ -26,6 +26,7 @@
   regen-interval 1
   regen-pools [:hp :mana]
   spell-slots 8
+  max-level 50
   ;;; GRAPHICS
   resolution-x 1024
   resolution-y 768

@@ -3,10 +3,10 @@
    [clojure.data.priority-map :as pm]
    [game.common.core :as cc]
    [game.common.core-functions :as ccfns]
-   [game.common.items :as items]
    [game.constants :as const]
    [game.dungeon-generator :as dg]
    [game.game-map :as gmap]
+   [game.hierarchies :as hier]
    [game.key-value-store.core :as kvs.core]
    [game.key-value-store.protocols :as kvs]
    [game.networking.core :as net]
@@ -16,28 +16,28 @@
    [game.server.mobs-and-looting :as ml]
    [game.server.movement :as mv]
    [game.server.spells :as sp]
+   [game.stats-and-items :as sni]
    [game.utils :refer :all]))
 
 (defn new-player [username spawn-pos]
-  (->
-    {:name username
-     :speed 2
-     :pos spawn-pos
-     :bind-spot spawn-pos
-     :move-dir [0 0]
-     :type :player
-     :attacking false
-     :damage 60
-     :delay 1
-     :last-attack 0
-     :level 1
-     :exp 0
-     :inv (-> (vec (repeat 10 nil))
-            (assoc-in [0] {:stats {:armor 20}, :id 0}))
-     :gear (zipmap items/gear-slots (repeat nil))
-     :spells (-> (vec (repeat const/spell-slots nil))
-               (assoc-in [0] {:spell :regrowth :last-cast 0}))
-     :effects []}
+  (-> {:name username
+       :speed 2
+       :pos spawn-pos
+       :bind-spot spawn-pos
+       :move-dir [0 0]
+       :type :player
+       :attacking false
+       :damage 60
+       :delay 1
+       :last-attack 0
+       :level 1
+       :exp 0
+       :inv (-> (vec (repeat 10 nil))
+              (assoc-in [0] {:stats {:armor 20}, :id 0}))
+       :gear (zipmap hier/gear-slots (repeat nil))
+       :spells (-> (vec (repeat const/spell-slots nil))
+                 (assoc-in [0] {:spell :regrowth :last-cast 0}))
+       :effects []}
     ccfns/update-stats
     (as-> c
       (assoc c :hp (:max-hp c))

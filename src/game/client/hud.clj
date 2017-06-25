@@ -7,10 +7,11 @@
    [clojure.set :as set]
    [game.common.core :as cc]
    [game.common.core-functions :as ccfns]
-   [game.common.items :as items]
    [game.common.jme-utils :as ju]
    [game.common.spells :as csp]
    [game.constants :as const]
+   [game.hierarchies :as hier]
+   [game.stats-and-items :as sni]
    [game.utils :refer :all])
   (:import
    (com.jme3.material Material)
@@ -183,7 +184,7 @@
 (tree->jfx-method Button [(str (:text tree))] :button)
 
 (defn get-texture-name [item]
-  (:icon (items/all-info item)))
+  (:icon (sni/all-info item)))
 
 (defn create-slot [item path]
   (let [children
@@ -198,12 +199,12 @@
     {:type :image :id "inv-slot" :size const/inv-icon-size
      :texture (if item (get-texture-name item) "inv_slot.png")
      :event {:type :inv-click :trigger :pressed :path path}
-     :tooltip (when item (items/get-tooltip item))
+     :tooltip (when item (sni/get-tooltip item))
      :children children}))
 
 (defn get-map-order [game-state path]
   (if (= path [:gear])
-    items/gear-slots-vector
+    hier/gear-slots-vector
     (keys (get-in game-state path))))
 
 (defn items-paths
@@ -281,7 +282,7 @@
 
 (defn update-mouse-slot-pos [{:keys [input-manager mouse-slot]}]
   (let [[x y] (->> input-manager ju/get-real-mouse-pos
-                (map #(+ % (/ const/inv-icon-size -2))))]
+                   (map #(+ % (/ const/inv-icon-size -2))))]
     (.setLocalTranslation
      mouse-slot x y (.z (.getLocalTranslation mouse-slot)))))
 
@@ -387,7 +388,7 @@
   (let [{:keys [on-mouse on-mouse-quantity]} game-state
         omq on-mouse-quantity
         item (get-in game-state on-mouse)
-        name (:name (items/all-info item))
+        name (:name (sni/all-info item))
         text (str "Destroy " name (when omq (str " (" omq ")")) "?")
         make-event (fn [a] {:type :destroy-item :trigger :action :destroy a})
         make-button (fn [t a] {:type :button :size [60 25] :text t

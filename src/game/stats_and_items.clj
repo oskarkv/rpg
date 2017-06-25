@@ -1,55 +1,147 @@
-(ns game.common.items
+(ns game.stats-and-items
   (:require
    [clojure.set :as set]
    [clojure.string :as str]
    [game.constants :as consts]
+   [game.hierarchies :as hier]
    [game.math :as math]
    [game.utils :refer :all]))
 
+(def base-stats
+  #{:strength :agility :stamina :intelligence :wisdom :spirit
+    :armor :magic-resistance})
+
+(def other-stats
+  #{:attack-power :spell-power :haste :hp :mana :cooldown-reduction
+    :resource-cost-reduction :spell-penetration})
+
+(def all-stats (set/union base-stats other-stats))
+
+(def zero-stats
+  (zipmap [:strength :agility :stamina :intelligence :wisdom :spirit :armor]
+          (repeat 0)))
+
+(def relative-stat-value
+  (-> (zipmap all-stats (repeat 1))
+    (assoc :hp 0.1
+           :mana 0.1)))
+
+(def armor-class-improvement
+  "How much better each class of armor, from cloth to leather, for example, is
+   than the previous."
+  1.4)
+
+(def gear-rarity-improvement
+  "How much better an item is per rarity level."
+  1.4)
+
+(def stats-per-level
+  "How much of each base stat a player is expected to have per level."
+  10)
+
+(def relative-gear-slot-value
+  "How much stats value can each gear slot have, relative to a normal slot."
+  (-> (zipmap hier/gear-slots (repeat 1))
+    (assoc :chest 1.6
+           :legs 1.4
+           :arms 1.2
+           :head 1.2)))
+
+(def relative-2hander-value
+  "How much stats value a 2-hander have compared to a main hand."
+  1.75)
+
+(def total-stats-value
+  "How much stats value the complete set of gear has."
+  (+ (apply + (vals relative-gear-slot-value))
+     (apply + (vals (select-keys relative-gear-slot-value
+                                 hier/left-right-slots)))))
+
+(defn base-stat-per-normal-item [level]
+  (let []))
+
+(defn exp-per-mob [level]
+  (let [level (dec level)]
+    (+ 10 (* 5 level))))
+
+(defn mobs-per-level [level]
+  (let [level (dec level)]
+    (+ 10 (* 5 level) (math/round (math/expt level 1.5)))))
+
+(defn exp-to-level [level]
+  (let [level (dec level)]
+    (* (exp-per-mob level) (mobs-per-level level))))
+
+(defn exp-modifier [mob-level player-level]
+  (let [diff (- mob-level player-level)]
+    (if (< diff -10)
+      0
+      (+ 1 (* 0.1 diff)))))
+
+(defn exp-gained [mob-level player-level]
+  (* (exp-modifier mob-level player-level) (exp-per-mob mob-level)))
+
+(defn through-armor [ac attackers-level]
+  (math/expt 0.9502 (/ ac attackers-level)))
+
+(defn base-that-gives-reduction [reduction]
+  (math/expt (- 1 reduction) 0.1))
+
+(defn random-damage [weapon-damage]
+  (let [modify-damage #(* (% 1 consts/damage-random-portion) weapon-damage)]
+    (math/round (rand-uniform (modify-damage -) (modify-damage +)))))
+
+(defn actual-damage [char target]
+  (* (through-armor (or (:armor target) 0) (:level char))
+     (random-damage (:damage char))))
+
+(defn expected-weapon-damage [level]
+  level)
+
+(defn bonus-damage-simple [power level]
+  (let [scaled 0.5
+        max-stats (* 50 stats-per-level)]
+    (* 200 (+ 1
+              (/ power max-stats (/ (- 1 scaled)))
+              (/ power level stats-per-level (/ scaled))))))
+
+(defn bonus-damage [power level]
+  (let [flat-fraction 0.5
+        scaled 0.5
+        wd (expected-weapon-damage level)
+        max-stats (* 50 stats-per-level)
+        factor (+ (/ power max-stats (/ (- 1 scaled)))
+                  (/ power level stats-per-level (/ scaled)))
+        flat (* factor wd flat-fraction)
+        factor (+ 1 (* factor (- 1 flat-fraction)))]
+    {:factor factor :flat flat}))
+
+(defn hit-chance [level target-level]
+  (let [chance (+ 0.75 (* (- level target-level) 0.05))]
+    (cond
+      (> chance 1) 1
+      (< chance 0.2) 0.2
+      :else chance)))
+
+(defn hit? [attacker target]
+  (< (rand-uniform 1) (hit-chance (:level attacker) (:level target))))
+
+(defn hitpoints [stamina level]
+  (+ (* level 100) (* stamina 5)))
+
+(defn mana [wisdom level]
+  (+ (* level 10) (* wisdom 5)))
+
+(defn hp-regen [level]
+  (/ level 3.0))
+
+(defn base-mana-regen [level]
+  level)
+
+(defn bonus-mana-regen [spirit level]
+  (/ spirit stats-per-level))
+
 (declare items)
-
-(defn left-right
-  "Create left-slot and right-slot keywords."
-  [slot]
-  (map #(keyword (str % "-" (name slot))) ["left" "right"]))
-
-(defn check-gear-slots
-  "Check if gear-set and gear-vector have the same elements."
-  [gear-set gear-vector]
-  (if (= gear-set (set gear-vector))
-    gear-vector
-    (throw-error "gear-slots and gear-slots-vector do not match")))
-
-(defs
-  armor-slots #{:head :face :neck :chest :back :waist :legs :feet
-                :shoulders :arms :wrist :hands :finger :ear}
-  held-slots #{:main-hand :off-hand :ranged}
-  left-right-slots #{:ear :finger :wrist}
-  gear-slots (-> (set/union armor-slots held-slots)
-               (set/difference left-right-slots)
-               (set/union (mapcat left-right left-right-slots)))
-  ;; Used to decide the order in the gear panel
-  gear-slots-vector (check-gear-slots
-                     gear-slots
-                     [:left-ear :head :face :right-ear
-                      :arms :shoulders :neck :back
-                      :left-wrist :chest :waist :right-wrist
-                      :left-finger :legs :feet :right-finger
-                      :main-hand :off-hand :ranged :hands])
-  equip-slots #{:held :armor}
-  melee-weapons #{:sword :staff :club :dagger :spear :axe}
-  ranged-weapons #{:crossbow :bow :wand}
-  armor-types #{:cloth :leather :mail :plate :jewelry}
-  weapons #{:ranged :melee}
-  non-equip #{:trade :quest :consumable}
-  ;; With :wrist instead of :left-wrist and :right-wrist.
-  abstract-slots (set/union armor-slots held-slots)
-  types (set/union melee-weapons ranged-weapons non-equip armor-types)
-  classes #{:warrior :rogue :paladin :shadow-knight :shaman :druid :cleric
-            :wizard :enchanter :necromancer}
-  races #{:gnome :dwarf :human :darkelf :troll :ogre}
-  stats #{:damage :delay :hp :mana :armor})
-
 
 (defn random-variables-with-mean
   "Returns num-vars random variables between 0 and 1, with average value avg."
@@ -99,21 +191,10 @@
                    (dissoc item :quantity)))
          stacks)))
 
-(def item-type-hierarchy
-  (-> (make-hierarchy)
-    (derive-many armor-slots :armor)
-    (derive-many held-slots :held)
-    (derive-many equip-slots :equipment)
-    (derive-many melee-weapons :melee)
-    (derive-many ranged-weapons :ranged)
-    (derive-many weapons :weapon)
-    (derive-many non-equip :inv-types)))
-
 (defn what-kind [thing]
   (condf thing
-    classes :classes
-    abstract-slots :slots
-    races :races))
+    hier/classes :classes
+    hier/gear-slots :slots))
 
 (defn make-stats-map [m]
   (let [{:keys [damage delay]} m
@@ -129,8 +210,8 @@
 (defn concrete-slots [abstract-slots]
   (when abstract-slots
     (set (mapcat (fn [slot]
-                   (if (left-right-slots slot)
-                     (left-right slot)
+                   (if (hier/left-right-slots slot)
+                     (hier/left-right slot)
                      [slot]))
                  abstract-slots))))
 
@@ -144,7 +225,7 @@
                         (make-stats-map e))
                  vector? {(what-kind (first e)) (set e)}
                  number? {:weight e}
-                 types {:type e}
+                 hier/types {:type e}
                  keyword? {e true})))
     (update :slots concrete-slots)
     remove-map-nils))
@@ -155,12 +236,11 @@
         item]
     (every? identity
             [(string? name)
-             (every? races race)
-             (every? classes class)
-             (contains? (conj types nil) type)
-             (every? gear-slots slots)
+             (every? hier/classes class)
+             (contains? (conj hier/types nil) type)
+             (every? hier/gear-slots slots)
              (number? weight)
-             (every? stats (keys item-stats))
+             (every? all-stats (keys item-stats))
              (contains? #{true nil false} two-hand)
              (or (not stackable) (number? stackable))])))
 
@@ -184,7 +264,7 @@
     true
     (let [slot (peek path)
           item-type (items (:id item))]
-      (if (contains? gear-slots slot)
+      (if (contains? hier/gear-slots slot)
         (contains? (:slots item-type) slot)
         true))))
 
