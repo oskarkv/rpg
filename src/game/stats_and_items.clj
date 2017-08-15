@@ -194,11 +194,14 @@
       (assoc item :stats actual-stats))
     item))
 
-(defn stack [n stacksize]
+(defn stack
+  "Returns a vector of stack sizes that would result when trying to stack n
+   items with a max stack size of max-stack-size."
+  [n max-stack-size]
   (loop [left n stacks []]
     (if-not (pos? left)
       stacks
-      (let [this-stack (min stacksize left)]
+      (let [this-stack (min max-stack-size left)]
         (recur (- left this-stack) (conj stacks this-stack))))))
 
 (defn unstack [{:keys [quantity id] :as item}]
