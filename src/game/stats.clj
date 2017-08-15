@@ -45,13 +45,13 @@
 ;; thinks. If it actually is depends on how good we make armor and what players
 ;; think.
 ;;   Now, the current question is, how much of a piece of armor's stats
-;; should go to armor, withous any bonus armor (e.g. normal cloth robe's armor
+;; should go to armor, without any bonus armor (e.g. normal cloth robe's armor
 ;; compared to other stats)? Since it is possible to get bonus armor on items,
 ;; this number should probably be lower than 1 / NUMBER-OF-IMPORTANT-STATS. It
-;; is like a "supply" of armor. If the supply is too high, the demand of bonus
+;; is like a "supply" of armor. If the supply is too high, the demand for bonus
 ;; armor will be lower. In that case, it would not feel like getting armor is a
-;; choice. Keep in mind that it is not possible to base armor on all pieces of
-;; gear.
+;; choice. Keep in mind that it is not possible to get base armor on all pieces
+;; of gear.
 (def armor-ratio 0.125)
 
 (def total-stats-per-level (* stats-per-level num-stats-maxed))
