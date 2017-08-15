@@ -1,5 +1,4 @@
 # Got these from lein
-/todo
 /target
 /lib
 /classes
@@ -27,16 +26,5 @@ pom.xml.asc
 *.swp
 *.swo
 
-# Developers' own profiles
-/dev
-profiles.clj
-.projectile
-
 # Test data
 /data
-
-vimeditbuf.sh
-assets/tmp
-*.bat
-treasure_chest.txt
-todo.txt
