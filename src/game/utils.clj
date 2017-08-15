@@ -315,3 +315,10 @@
 (defn derive-many [hierarchy coll parent]
   (reduce (fn [h elem] (derive h elem parent))
           hierarchy coll))
+
+(defn fdefault [f default]
+  (fn [& args]
+    (let [r (apply f args)]
+      (if (nil? r)
+        default
+        r))))
