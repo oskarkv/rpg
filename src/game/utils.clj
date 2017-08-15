@@ -322,3 +322,9 @@
       (if (nil? r)
         default
         r))))
+
+(defn +some [& args]
+  (apply + (remove nil? args)))
+
+(defn *some [& args]
+  (apply * (remove nil? args)))
