@@ -50,18 +50,47 @@
                       :main-hand :off-hand :ranged :hands]))
 
 (defs ;;; Types
-  melee-weapons #{:sword :staff :club :dagger :spear :axe}
+  melee-weapons #{:sword :staff :club :dagger :spear :axe :mace}
   ranged-weapons #{:crossbow :bow :wand}
-  armor-types #{:cloth :leather :mail :plate :other}
+  sharp-weapons #{:sword :dagger :spear :axe}
+  blunt-weapons #{:club :mace :staff}
+  metal-weapons (set/union sharp-weapons #{:mace})
+  armor-types #{:cloth :leather :mail :plate :jewelry}
   weapons #{:ranged :melee}
-  types (set/union melee-weapons ranged-weapons armor-types))
+  types (set/union melee-weapons ranged-weapons armor-types
+                    #{:caster-offhand}))
 
-(defs ;;; Classes
-  cloth-classes #{:wizard :enchanter :necromancer}
-  leather-classes #{:rogue :druid :ranger}
-  mail-classes #{:shaman :cleric}
-  plate-classes #{:warrior :shadow-knight :paladin}
-  classes (set/union cloth-classes
-                     leather-classes
-                     mail-classes
-                     plate-classes))
+(def type-tags
+  {;;; Blunt weapons
+   :mace #{:metal :blunt :heavy}
+   :staff #{:wood :blunt}
+   :club #{:wood :blunt}
+   ;;; Sharp weapons
+   :sword #{:metal :sharp :blade}
+   :axe #{:metal :sharp :blade}
+   :dagger #{:metal :sharp :blade}
+   :spear #{:metal :sharp}
+   ;;; Ranged weapons
+   :crossbor #{:ranged}
+   :bow #{:ranged}
+   :wand #{:magical}
+   :mail #{:metal}
+   :plate #{:metal}})
+
+(def classes
+  {;;; Tanks
+   :warrior #{:tank :plate :melee}
+   :paladin #{:tank :healer :plate :melee}
+   :shadow-knight #{:tank :plate :melee}
+   ;;; Casters
+   :wizard #{:caster :cloth}
+   :necromancer #{:caster :cloth}
+   :enchanter #{:caster :cloth}
+   ;;; Healers
+   :druid #{:caster :healer :leather}
+   :shaman #{:caster :healer :mail}
+   :cleric #{:caster :healer :mail}
+   ;;; Melee
+   :rogue #{:leather :melee :agile}
+   ;;; Ranged
+   :ranger #{:leather :ranged :agile}})

@@ -1,137 +1,68 @@
 (ns game.item-generation
   (:require
+   [clojure.math.combinatorics :as comb]
    [game.constants :as consts]
+   [game.item-names :as names]
+   [game.math :as math]
+   [game.stats-and-items :as si]
    [game.utils :refer :all]))
 
-(def animal-names
-  ["Falcon"
-   "Bear"
-   "Wolf"
-   "Eagle"
-   "Snake"
-   "Frog"
-   "Cat"
-   "Tiger"])
+(def base-wants
+  {:spirit 1
+   :armor 1
+   :vitality 1
+   :magic-resistance 1})
 
-(def plant-names
-  ["Oak"
-   "Tree"
-   "Sapling"
-   "Grove"
-   "Meadow"
-   "Thicket"
-   "Wood"
-   "Woodland"])
+(def caster-wants
+   {:intelligence 1
+    :wisdom 1})
 
-(def colors
-  ["Silver"
-   "Black"
-   "Red"])
+(def wants-maps
+  (fmap #(merge % base-wants)
+        {:warrior {:strength 1 :stamina 1}
+         :wizard caster-wants
+         :druid caster-wants
+         :necromancer caster-wants
+         :paladin {:strength 1 :wisdom 1}
+         :ranger {:agility 1 :wisdom 1}
+         :rogue {:agility 1 :stamina 1}}))
 
-(def metal
-  ["Silver"
-   "Steel"
-   "Iron"
-   "Mithril"])
+(defn select-random-keys [m num]
+  (select-keys m (take num (shuffle (keys m)))))
 
-(def adjective
-  ["Dark"
-   "Bloody"
-   "Sinister"
-   "Heavy"
-   "Light"
-   "Ominous"
-   "Old"
-   "Ultimate"
-   "Powerful"
-   "Fabled"
-   "Mystic"
-   "Mythical"
-   "Arcane"
-   "Sacred"
-   "Vigilant"
-   "Potent"
-   "Mighty"
-   "Blessed"
-   "Primordial"
-   "Ancient"
-   "Old"
-   "Fine"])
+(defn normalize-map [m]
+  (let [total (apply + (vals m))]
+    (fmap #(/ % total) m)))
 
-"of the
-Sage
-Scholar
-Prodigy
-Vigor
-Fairy
-"
+(defn armor? [type]
+  (#{:cloth :leather :mail :plate} type))
 
-"
-Relic
-Talisman
-Idol
-Shard
-Omen
-"
+(defn add-base-armor
+  "Adds a base armor component in a normalized stats-dist map."
+  [stats-dist]
+  (-> (fmap #(* % (- 1 si/armor-ratio)) stats-dist)
+    (update :armor +some si/armor-ratio)))
 
-(def nature-names
-  ["Sun"
-   "Moon"
-   "Nature"])
+(defn create-stats-dist-with-armor
+  "Given a stats-dist map (not necessarily normalized) and a type, create a
+   normalized stats-dist map with a base armor component added if the type is an
+   armor type."
+  [stats-dist type]
+   (cond-> (normalize-map stats-dist)
+     (armor? type) add-base-armor))
 
-(defn prepend-of [thing]
-  (str "of " thing))
+(defn create-random-stats-dist
+  "Create a random stats-dist map based on the class's wants, including base
+   armor."
+  [class type]
+  (let [wants (wants-maps class)
+        num-stats (rand-uniform-int 1 (count wants))]
+    (create-stats-dist-with-armor (select-random-keys wants num-stats) type)))
 
-;; Den här borde bero på nån hierarchy
-(def names
-  {:classes
-   {:druid {:prefix
-            ["Nature's"
-             "Naturewalker's"
-             "Druid's"
-             "Elder's"]
-            :suffix
-            (concat
-             (for [thing (concat plant-names animal-names)]
-               (str "the " thing))
-             nature-names)}
-    :warrior {:prefix
-              ["Warrior's"
-               "Battle"
-               "War"
-               "Myrmidon's"
-               "Champion's"]
-              :suffix
-              ["Battle"
-               "Slaughter"
-               "Victory"]}}
-   :plate
-   {:chest {:prefix
-            []}}})
-
-(defn make-name [type slot class level rarity]
-  )
-
-(def wanted-stats
-  {:warrior {:strength 1
-             :stamina 1
-             :spirit 0.5
-             :magic-resistance 1
-             :armor 1}
-   :druid {:intelligence 1
-           :spirit 1
-           :wisdom 0.5
-           :magic-resistance 1
-           :armor 0.5}})
-
-;; pieces kan vara slots (ett set) eller typ :armor, :jewelry, asså nått som
-;; finns i hierarchyn
-(defn make-set
-  [stats pieces armor-type]
-  )
-
-(defn create-item [slot stats level rarity]
-  )
-
-(defn create-items-for-class [amount class]
-  )
+(defn final-item-stats [slot type stats-dist level quality]
+  (let [stats-factor (* (slot si/relative-gear-slot-value) quality)
+        stats-amount (* si/stats-per-slot-per-level level stats-factor)]
+    (->>$ stats-dist
+      (fmap #(* stats-amount %))
+      (update $ :armor *some (si/armor-factor type))
+      (fmap math/round))))
