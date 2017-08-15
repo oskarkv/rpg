@@ -4,7 +4,7 @@
    [game.constants :as consts]
    [game.item-names :as names]
    [game.math :as math]
-   [game.stats-and-items :as si]
+   [game.stats :as stats]
    [game.utils :refer :all]))
 
 (def base-wants
@@ -40,8 +40,8 @@
 (defn add-base-armor
   "Adds a base armor component in a normalized stats-dist map."
   [stats-dist]
-  (-> (fmap #(* % (- 1 si/armor-ratio)) stats-dist)
-    (update :armor +some si/armor-ratio)))
+  (-> (fmap #(* % (- 1 stats/armor-ratio)) stats-dist)
+    (update :armor +some stats/armor-ratio)))
 
 (defn create-stats-dist-with-armor
   "Given a stats-dist map (not necessarily normalized) and a type, create a
@@ -60,9 +60,9 @@
     (create-stats-dist-with-armor (select-random-keys wants num-stats) type)))
 
 (defn final-item-stats [slot type stats-dist level quality]
-  (let [stats-factor (* (slot si/relative-gear-slot-value) quality)
-        stats-amount (* si/stats-per-slot-per-level level stats-factor)]
+  (let [stats-factor (* (slot stats/relative-gear-slot-value) quality)
+        stats-amount (* stats/stats-per-slot-per-level level stats-factor)]
     (->>$ stats-dist
       (fmap #(* stats-amount %))
-      (update $ :armor *some (si/armor-factor type))
+      (update $ :armor *some (stats/armor-factor type))
       (fmap math/round))))

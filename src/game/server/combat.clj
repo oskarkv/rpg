@@ -1,7 +1,7 @@
 (ns game.server.combat
   (:require
    [game.common.core-functions :as ccfns]
-   [game.stats-and-items :as sni]
+   [game.stats :as stats]
    [game.constants :as const]
    [game.server.base :as b]
    [game.utils :refer :all]))
@@ -20,7 +20,7 @@
 
 (defn give-exp [{:keys [level exp] :as char} new-exp]
   (let [exp-sum (+ exp new-exp)
-        req-exp (sni/exp-to-level (inc level))]
+        req-exp (stats/exp-to-level (inc level))]
     (if (> exp-sum req-exp)
       (-> char
         (update :level inc)
@@ -31,8 +31,8 @@
   (let [{:keys [damaged-by tagged-by]} char
         total-damage (apply + (vals damaged-by))
         tagged-damage (damaged-by tagged-by)
-        all-exp (sni/exp-gained (:level char)
-                                (get-in game-state [:chars tagged-by :level]))
+        all-exp (stats/exp-gained (:level char)
+                                  (get-in game-state [:chars tagged-by :level]))
         actual-exp (* all-exp (/ tagged-damage total-damage))]
     (update-in game-state [:chars tagged-by]
                give-exp (* const/exp-bonus-factor actual-exp))))
@@ -160,9 +160,9 @@
                        target-char
                        (ccfns/id-close-enough? game-state id target
                                                const/attack-distance))
-              (conj event (if (sni/hit? char target-char)
+              (conj event (if (stats/hit? char target-char)
                             {:hit true
-                             :damage (sni/actual-damage char target-char)}
+                             :damage (stats/actual-damage char target-char)}
                             {:hit false})))))]
     (apply b/enqueue-events (map generate-attack-event (:chars game-state)))))
 

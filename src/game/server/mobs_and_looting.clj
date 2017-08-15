@@ -1,7 +1,7 @@
 (ns game.server.mobs-and-looting
   (:require
    [game.common.core-functions :as ccfns]
-   [game.stats-and-items :as sni]
+   [game.items :as items]
    [game.constants :as consts]
    [game.mobs :as mobs]
    [game.server.base :as b]
@@ -30,8 +30,8 @@
         [min max] (:levels mob)
         level (+ min (rand-int (- (inc max) min)))
         drops (roll-for-drops (:drops mob))
-        drops-with-stats (map sni/roll-for-stats drops)
-        unstacked (vec (mapcat sni/unstack drops-with-stats))]
+        drops-with-stats (map items/roll-for-stats drops)
+        unstacked (vec (mapcat items/unstack drops-with-stats))]
     (assoc mob-type
            :type :mob
            :spawn spawn-id

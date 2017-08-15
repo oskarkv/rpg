@@ -1,7 +1,8 @@
 (ns game.common.core-functions
   (:require
    [game.common.core :as cc]
-   [game.stats-and-items :as sni]
+   [game.items :as items]
+   [game.stats :as stats]
    [game.math :as math]
    [game.utils :refer :all])
   (:import
@@ -87,7 +88,7 @@
   (= :mob (:type char)))
 
 (defn sum-stats [gear]
-  (merge sni/zero-stats
+  (merge stats/zero-stats
          (apply merge-with + (map :stats (vals gear)))))
 
 (defn update-stats [{:keys [gear level] :as char}]
@@ -96,12 +97,12 @@
                 armor]} stats
         attack-power (+ strength agility)]
     (merge char
-           {:max-hp (sni/hitpoints stamina level)
-            :hp-regen (sni/hp-regen level)
+           {:max-hp (stats/hitpoints stamina level)
+            :hp-regen (stats/hp-regen level)
             :max-mana (* level 50)
             :mana-regen (* level 2)
             :armor armor
-            :damage (int (sni/bonus-damage-simple attack-power level))})))
+            :damage (int (stats/bonus-damage-simple attack-power level))})))
 
 (defn move-toward-pos [{:keys [pos speed] :as char} time-delta target-pos]
   (let [dir (math/norm-diff target-pos pos)
@@ -149,7 +150,7 @@
 
 (defn possible-slot? [game-state from to]
   (let [item (get-in game-state from)]
-    (sni/correct-slot? item to)))
+    (items/correct-slot? item to)))
 
 (defn inv-swap [game-state [from to :as paths] enqueue id]
   (when (and (possible-slot? game-state from to)
@@ -174,7 +175,7 @@
      (conj acc total))))
 
 (defn stack-loot-dest [inv {:keys [quantity id] :as item}]
-  (let [size (:stackable (sni/all-info item))
+  (let [size (:stackable (items/all-info item))
         idx-place (->> (map-indexed vector inv)
                     (filter (fn [[idx item]]
                               (and item
@@ -227,7 +228,7 @@
   (let [game-state (ensure-to-stack game-state from-path to-path)
         [from-q-path to-q-path] (map #(conj % :quantity) [from-path to-path])
         [from-q to-q] (map #(get-in game-state %) [from-q-path to-q-path])
-        max-stack (:stackable (sni/all-info (get-in game-state to-path)))
+        max-stack (:stackable (items/all-info (get-in game-state to-path)))
         moved-q (min quantity from-q (- max-stack to-q))
         ngs (update-in game-state to-q-path + moved-q)]
     (if (<= from-q moved-q)

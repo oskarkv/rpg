@@ -11,7 +11,7 @@
    [game.common.spells :as csp]
    [game.constants :as const]
    [game.hierarchies :as hier]
-   [game.stats-and-items :as sni]
+   [game.items :as items]
    [game.utils :refer :all])
   (:import
    (com.jme3.material Material)
@@ -184,7 +184,7 @@
 (tree->jfx-method Button [(str (:text tree))] :button)
 
 (defn get-texture-name [item]
-  (:icon (sni/all-info item)))
+  (:icon (items/all-info item)))
 
 (defn create-slot [item path]
   (let [children
@@ -199,7 +199,7 @@
     {:type :image :id "inv-slot" :size const/inv-icon-size
      :texture (if item (get-texture-name item) "inv_slot.png")
      :event {:type :inv-click :trigger :pressed :path path}
-     :tooltip (when item (sni/get-tooltip item))
+     :tooltip (when item (items/get-tooltip item))
      :children children}))
 
 (defn get-map-order [game-state path]
@@ -388,7 +388,7 @@
   (let [{:keys [on-mouse on-mouse-quantity]} game-state
         omq on-mouse-quantity
         item (get-in game-state on-mouse)
-        name (:name (sni/all-info item))
+        name (:name (items/all-info item))
         text (str "Destroy " name (when omq (str " (" omq ")")) "?")
         make-event (fn [a] {:type :destroy-item :trigger :action :destroy a})
         make-button (fn [t a] {:type :button :size [60 25] :text t

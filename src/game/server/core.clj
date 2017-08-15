@@ -16,7 +16,6 @@
    [game.server.mobs-and-looting :as ml]
    [game.server.movement :as mv]
    [game.server.spells :as sp]
-   [game.stats-and-items :as sni]
    [game.utils :refer :all]))
 
 (defn new-player [username spawn-pos]
