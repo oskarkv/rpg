@@ -204,7 +204,10 @@
       (let [this-stack (min max-stack-size left)]
         (recur (- left this-stack) (conj stacks this-stack))))))
 
-(defn unstack [{:keys [quantity id] :as item}]
+(defn unstack
+  "Returns a seq of stacks of the given item. The seq will be longer than 1 if
+   :quantity > :stackable."
+  [{:keys [quantity id] :as item}]
   (let [allowed (or (get-in items [id :stackable]) 1)
         stacks (stack (or quantity 1) allowed)]
     (map (fn [n] (if (< 1 allowed)
@@ -225,7 +228,9 @@
       delay (assoc :delay delay)
       (zero? (count stats)) (dissoc :stats))))
 
-(defn all-info [light-item]
+(defn all-info
+  "Merges the full info of an item into a light version of it."
+  [light-item]
   (merge (items (:id light-item)) light-item))
 
 (defn concrete-slots [abstract-slots]
