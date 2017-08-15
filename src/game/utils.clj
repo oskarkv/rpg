@@ -196,6 +196,9 @@
        ~(second pairs)
        (condf ~obj ~@(next (next pairs))))))
 
+(defmacro cond-pairs [& vs]
+  `(cond ~@(apply concat vs)))
+
 (defn throw-error [& msg]
   (throw (Error. (apply str msg))))
 
