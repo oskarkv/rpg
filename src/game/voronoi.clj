@@ -50,24 +50,32 @@
           (recur (disj active p) (conj inactive p) grid))
         inactive))))
 
+(defn tiles-in-rect
+  "Returns a seq of tiles in the rectangle from (0, 0) to (x, y)."
+  [[x y]]
+  (for [x (range width) y (range height)]
+    [x y]))
+
 ;; We could break up the positions in a quad tree, and assign squares of
 ;; positions at once if all the corners have the same nearest site.
 (defn warped-voronoi
-  "Returns a map of sites to tiles. The argument sites should be a seq of
-   points."
-  [sites [width height] displacement period]
+  "Returns a map of sites to tiles, representing a voronoi diagram warped with a
+   simplex noise function. The argument sites should be a seq of points, and
+   shape should be [width height]."
+  [sites shape displacement period]
   (let [fbm (noise/fbm-fn displacement period)]
     (group-by
      (fn [p] (let [p (fbm p)]
                (apply min-key #(math/squared-distance p %) sites)))
-     (for [x (range width) y (range height)]
-       [x y]))))
+     (tiles-in-rect shape))))
 
-(defn voronoi [sites [width height]]
+(defn voronoi
+  "Returns a map of sites to tiles, representing a voronoi diagram. The argument
+   sites should be a seq of points, and shape should be [width height]."
+  [sites shape]
   (group-by
    (fn [p] (apply min-key #(math/squared-distance p %) sites))
-   (for [x (range width) y (range height)]
-     [x y])))
+   (tiles-in-rect shape)))
 
 (defn to-color-map [zones size]
   (let [m (ts/make-map size size)]
