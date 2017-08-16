@@ -91,7 +91,7 @@
   ([m tile dist] (remove-illegal-tiles m (all-neighbors tile dist))))
 
 (defn cross-neighbors
-  "Returns the neighbors, in a cross, of tile in m. If more tiles, returns the
+  "Returns the 4 neighbors, in a cross, of tile. If more tiles, returns the
    union of their neighbors."
   ([tile]
    (let [[x y] tile]
