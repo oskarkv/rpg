@@ -77,8 +77,8 @@
    (into #{} (remove-illegal-tiles m) tiles)))
 
 (defn all-neighbors
-  "Returns all neighbors of tile, including tile itself, at manhattan distance
-   dist, in m. If dist is not provided, defaults to 1."
+  "Returns all neighbors of tile, including tile itself, in a 2 * dist + 1
+  square around tile. If dist is not provided, defaults to 1."
   ([tile] (all-neighbors tile 1))
   ([tile dist]
    (let [[x y] tile
