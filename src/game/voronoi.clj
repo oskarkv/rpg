@@ -52,7 +52,10 @@
 
 ;; We could break up the positions in a quad tree, and assign squares of
 ;; positions at once if all the corners have the same nearest site.
-(defn warped-voronoi [sites [width height] displacement period]
+(defn warped-voronoi
+  "Returns a map of sites to tiles. The argument sites should be a seq of
+   points."
+  [sites [width height] displacement period]
   (let [fbm (noise/fbm-fn displacement period)]
     (group-by
      (fn [p] (let [p (fbm p)]
