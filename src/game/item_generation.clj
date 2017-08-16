@@ -56,13 +56,30 @@
    armor."
   [class type]
   (let [wants (wants-maps class)
-        num-stats (rand-uniform-int 1 (count wants))]
+        num-stats (rand-uniform-int 2 (count wants))]
     (create-stats-dist-with-armor (select-random-keys wants num-stats) type)))
 
-(defn final-item-stats [slot type stats-dist level quality]
+(defn final-item-stats
+  "Creates the final stats of an item by taking into consideration all the
+   arguments. stats-dist should be the final, normalized, stats-dist map after
+   armor has been added."
+  [slot type stats-dist level quality]
   (let [stats-factor (* (slot stats/relative-gear-slot-value) quality)
         stats-amount (* stats/stats-per-slot-per-level level stats-factor)]
     (->>$ stats-dist
       (fmap #(* stats-amount %))
       (update $ :armor *some (stats/armor-factor type))
       (fmap math/round))))
+
+(defn make-item [name slot type stats-dist level quality]
+  (let [stats-dist* (create-stats-dist-with-armor stats-dist type)]
+    (if (> (:armor stats-dist*) (* 3 stats/armor-ratio))
+      (throw-ex "Too high armor on item " name)
+      (assoc
+       (final-item-stats slot type stats-dist* level quality)
+       :quality quality
+       :level level
+       :item-level (math/round (* quality level))
+       :slot slot
+       :type type
+       :name name))))
