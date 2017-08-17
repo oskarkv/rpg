@@ -194,14 +194,16 @@
 (defn inner-border [tiles]
   (math/intersection (apply cross-neighbors (unsafe-outer-border tiles)) tiles))
 
-(defn shrink-zone [zone]
-  (math/difference zone (inner-border zone)))
+(defn shrink-zone
+  ([zone] (math/difference zone (inner-border zone)))
+  ([zone times] (call-times times shrink-zone zone)))
 
 (defn grow-zone [zone]
   (math/union zone (unsafe-outer-border zone)))
 
 (defn connected-sets
-  "Given a collection of points, return a seq of connected sets."
+  "Given a collection of points, return a seq of connected sets, sorted with
+  largest set first."
   [points]
   (if (seq points)
     (let [first-set (flood-fill
@@ -240,7 +242,7 @@
   "Remove areas that are going to become inaccessible after walling the zone
    in."
   [zone]
-  (->> zone
+  (-> zone
     shrink-zone
     connected-sets
     first
