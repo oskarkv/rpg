@@ -97,7 +97,7 @@
    (let [[x y] tile]
      (set [[(inc x) y] [(dec x) y] [x (inc y)] [x (dec y)]])))
   ([tile & more]
-   (set/union (cross-neighbors tile) (apply cross-neighbors more))))
+   (apply set/union (cross-neighbors tile) (map cross-neighbors more))))
 
 (defn legal-cross-neighbors [m & tiles]
   (remove-illegal-tiles m (apply cross-neighbors tiles)))
