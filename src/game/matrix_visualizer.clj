@@ -58,7 +58,10 @@
        (map to-color* v)
        (repeat 3 (to-color* v))))))
 
-(defn grayscale-matrix [matrix]
+(defn grayscale-matrix
+  "Creates a matrix of color values from white to black, from a matrix of values
+   between -1 and 1, or 0 and 1."
+  [matrix]
   (let [negatives (< (m/emin matrix) 0)
         gray (fn [v]
                (-> (if negatives
@@ -77,6 +80,8 @@
             (m/emap int (mapv #(m/add p (m/mul v %)) (range (inc d)))))))
 
 (defn show-image
+  "Displays an image (matrix of color values), typically not just a matrix
+   straight from the game."
   ([m] (show-image m "show-image"))
   ([m title]
    (show-image m title 3))
