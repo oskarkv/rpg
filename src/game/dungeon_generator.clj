@@ -13,15 +13,18 @@
   "Cellular automaton step. Makes a tile a floor, if at least
    limit tiles within distance dist is also a floor."
   ([m dist limit]
+   (ca-step m (ts/all-tiles m :indent dist) dist limit))
+  ([m in-set dist limit]
    (let [get-vals (fn [m poses] (map #(get-in m %) poses))
-         ps (ts/all-tiles m :indent dist)]
+         ps (ts/shrink-zone in-set dist)]
      (->> ps
-       (map #(reduce + (get-vals m (ts/all-neighbors m dist %))))
+       (map #(reduce + (get-vals m (ts/all-neighbors % dist))))
        (zip ps)
        (reduce (fn [m [pos v]]
                  (assoc-in m pos (if (>= v limit) 1 0)))
                m))))
-  ([m dist limit steps] (call-times steps #(ca-step % dist limit) m)))
+  ([m in-set dist limit steps]
+   (call-times steps #(ca-step % in-set dist limit) m)))
 
 (defn fill-edge
   "Fills the edge of width width of m with walls."
@@ -96,7 +99,7 @@
         [bottom top] (ts/find-bounds centers)
         ;; + 1 because if a point is at n, it's really betwen n and n + 1
         [x y] (map #(+ % r+1 1) top)
-        m (ts/make-map x y :wall)
+        m (ts/make-map x y (gmap/tile-type :wall))
         m (reduce (fn [m* c] (ts/fill m* (ts/points-in-circle c radius) :floor))
                   m
                   centers)
