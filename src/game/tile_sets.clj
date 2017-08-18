@@ -78,7 +78,7 @@
 
 (defn all-neighbors
   "Returns all neighbors of tile, including tile itself, in a 2 * dist + 1
-  square around tile. If dist is not provided, defaults to 1."
+   square around tile. If dist is not provided, defaults to 1."
   ([tile] (all-neighbors tile 1))
   ([tile dist]
    (let [[x y] tile
@@ -203,7 +203,7 @@
 
 (defn connected-sets
   "Given a collection of points, return a seq of connected sets, sorted with
-  largest set first."
+   largest set first."
   [points]
   (if (seq points)
     (let [first-set (flood-fill
