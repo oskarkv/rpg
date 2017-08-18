@@ -198,8 +198,9 @@
   ([zone] (math/difference zone (inner-border zone)))
   ([zone times] (call-times times shrink-zone zone)))
 
-(defn grow-zone [zone]
-  (math/union zone (unsafe-outer-border zone)))
+(defn grow-zone
+  ([zone] (math/union zone (unsafe-outer-border zone)))
+  ([zone times] (call-times times grow-zone zone)))
 
 (defn connected-sets
   "Given a collection of points, return a seq of connected sets, sorted with
