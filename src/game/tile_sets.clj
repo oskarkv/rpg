@@ -239,21 +239,28 @@
           {}
           pairs))
 
-(defn prune-zone
-  "Remove areas that are going to become inaccessible after walling the zone
-   in."
-  [zone]
-  (-> zone
-    shrink-zone
-    connected-sets
-    first
-    grow-zone))
+(def keep-biggest-connected (comp first connected-sets))
+
+(defn shrink-and-discard
+  "Shrink the zone by removing the outer tiles, amount times. Keep only the
+   biggest connected component."
+  ([zone] (shrink-and-discard zone 1))
+  ([zone amount]
+   (-> (shrink-zone zone amount)
+     keep-biggest-connected)))
+
+(defn find-border
+  "Find the tiles that are part of the border between area1 and area2. The
+   border is the tiles in area1 that are next to area2, and vice versa."
+  [area1 area2]
+  (let [[b1 b2] (map unsafe-outer-border [area1 area2])]
+    (set/union (math/intersection area1 b2)
+               (math/intersection area2 b1))))
 
 (defn find-connections
   "Given a collection of zones (sets of tiles) and an integer tile-limit,
    calculates the connections between the zones. Zone a are connected to zone b
-   if tile-limit tiles of a are adjacent to tiles in b. Returns an adjacency
-   graph (of zone indicies)."
+   if tile-limit tiles of a are adjacent to tiles in b. Returns a set of pairs."
   ([zones] (find-connections zones 1))
   ([zones tile-limit]
    (let [n (count zones)
@@ -261,11 +268,28 @@
          border-map (zipmap (range) (map unsafe-outer-border zones))
          enough? (fn [z1 z2] (>= (count (math/intersection (border-map z1)
                                                            (zone-map z2)))
-                                 tile-limit))
-         connections (for [z1 (range n) z2 (range (inc z1) n)
-                           :when (and (enough? z1 z2) (enough? z2 z1))]
-                       [z1 z2])]
-     (pairs-to-graph connections))))
+                                 tile-limit))]
+     (set (for [z1 (range n) z2 (range (inc z1) n)
+                :when (and (enough? z1 z2) (enough? z2 z1))]
+            [z1 z2])))))
+
+(defn connect-zones [m zone1 zone2]
+  (let [[a b] (closest-pair zone1 zone2 5)
+        rect (rectangle-between-points a b 2.5 0.5)
+        [bottom top] (find-int-bounds rect)
+        top (map inc top)
+        between (remove-illegal-tiles m (tiles-between bottom top))
+        to-remove (filter #(math/inside? % rect) between)]
+    (fill m to-remove :floor)))
+
+(defn connect-zone-pairs
+  "Connect the zones in m that is a pair in connections."
+  [m zones pairs]
+  (let [zones-vec (vec zones)
+        conns (m/emap zones-vec (vec pairs))]
+    (reduce (fn [m [z1 z2]] (connect-zones m z1 z2))
+            m
+            conns)))
 
 (defn frame-tiles
   "Returns a set of tiles that makes up a rectangular frame from bottom
