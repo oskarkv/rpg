@@ -315,13 +315,11 @@
             [z1 z2])))))
 
 (defn connect-zones [m zone1 zone2]
-  (let [[a b] (closest-pair zone1 zone2 5)
-        rect (rectangle-between-points a b 2.5 0.5)
-        [bottom top] (find-int-bounds rect)
-        top (map inc top)
-        between (remove-illegal-tiles m (area-between bottom top))
-        to-remove (filter #(math/inside? % rect) between)]
-    (fill m to-remove :floor)))
+  (->>$ (closest-pair zone1 zone2 10)
+    (apply path-between)
+    (remove-illegal-tiles m)
+    (filter (gmap/intraversable-in?-fn m))
+    (fill m $ :ground)))
 
 (defn connect-zone-pairs
   "Connect the zones in m that is a pair in connections."
