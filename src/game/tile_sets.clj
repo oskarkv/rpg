@@ -322,7 +322,7 @@
     (fill m $ :ground)))
 
 (defn connect-zone-pairs
-  "Connect the zones in m that is a pair in connections."
+  "Connect the zones (a collection of zones) in m that is a pair in pairs."
   [m zones pairs]
   (let [zones-vec (vec zones)
         conns (m/emap zones-vec (vec pairs))]
