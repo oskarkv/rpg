@@ -26,7 +26,7 @@
 (defn find-int-bounds [points]
   (m/emap int (find-bounds points)))
 
-(defn tiles-between
+(defn area-between
   "Returns a set of the tiles that exist in a rectangle defined by the 2d points
    bottom (inclusive) and top (exclusive). Top should have a larger x and a
    larger y than bottom."
@@ -42,7 +42,7 @@
    The verts must be in cyclic order."
   [verts]
   (let [[bottom top] (find-int-bounds verts)
-        tiles (tiles-between bottom top)]
+        tiles (area-between bottom top)]
     (filter #(math/inside? % verts) tiles)))
 
 (defn all-tiles [m & {:keys [indent bottom top]
@@ -50,7 +50,7 @@
                            top (math/mat-size m)}}]
   (let [bottom (map #(+ % indent) bottom)
         top (map #(- % indent) top)]
-    (tiles-between bottom top)))
+    (area-between bottom top)))
 
 (defn fill
   ([m tiles] (fill m tiles :wall))
@@ -195,7 +195,7 @@
   (let [top (map (comp int math/ceil #(+ % radius)) center)
         bottom (map (comp int #(- % radius)) center)]
     (remove #(> (math/distance % center) radius)
-            (tiles-between bottom top))))
+            (area-between bottom top))))
 
 (defn unsafe-outer-border [tiles]
   (math/difference (apply cross-neighbors tiles) tiles))
@@ -302,7 +302,7 @@
         rect (rectangle-between-points a b 2.5 0.5)
         [bottom top] (find-int-bounds rect)
         top (map inc top)
-        between (remove-illegal-tiles m (tiles-between bottom top))
+        between (remove-illegal-tiles m (area-between bottom top))
         to-remove (filter #(math/inside? % rect) between)]
     (fill m to-remove :floor)))
 
@@ -323,10 +323,10 @@
    (let [[bx by] bottom
          [w h] top]
      (math/union
-      (tiles-between [bx by] [w (inc by)])
-      (tiles-between [bx by] [(inc bx) h])
-      (tiles-between [bx (dec h)] [w h])
-      (tiles-between [(dec w) by] [w h])))))
+      (area-between [bx by] [w (inc by)])
+      (area-between [bx by] [(inc bx) h])
+      (area-between [bx (dec h)] [w h])
+      (area-between [(dec w) by] [w h])))))
 
 (defn edge-zones
   "Returns the indicies of the zones that are on the edege of a map from
