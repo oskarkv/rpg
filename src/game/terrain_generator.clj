@@ -1,4 +1,4 @@
-(ns game.dungeon-generator
+(ns game.terrain-generator
   (:require
    [clojure.core.matrix :as m]
    [clojure.set :as set]
@@ -75,8 +75,7 @@
                   (first (:rooms (ts/walls-and-rooms m))))))
 
 (defn start-and-end [m points]
-  (let [{:keys [start end]} gmap/tile-types
-        points (if (== 1 (count points))
+  (let [points (if (== 1 (count points))
                  (let [[x y] (math/mat-size m)]
                    (shuffle [[0 0] [x y] [0 y] [x 0]]))
                  points)
@@ -85,7 +84,8 @@
             (map close-to [(first points) (last points)]))))
 
 (defn monster-spawns [m monsters]
-  (take monsters (shuffle (remove (gmap/wall-in?-fn m) (ts/all-tiles m)))))
+  (take monsters (shuffle (remove (gmap/intraversable-in?-fn m)
+                                  (ts/all-tiles m)))))
 
 (defn make-round-rooms [num-points radius monsters ratio]
   (let [points (random-points-chain num-points)
@@ -99,7 +99,7 @@
         [bottom top] (ts/find-bounds centers)
         ;; + 1 because if a point is at n, it's really betwen n and n + 1
         [x y] (map #(+ % r+1 1) top)
-        m (ts/make-map x y (gmap/tile-type :wall))
+        m (ts/make-map x y :wall)
         m (reduce (fn [m* c] (ts/fill m* (ts/points-in-circle c radius) :floor))
                   m
                   centers)
@@ -116,12 +116,11 @@
   [n]
   (let [size [20 20]
         p (mapv #(/ % 2) size)
-        wall (gmap/tile-type :wall)
         add (fn add [m [p & ps]]
               (if ps
-                (assoc-in (add m ps) p wall)
-                (assoc-in m p wall)))]
-    (loop [m (assoc-in (apply ts/make-map size) p wall)
+                (assoc-in (add m ps) p :wall)
+                (assoc-in m p :wall)))]
+    (loop [m (assoc-in (apply ts/make-map size) p :wall)
            ps #{p}
            border (set (ts/cross-neighbors m p))
            i n]

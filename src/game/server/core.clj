@@ -4,7 +4,7 @@
    [game.common.core :as cc]
    [game.common.core-functions :as ccfns]
    [game.constants :as const]
-   [game.dungeon-generator :as dg]
+   [game.terrain-generator :as tg]
    [game.game-map :as gmap]
    [game.hierarchies :as hier]
    [game.key-value-store.core :as kvs.core]
@@ -113,7 +113,7 @@
   (->$ {:chars {} :player-ids #{} :corpses (pm/priority-map-keyfn :decay-time)
         :last-move (current-time-ms) :last-regen (current-time-ms)
         :effects (pm/priority-map-keyfn :decay-time)}
-    (merge $ (gmap/load-game-map (dg/make-round-rooms 2 10 10 0.45)))
+    (merge $ (gmap/load-game-map (tg/make-round-rooms 2 10 10 0.45)))
     (assoc $ :to-spawn (create-to-spawn-queue (:spawns $)))))
 
 (defn init-server [port]
