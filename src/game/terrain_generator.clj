@@ -100,7 +100,8 @@
         ;; + 1 because if a point is at n, it's really betwen n and n + 1
         [x y] (map #(+ % r+1 1) top)
         m (ts/make-map x y :wall)
-        m (reduce (fn [m* c] (ts/fill m* (ts/points-in-circle c radius) :floor))
+        m (reduce (fn [m* c] (ts/fill m* (ts/points-in-circle c radius)
+                                      :ground))
                   m
                   centers)
         m (-> m
