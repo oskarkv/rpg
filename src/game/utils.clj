@@ -339,3 +339,27 @@
 (defn some-pred? [& preds]
   (fn [v]
     (some identity (map #(% v) preds))))
+
+(defn interleave-runs
+  "Given tho integers a and b, such that a >= b, compute the lengths of runs for
+   interleaving a seq of length a and a seq of length b."
+  [a b]
+  (let [ib (inc b)
+        n (int (/ a ib))
+        left (rem a ib)]
+    (concat (repeat left (inc n))
+            (repeat (- ib left) n))))
+
+(defn uneven-interleave
+  "Interleaves the two given sequences, which may be of different lengths, as
+   evenly as possible."
+  [s1 s2]
+  (letfn [(interleave* [s1 s2 rs]
+            (when (seq s1)
+              (lazy-cat
+               (take (first rs) s1)
+               (take 1 s2)
+               (interleave* (drop (first rs) s1) (rest s2) (rest rs)))))]
+    (if (< (count s1) (count s2))
+      (uneven-interleave s2 s1)
+      (interleave* s1 s2 (interleave-runs (count s1) (count s2))))))

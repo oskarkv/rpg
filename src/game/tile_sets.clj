@@ -257,6 +257,18 @@
     (set/union (math/intersection area1 b2)
                (math/intersection area2 b1))))
 
+(defn tiles-on-path-between
+  "Returns sequence of tiles that constitute a minimal path from t1 to t2."
+  [t1 t2]
+  (let [[x y] (map - t2 t1)
+        deltas (uneven-interleave
+                (repeat (math/abs x) [(math/sign x) 0])
+                (repeat (math/abs y) [0 (math/sign y)]))]
+    (reductions (fn [tile delta]
+                  (mapv + tile delta))
+                t1
+                deltas)))
+
 (defn find-connections
   "Given a collection of zones (sets of tiles) and an integer tile-limit,
    calculates the connections between the zones. Zone a are connected to zone b

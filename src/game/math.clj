@@ -38,6 +38,11 @@
 
 (def exp #(Math/exp %))
 
+(defn sign [x]
+  (cond (== x 0) 0
+        (pos? x) 1
+        :else -1))
+
 (defn gaussian-fn [a x0 y0 sx sy]
   (fn gauss
     ([[x y]] (gauss x y))
