@@ -58,7 +58,7 @@
 
 (defn normalize [v]
   (let [len (sqrt (apply + (map #(* % %) v)))]
-    (map (if (zero? len) identity #(/ % len)) v)))
+    (mapv (if (zero? len) identity #(/ % len)) v)))
 
 (defn norm-diff [v v2]
   (normalize (map - v v2)))
