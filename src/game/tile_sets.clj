@@ -116,13 +116,25 @@
             new-adj (remove visited adj)]
         (recur (into (pop queue) new-adj) (into visited new-adj))))))
 
+(defn same-val-as-start [m start-tile]
+  (let [start-tile-value (get-in m start-tile)]
+    (fn [tile]
+      (= start-tile-value (get-in m tile)))))
+
 (defn flood-fill-map
   "Returns a set of all tiles connected with start-tile in m, via tiles whose
-   value in m satisfies test-fn. If test-fn is not provided, defaults to a set
-   of the value of start-tile in m."
-  ([m start-tile] (flood-fill-map m start-tile #{(get-in m start-tile)}))
-  ([m start-tile test-fn]
-   (flood-fill start-tile #(filter test-fn (legal-cross-neighbors m %)))))
+   value in m satisfies test-fn. If test-fn is not provided, defaults to a fn
+   that returns true for tiles that have the same value in m as start-tile."
+  ([m start-tile]
+   (flood-fill-map m start-tile (same-val-as-start m start-tile)))
+   ([m start-tile test-fn]
+    (flood-fill start-tile #(filter test-fn (legal-cross-neighbors m %)))))
+
+(defn flood-fill-zone
+  ([m zone start-tile]
+   (flood-fill-zone m zone start-tile (same-val-as-start m start-tile)))
+  ([m zone start-tile test-fn]
+   (flood-fill-map start-tile (every-pred? test-fn (set zone)))))
 
 (defn walls-and-rooms
   "Returns a map of :walls and :rooms, where walls is the set of all wall
