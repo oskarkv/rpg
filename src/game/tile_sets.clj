@@ -269,17 +269,34 @@
     (set/union (math/intersection area1 b2)
                (math/intersection area2 b1))))
 
-(defn tiles-on-path-between
-  "Returns sequence of tiles that constitute a minimal path from t1 to t2."
-  [t1 t2]
-  (let [[x y] (map - t2 t1)
-        deltas (uneven-interleave
-                (repeat (math/abs x) [(math/sign x) 0])
-                (repeat (math/abs y) [0 (math/sign y)]))]
-    (reductions (fn [tile delta]
-                  (mapv + tile delta))
-                t1
-                deltas)))
+(defn square-around-origin
+  "Returns a set of tiles that make up a square of size size around the
+   origin. If size is even, the square will lean toward the first quadrant."
+  [size]
+  (let [top (inc (int (/ size 2)))
+        bot (int (/ (dec size) -2))]
+    (area-between [bot bot] [top top])))
+
+(defn widen-tile [tile size]
+  (map #(mapv + tile %) (square-around-origin size)))
+
+(defn path-between
+  "Returns sequence of tiles that constitute a minimal path from t1 to t2.
+   If width is provided, make the path that wide."
+  ([t1 t2]
+   (let [[x y] (map - t2 t1)
+         deltas (uneven-interleave
+                 (repeat (math/abs x) [(math/sign x) 0])
+                 (repeat (math/abs y) [0 (math/sign y)]))]
+     (reductions (fn [tile delta]
+                   (mapv + tile delta))
+                 t1
+                 deltas)))
+  ([t1 t2 width]
+   (let [path (path-between t1 t2)]
+     (if (== 1 width)
+       path
+       (set (mapcat #(widen-tile % width) path))))))
 
 (defn find-connections
   "Given a collection of zones (sets of tiles) and an integer tile-limit,
