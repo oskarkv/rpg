@@ -1,17 +1,12 @@
 (ns game.game-map)
 
-(def tile-types (zipmap [:wall :floor :monster :start :end] (range)))
+(def tile-types
+  [:ground :wall :water :tree])
 
-(defn tile-type [x]
-  (if (keyword? x) (x tile-types) x))
+(def traversable? #{:ground})
 
-(def wall? zero?)
-
-(defn wall-in?-fn [m]
-  #(wall? (get-in m %)))
-
-(defn walkable-type? [type]
-  (not= type (:wall tile-types)))
+(defn intraversable-in?-fn [m]
+  #(not (traversable? (get-in m %))))
 
 (defn adjust-pos [pos]
   (map #(+ 0.5 %) pos))

@@ -6,8 +6,9 @@
    [game.math :as math]
    [game.utils :refer :all]))
 
-(defn walkable? [x]
-  (and x (gmap/walkable-type? x)))
+(defn traversable? [x]
+  ;; Why is this (and x ...) needed?
+  (and x (gmap/traversable? x)))
 
 (defn point->tile
   ([p] (apply point->tile p))
@@ -25,7 +26,8 @@
    or nil if there is no such value for t."
   [start stop step]
   (if-not (zero? step)
-    (let [first-t (-> start ((if (neg? step) math/floor math/ceil))
+    (let [first-t (-> start
+                    ((if (neg? step) math/floor math/ceil))
                     (- start) (/ step))
           t-step (/ 1 (math/abs step))]
       (take-while #((if (neg? step) > <) (+ start (* step %)) stop)
@@ -45,13 +47,13 @@
 
 (defn clear-line?
   "Returns true if the line between p and p2 passes over only
-   walkable? tiles in m, otherwise false."
+   traversable tiles in m, otherwise false."
   [p p2 m]
-  (every? walkable? (crossed-tiles p p2 m)))
+  (every? traversable? (crossed-tiles p p2 m)))
 
 (defn clear-path?
   "Returns true if a circular object with radius r can move
-   between p and p2, passing over only walkable? tiles in m,
+   between p and p2, passing over only traversable tiles in m,
    otherwise false.
    Note: Does not currently work for objects with a radius >= 0.5."
   [p p2 r m]
@@ -84,7 +86,7 @@
 
 (defn a*
   "A* search for a grid of squares, mat. Tries to find a
-   path from start to goal using only walkable? tiles.
+   path from start to goal using only traversable tiles.
    start and goal are vectors of indices into the grid,
    not points in R^2."
   [mat start goal heuristic-factor]
@@ -108,7 +110,7 @@
                  (conj path pos))))
             (free-tile? [tile]
               (let [type (get-in mat (vec tile))]
-                (and type (walkable? type))))
+                (and type (traversable? type))))
             (expand [closed pos]
               (let [adj [[1 0] [0 1] [-1 0] [0 -1]]
                     add-pos (partial mapv + pos)]
@@ -122,7 +124,7 @@
                   (remove (fn [[x y :as tile]]
                             (or (closed tile) (neg? x) (neg? y)
                                 (>= x width) (>= y height)
-                                (not (walkable? (get-in mat tile)))))))))
+                                (not (traversable? (get-in mat tile)))))))))
             (add-to-open [open tile->node [{:keys [pos f] :as node} & more]]
               (if node
                 (if (or (not (contains? open pos))

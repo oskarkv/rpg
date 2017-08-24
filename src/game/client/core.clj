@@ -292,7 +292,7 @@
   (let [r consts/player-radius
         -r (- r)
         adder (fn [v] (map + pos v))]
-    (every? gmap/walkable-type?
+    (every? gmap/traversable?
             (map #(get-in terrain (mapv (comp int math/floor) %))
                  (map adder [[r r] [r -r] [-r r] [-r -r]])))))
 

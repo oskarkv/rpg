@@ -30,7 +30,7 @@
   (let [w (count game-map)
         h (count (first game-map))
         quads (for [x (range w) y (range h)
-                    :when (gmap/walkable-type? (get-in game-map [x y]))]
+                    :when (gmap/traversable? (get-in game-map [x y]))]
                 (make-quad x y))
         vertices (into-array (mapcat :vertices quads))
         tex-coords (into-array (mapcat :tex-coords quads))

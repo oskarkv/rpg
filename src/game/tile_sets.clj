@@ -55,7 +55,7 @@
 (defn fill
   ([m tiles] (fill m tiles :wall))
   ([m tiles v]
-   (reduce (fn [m path] (assoc-in m path (gmap/tile-type v)))
+   (reduce (fn [m path] (assoc-in m path v))
            m tiles)))
 
 (defn fill-randomly
@@ -129,12 +129,12 @@
    tiles, and rooms is a vector of connected sets of room tiles in m."
   [m]
   (let [all (all-tiles m)
-        {walls true other false} (group-by (gmap/wall-in?-fn m) all)]
+        {walls true other false} (group-by (gmap/intraversable-in?-fn m) all)]
     {:walls walls :rooms
      (loop [rooms [] left other]
        (if (seq left)
          (let [t (first left)
-               room (flood-fill-map m t gmap/walkable-type?)]
+               room (flood-fill-map m t gmap/traversable?)]
            (recur (conj rooms room) (remove room left)))
          rooms))}))
 
