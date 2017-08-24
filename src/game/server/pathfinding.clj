@@ -33,6 +33,9 @@
       (take-while #((if (neg? step) > <) (+ start (* step %)) stop)
                   (iterate (partial + t-step) first-t)))))
 
+;; Can return a "path" that is not walkable, if the line hits the corner of a
+;; tile, then the diagonal move will be on the path. Also, returns the values
+;; in m for the tiles. So the function is complected and has a misleading name.
 (defn crossed-tiles [[x y :as p] p2 m]
   (let [[dx dy :as diff-vec] (math/norm-diff p2 p)
         ipf (fn [getter]
