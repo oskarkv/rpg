@@ -145,7 +145,7 @@
       (loop [rooms [] left other]
         (if (seq left)
           (let [t (first left)
-                room (flood-fill-map m t gmap/traversable?)]
+                room (flood-fill-zone m zone t (gmap/traversable-in?-fn m))]
             (recur (conj rooms room) (remove room left)))
           rooms))})))
 
