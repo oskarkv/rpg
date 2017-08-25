@@ -107,7 +107,7 @@
         m (-> m
             (ts/fill-randomly ratio)
             (ca-step 1 5 2)
-            ts/connect-rooms)]
+            ts/connect-all-rooms)]
     (merge {:terrain m :spawns (monster-spawns m monsters)}
            (start-and-end m centers))))
 

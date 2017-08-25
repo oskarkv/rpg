@@ -320,10 +320,10 @@
             m
             conns)))
 
-(defn connect-rooms
+(defn connect-all-rooms
   "Connect the rooms in m so that every walkable tile in m is reachable from
    every other."
-  ([m] (connect-rooms m (all-tiles m)))
+  ([m] (connect-all-rooms m (all-tiles m)))
   ([m zone]
    (let [{:keys [walls rooms]} (walls-and-rooms m zone)]
      (loop [room1 (first rooms) others (rest rooms) m m]
