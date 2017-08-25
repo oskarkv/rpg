@@ -265,6 +265,9 @@
 (defn widen-tile [tile size]
   (map #(mapv + tile %) (square-around-origin size)))
 
+(defn widen-path [path width]
+  (set (mapcat #(widen-tile % width) path)))
+
 (defn path-between
   "Returns sequence of tiles that constitute a minimal path from t1 to t2.
    If width is provided, make the path that wide."
@@ -281,7 +284,7 @@
    (let [path (path-between t1 t2)]
      (if (== 1 width)
        path
-       (set (mapcat #(widen-tile % width) path))))))
+       (widen-path path width)))))
 
 (defn find-connections
   "Given a collection of zones (sets of tiles) and an integer tile-limit,
