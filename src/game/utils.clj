@@ -233,7 +233,7 @@
     (-> m (assoc-in path1 item2) (assoc-in path2 item1))))
 
 (defn remove-map-nils [m]
-  (into {} (filter #(% 1) m)))
+  (into {} (filter (comp some? val) m)))
 
 (defn domap [& args]
   (doall (apply map args)))
