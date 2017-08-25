@@ -61,11 +61,9 @@
 (defn fill-randomly
   "Fill ratio of m randomly with the value v (defaults to the wall value if
    not provided)."
-  ([m ratio] (fill-randomly m ratio :wall))
-  ([m ratio v]
-   (let [[x y] (math/mat-size m)
-         number (int (* ratio (* x y)))]
-     (fill m (take number (shuffle (all-tiles m))) v))))
+  [m ratio & {:keys [value area] :or {value :wall area (all-tiles m)}}]
+  (let [number (int (* ratio (count area)))]
+    (fill m (take number (shuffle area)) value)))
 
 (defn remove-illegal-tiles
   "Returns a seq of only the tiles that are legal in m. Returns a transducer if
