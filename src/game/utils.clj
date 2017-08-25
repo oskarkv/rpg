@@ -187,6 +187,11 @@
             (rand-uniform total)
             chance-map)))
 
+(defn chance
+  "Returns true with the given probability."
+  [probability]
+   (< (rand-uniform 1) probability))
+
 (defmacro defs
   "Like def, but can take several symbol-value pairs, and can destructure like
    let."

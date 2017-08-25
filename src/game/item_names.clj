@@ -579,9 +579,6 @@
               (concat (slot-value type) (slot-value :any))
               slot-value)))))
 
-(defn chance [probability]
-  (< (rand-uniform 1) probability))
-
 (def grammar
   (let [kind-part (mapv #(list `maybe %) [:material-2 :material :kind])]
   `{:base
