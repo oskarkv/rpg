@@ -132,7 +132,7 @@
   ([m zone start-tile]
    (flood-fill-zone m zone start-tile (same-val-as-start m start-tile)))
   ([m zone start-tile test-fn]
-   (flood-fill-map start-tile (every-pred? test-fn (set zone)))))
+   (flood-fill-map m start-tile (every-pred? test-fn (set zone)))))
 
 (defn walls-and-rooms
   "Returns a map of :walls and :rooms, where walls is the set of all wall tiles
