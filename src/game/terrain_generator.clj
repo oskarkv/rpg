@@ -13,7 +13,7 @@
   "Cellular automaton step. Makes a tile a floor, if at least
    limit tiles within distance dist is also a floor."
   ([m dist limit]
-   (ca-step m (ts/all-tiles m :indent dist) dist limit))
+   (ca-step m (ts/all-tiles m) dist limit))
   ([m in-set dist limit]
    (let [get-vals (fn [m poses] (map #(get-in m %) poses))
          ps (ts/shrink-zone in-set dist)]
@@ -21,7 +21,7 @@
        (map #(reduce + (get-vals m (ts/all-neighbors % dist))))
        (zip ps)
        (reduce (fn [m [pos v]]
-                 (assoc-in m pos (if (>= v limit) 1 0)))
+                 (assoc-in m pos (if (>= v limit) :ground :wall)))
                m))))
   ([m in-set dist limit steps]
    (call-times steps #(ca-step % in-set dist limit) m)))
