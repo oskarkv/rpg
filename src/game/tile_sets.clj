@@ -137,18 +137,19 @@
    (flood-fill-map start-tile (every-pred? test-fn (set zone)))))
 
 (defn walls-and-rooms
-  "Returns a map of :walls and :rooms, where walls is the set of all wall
-   tiles, and rooms is a vector of connected sets of room tiles in m."
-  [m]
-  (let [all (all-tiles m)
-        {walls true other false} (group-by (gmap/intraversable-in?-fn m) all)]
-    {:walls walls :rooms
-     (loop [rooms [] left other]
-       (if (seq left)
-         (let [t (first left)
-               room (flood-fill-map m t gmap/traversable?)]
-           (recur (conj rooms room) (remove room left)))
-         rooms))}))
+  "Returns a map of :walls and :rooms, where walls is the set of all wall tiles
+   in m (or zone), and rooms is a vector of connected sets of room tiles in m
+   (or zone)."
+  ([m] (walls-and-rooms m (all-tiles m)))
+  ([m zone]
+   (let [{walls true other false} (group-by (gmap/intraversable-in?-fn m) zone)]
+     {:walls walls :rooms
+      (loop [rooms [] left other]
+        (if (seq left)
+          (let [t (first left)
+                room (flood-fill-map m t gmap/traversable?)]
+            (recur (conj rooms room) (remove room left)))
+          rooms))})))
 
 (defn closest-pair
   "Returns a pair of points from two different collections, such that they are
@@ -174,22 +175,6 @@
         [v1 v2] (map #(m/mul % (/ width 2.0))
                      (let [[x y] fw] [[y (- x)] [(- y) x]]))]
     [(m/add p1 v1 e<-) (m/add p1 v2 e<-) (m/add p2 v2 e->) (m/add p2 v1 e->)]))
-
-(defn connect-rooms
-  "Connect the rooms in m so that every walkable tile in m is reachable from
-   every other."
-  [m]
-  (let [{:keys [walls rooms]} (walls-and-rooms m)]
-    (loop [[room1 & others] rooms m m]
-      (if (seq others)
-        (let [room2 (first others)
-              [a b] (closest-pair room1 room2)
-              rect (rectangle-between-points a b 1.5 0.5)
-              to-remove (filter #(math/inside? % rect) walls)
-              new-m (fill m to-remove :ground)]
-          (recur (cons (math/union room1 room2 to-remove) (rest others))
-                 new-m))
-        m))))
 
 (defn points-in-circle [center radius]
   (let [top (map (comp int math/ceil #(+ % radius)) center)
@@ -329,6 +314,22 @@
     (reduce (fn [m [z1 z2]] (connect-zones m z1 z2))
             m
             conns)))
+
+(defn connect-rooms
+  "Connect the rooms in m so that every walkable tile in m is reachable from
+   every other."
+  ([m] (connect-rooms m (all-tiles m)))
+  ([m zone]
+   (let [{:keys [walls rooms]} (walls-and-rooms m zone)]
+     (loop [room1 (first rooms) others (rest rooms) m m]
+       (if (seq others)
+         (let [room2 (first others)
+               [a b] (closest-pair room1 room2)
+               path (path-between a b)
+               to-remove (filter (gmap/intraversable-in?-fn m) path)]
+           (recur (math/union room1 room2 to-remove) (rest others)
+                  (fill m to-remove :ground)))
+         m)))))
 
 (defn frame-tiles
   "Returns a set of tiles that makes up a rectangular frame from bottom
