@@ -10,21 +10,21 @@
 (def extra-dist-between-points 1.05)
 
 (defn ca-step
-  "Cellular automaton step. Makes a tile a floor, if at least
-   limit tiles within distance dist is also a floor."
+  "Cellular automaton step. Makes a tile ground, if at least
+   limit tiles within distance dist is also ground."
   ([m dist limit]
    (ca-step m (ts/all-tiles m) dist limit))
-  ([m in-set dist limit]
+  ([m zone dist limit]
    (let [get-vals (fn [m poses] (map #(get-in m %) poses))
-         ps (ts/shrink-zone in-set dist)]
+         ps (ts/shrink-zone zone dist)]
      (->> ps
-       (map #(reduce + (get-vals m (ts/all-neighbors % dist))))
+       (map #(count (filter #{:ground} (get-vals m (ts/all-neighbors % dist)))))
        (zip ps)
        (reduce (fn [m [pos v]]
                  (assoc-in m pos (if (>= v limit) :ground :wall)))
                m))))
-  ([m in-set dist limit steps]
-   (call-times steps #(ca-step % in-set dist limit) m)))
+  ([m zone dist limit steps]
+   (call-times steps #(ca-step % zone dist limit) m)))
 
 (defn fill-edge
   "Fills the edge of the given width of m with walls."
