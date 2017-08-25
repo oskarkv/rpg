@@ -320,11 +320,13 @@
 
 (defn connect-all-rooms
   "Connect the rooms in m so that every walkable tile in m is reachable from
-   every other."
+   every other. Connects the two largest rooms first, then the third to the
+   result, and so on."
   ([m] (connect-all-rooms m (all-tiles m)))
   ([m zone]
-   (let [{:keys [walls rooms]} (walls-and-rooms m zone)]
-     (loop [room1 (first rooms) others (rest rooms) m m]
+   (let [{:keys [walls rooms]} (walls-and-rooms m zone)
+         sorted-rooms (sort-by count > rooms)]
+     (loop [room1 (first sorted-rooms) others (rest sorted-rooms) m m]
        (if (seq others)
          (let [room2 (first others)
                [a b] (closest-pair room1 room2)
