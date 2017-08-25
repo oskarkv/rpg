@@ -33,6 +33,16 @@
     (ts/fill m (set/difference (ts/all-tiles m)
                                (ts/all-tiles m :indent width)))))
 
+(defn ca-dungeon-terrain [m zone dist limit steps]
+  (let [outer-border (ts/unsafe-outer-border zone)
+        big-zone (ts/grow-zone zone dist)]
+    (-> m
+      (ts/fill big-zone :ground)
+      (ts/fill-randomly 0.51 :area big-zone :value :wall)
+      (ca-step big-zone dist limit steps)
+      (ts/fill (math/difference big-zone zone) :wall)
+      (ts/connect-all-rooms zone))))
+
 (defn random-points-chain
   "Returns a seq of random points starting with [0 0], such that any two
    adjacent points are extra-dist-between-points apart, and no two points are
