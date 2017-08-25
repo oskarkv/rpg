@@ -27,7 +27,7 @@
    (call-times steps #(ca-step % in-set dist limit) m)))
 
 (defn fill-edge
-  "Fills the edge of width width of m with walls."
+  "Fills the edge of the given width of m with walls."
   [m width]
   (let [[x y] (math/mat-size m)]
     (ts/fill m (set/difference (ts/all-tiles m)
