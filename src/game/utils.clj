@@ -175,6 +175,18 @@
     ([max] (.nextInt r (inc max)))
     ([min max] (+ min (.nextInt r (inc (- max min)))))))
 
+(defn random-pick
+  "Randomly pick a key in chance-map, where each value is the relative chance
+   for the key."
+  [chance-map]
+  (let [total (apply + (vals chance-map))]
+    (reduce (fn [left [k v]]
+              (if (> left v)
+                (- left v)
+                (reduced k)))
+            (rand-uniform total)
+            chance-map)))
+
 (defmacro defs
   "Like def, but can take several symbol-value pairs, and can destructure like
    let."

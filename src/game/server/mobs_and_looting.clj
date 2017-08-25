@@ -8,14 +8,7 @@
    [game.utils :refer :all]))
 
 (defn roll-for-mob [mobs]
-  (let [total (apply + (map :rel-chance mobs))]
-    (reduce (fn [left mob]
-              (let [new-left (- left (:rel-chance mob))]
-                (if (neg? new-left)
-                  (reduced mob)
-                  new-left)))
-            (rand total)
-            mobs)))
+  (random-pick (into {} (map #(vector % (:rel-chance %))) mobs)))
 
 (defn roll-for-drops [drops]
   (for [item drops
