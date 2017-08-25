@@ -336,6 +336,23 @@
                   (fill m to-remove :ground)))
          m)))))
 
+(defn connect-close-rooms
+  "Connect the rooms in zone that are closer to eath other than max-dist.
+   Warning: Can potentially modify tiles not in the zone, if zone is not
+   convex."
+  [m zone max-dist]
+  (let [{:keys [walls rooms]} (walls-and-rooms m zone)
+        rooms (zipmap (range) rooms)
+        c (count rooms)
+        all-pairs (for [x (range c) y (range (inc x) c)] [x y])]
+    (loop [m m pairs all-pairs]
+      (if-let [[r1 r2] (seq (map rooms (first pairs)))]
+        (let [[a b] (closest-pair r1 r2 2)]
+          (if (<= (math/distance a b) max-dist)
+            (recur (connect-zones m r1 r2) (rest pairs))
+            (recur m (rest pairs))))
+        m))))
+
 (defn frame-tiles
   "Returns a set of tiles that makes up a rectangular frame from bottom
    (inclusive) to top (exclusive)."
