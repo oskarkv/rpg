@@ -5,8 +5,11 @@
 
 (def traversable? #{:ground})
 
+(defn traversable-in?-fn [m]
+  #(traversable? (get-in m %)))
+
 (defn intraversable-in?-fn [m]
-  #(not (traversable? (get-in m %))))
+  (complement (traversable-in?-fn m)))
 
 (defn adjust-pos [pos]
   (map #(+ 0.5 %) pos))
