@@ -174,7 +174,11 @@
                      (let [[x y] fw] [[y (- x)] [(- y) x]]))]
     [(m/add p1 v1 e<-) (m/add p1 v2 e<-) (m/add p2 v2 e->) (m/add p2 v1 e->)]))
 
-(defn points-in-circle [center radius]
+(defn points-in-circle
+  "Returns the tiles in a circle around center. Note that only the coordinates
+   matter, and the fact that a tile lies to one side of its coordinates is not
+   taken into account."
+  [center radius]
   (let [top (map (comp int #(+ % 1 radius)) center)
         bottom (map (comp int #(- % radius)) center)]
     (remove #(> (math/distance % center) radius)
