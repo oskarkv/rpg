@@ -175,7 +175,7 @@
     [(m/add p1 v1 e<-) (m/add p1 v2 e<-) (m/add p2 v2 e->) (m/add p2 v1 e->)]))
 
 (defn points-in-circle [center radius]
-  (let [top (map (comp int math/ceil #(+ % radius)) center)
+  (let [top (map (comp int #(+ % 1 radius)) center)
         bottom (map (comp int #(- % radius)) center)]
     (remove #(> (math/distance % center) radius)
             (area-between bottom top))))
