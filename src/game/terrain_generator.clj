@@ -46,6 +46,12 @@
       (ts/connect-close-rooms zone close-dist)
       (ts/connect-all-rooms zone))))
 
+(defn randomly-scatter-terrain [m zone ratio thing]
+  (-> m
+    (ts/fill zone :ground)
+    (ts/fill-randomly ratio :value thing :area zone)
+    (ts/connect-all-rooms zone)))
+
 (defn random-points-chain
   "Returns a seq of random points starting with [0 0], such that any two
    adjacent points are extra-dist-between-points apart, and no two points are
