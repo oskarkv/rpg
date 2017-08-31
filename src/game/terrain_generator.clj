@@ -33,9 +33,11 @@
     (ts/fill m (set/difference (ts/all-tiles m)
                                (ts/all-tiles m :indent width)))))
 
-(defn ca-dungeon-terrain [m zone wall-ratio dist limit steps close-dist]
+(defn ca-dungeon-terrain [m zone wall-ratio dist steps close-dist]
   (let [outer-border (ts/unsafe-outer-border zone)
-        big-zone (ts/grow-zone zone dist)]
+        big-zone (ts/grow-zone zone dist)
+        ;; If dist is more than 2, limit will be wrong.
+        limit (if (= 1 dist) 5 13)]
     (-> m
       (ts/fill big-zone :ground)
       (ts/fill-randomly wall-ratio :area big-zone :value :wall)
