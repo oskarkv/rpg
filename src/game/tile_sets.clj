@@ -304,14 +304,19 @@
                 :when (and (enough? z1 z2) (enough? z2 z1))]
             [z1 z2])))))
 
-(defn connect-zones
-  ([m zone1 zone2] (connect-zones m zone1 zone2 1))
-  ([m zone1 zone2 width]
-   (->>$ (closest-pair zone1 zone2 5)
-     ((fn [[a b]] (path-between a b width)))
+(defn connect-tiles
+  ([m tile1 tile2] (connect-tiles m tile1 tile2 1))
+  ([m tile1 tile2 width]
+   (->>$ (path-between tile1 tile2 width)
      (remove-illegal-tiles m)
      (filter (gmap/intraversable-in?-fn m))
      (fill m $ :ground))))
+
+(defn connect-zones
+  ([m zone1 zone2] (connect-zones m zone1 zone2 1))
+  ([m zone1 zone2 width]
+   (let [[a b] (closest-pair zone1 zone2 5)]
+     (connect-tiles m a b width))))
 
 (defn connect-zone-pairs
   "Connect the zones (a collection of zones) in m that is a pair in pairs."
