@@ -389,22 +389,24 @@
    reachable by a path within a circle centered on one of the tiles of radius
    search-dist."
   [m zone max-dist search-dist]
-  (reduce
-   (fn [m t]
-     (let [rs (reachable m t search-dist)
-           close (->> (tiles-in-circle t max-dist)
-                   (filter (set zone))
-                   (traversable m)
-                   (remove-illegal-tiles m))]
-       (if-let [t2 (first (remove (set rs) close))]
-         (recur (connect-tiles m t t2) t)
-         m)))
-   m
-   (->> (intraversable m zone)
-     (outer-border m)
-     (filter (set zone))
-     (filter #(> (count (intraversable m (cross-neighbors %)))
-                 1)))))
+  (if-let [intr (seq (intraversable m zone))]
+    (reduce
+     (fn [m t]
+       (let [rs (reachable m t search-dist)
+             close (->> (tiles-in-circle t max-dist)
+                     (filter (set zone))
+                     (traversable m)
+                     (remove-illegal-tiles m))]
+         (if-let [t2 (first (remove (set rs) close))]
+           (recur (connect-tiles m t t2) t)
+           m)))
+     m
+     (->> intr
+       (outer-border m)
+       (filter (set zone))
+       (filter #(> (count (intraversable m (cross-neighbors %)))
+                   1))))
+    m))
 
 (defn frame-tiles
   "Returns a set of tiles that makes up a rectangular frame from bottom
