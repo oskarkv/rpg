@@ -125,6 +125,16 @@
     (fn [tile]
       (= start-tile-value (get-in m tile)))))
 
+(defn reachable
+  "Returns all tiles that are reachable from tile by a path within a circle of
+   radius dist centered on tile."
+  [m tile dist]
+  (flood-fill tile
+              (fn [pre]
+                (filter (every-pred? (gmap/traversable-in?-fn m)
+                                     #(<= (math/distance % tile) dist))
+                        (legal-cross-neighbors m pre)))))
+
 (defn flood-fill-map
   "Returns a set of all tiles connected with start-tile in m, via tiles whose
    value in m satisfies test-fn. If test-fn is not provided, defaults to a fn
@@ -367,6 +377,28 @@
             (recur (connect-zones m r1 r2) (rest pairs))
             (recur m (rest pairs))))
         m))))
+
+(defn connect-close-areas
+  "Connect tiles in zone that are distance max-dist or less apart, but not
+   reachable by a path within a circle centered on one of the tiles of radius
+   search-dist."
+  [m zone max-dist search-dist]
+  (reduce
+   (fn [m t]
+     (let [rs (reachable m t search-dist)
+           close (->> (points-in-circle t max-dist)
+                   (filter (set zone))
+                   (traversable m)
+                   (remove-illegal-tiles m))]
+       (if-let [t2 (first (remove (set rs) close))]
+         (recur (connect-tiles m t t2) t)
+         m)))
+   m
+   (->> (intraversable m zone)
+     (outer-border m)
+     (filter (set zone))
+     (filter #(> (count (intraversable m (cross-neighbors %)))
+                 1)))))
 
 (defn frame-tiles
   "Returns a set of tiles that makes up a rectangular frame from bottom
