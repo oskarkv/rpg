@@ -5,6 +5,8 @@
 
 (def traversable? #{:ground})
 
+(def intraversable? (complement traversable?))
+
 (defn traversable-in?-fn [m]
   #(traversable? (get-in m %)))
 
