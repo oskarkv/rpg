@@ -93,7 +93,7 @@
 
 (defn draw-string [img string [x y] color]
   (let [x (- x (int (math/ceil (* 2.5 (count string)))))
-        y (- (.getHeight img) y -5)]
+        y (- (.getHeight img) y -3)]
     (doto (.getGraphics img)
       (.setColor (to-color color))
       (.setFont (Font. "Ubuntu Mono Regular" 1 10))
