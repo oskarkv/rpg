@@ -12,6 +12,12 @@
 (defn intraversable [m zone]
   (filter (gmap/intraversable-in?-fn m) zone))
 
+(defn filter-tiles [m zone type-or-pred]
+  (filter (if (keyword? type-or-pred)
+            #(= type-or-pred (get-in m %))
+            #(type-or-pred (get-in m %)))
+          zone))
+
 (defn make-map
   "Make an x by y map (matrix), initialized with the optional value v. If v is
    not provided, use :wall."
