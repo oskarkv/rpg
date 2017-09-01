@@ -331,7 +331,7 @@
 (defn connect-zones
   ([m zone1 zone2] (connect-zones m zone1 zone2 1))
   ([m zone1 zone2 width]
-   (let [[a b] (closest-pair zone1 zone2 5)]
+   (let [[a b] (closest-pair (traversable m zone1) (traversable m zone2) 5)]
      (connect-tiles m a b width))))
 
 (defn connect-zone-pairs
