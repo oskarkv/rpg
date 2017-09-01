@@ -383,3 +383,9 @@
     (if (< (count s1) (count s2))
       (uneven-interleave s2 s1)
       (interleave* s1 s2 (interleave-runs (count s1) (count s2))))))
+
+(defn all-pairs [coll]
+  (loop [pairs [] left coll]
+    (if-let [rst (next left)]
+      (recur (into pairs (map #(vector (first left) %)) rst) (rest left))
+      pairs)))

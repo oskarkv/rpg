@@ -375,8 +375,8 @@
   (let [{:keys [walls rooms]} (walls-and-rooms m zone)
         rooms (zipmap (range) rooms)
         c (count rooms)
-        all-pairs (for [x (range c) y (range (inc x) c)] [x y])]
-    (loop [m m pairs all-pairs]
+        pairs (all-pairs (range c))]
+    (loop [m m pairs pairs]
       (if-let [[r1 r2] (seq (map rooms (first pairs)))]
         (let [[a b] (closest-pair r1 r2 2)]
           (if (<= (math/distance a b) max-dist)
