@@ -431,3 +431,6 @@
 
 (defn wall-border [m zone]
   (fill m (inner-border zone)))
+
+(defn zone-center [zone]
+  (apply mapv #(int (/ (apply + %&) (count zone))) zone))
