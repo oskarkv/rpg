@@ -48,7 +48,6 @@
 
 (defn randomly-scatter-terrain [m zone ratio thing]
   (-> m
-    (ts/fill zone :ground)
     (ts/fill-randomly ratio :value thing :area zone)
     (ts/connect-all-rooms zone)))
 
