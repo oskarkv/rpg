@@ -51,6 +51,17 @@
     (ts/fill-randomly ratio :value thing :area zone)
     (ts/connect-all-rooms zone)))
 
+(defn create-random-terrain [m zone]
+  (let [f rand-uniform
+        i rand-uniform-int
+        rst #(randomly-scatter-terrain
+              %1 (ts/traversable %1 zone) %2 %3)]
+    (cond-> m
+      (chance 0.6) (ca-dungeon-terrain
+                    zone (f 0.46 0.50) 1 (i 2 3) (f 5 7))
+      true (rst (f 0.01 0.12) :tree)
+      true (rst (f 0.01 0.12) :stone))))
+
 (defn random-points-chain
   "Returns a seq of random points starting with [0 0], such that any two
    adjacent points are extra-dist-between-points apart, and no two points are
