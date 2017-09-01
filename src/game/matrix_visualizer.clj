@@ -3,19 +3,26 @@
    [clojure.core.matrix :as m]
    [game.math :as math]
    [game.utils :refer :all]
-   [mikera.image.core :as imz]))
+   [mikera.image.core :as imz])
+  (:import
+   (java.awt Color Font)))
 
 ;;; These color functions are very slow. show-image is ok.
 
 (def color-map
-  {:white   [1 1 1]
-   :black   [0 0 0]
-   :red     [1 0 0]
-   :green   [0 1 0]
-   :blue    [0 0 1]
-   :yellow  [1 1 0]
-   :teal    [0 1 1]
-   :magenta [1 0 1]})
+  (fmap
+   #(bit-or 0xff000000 %)
+   {:white   0xffffff
+    :black   0x000000
+    :red     0xff0000
+    :green   0x00ff00
+    :blue    0x0000ff
+    :yellow  0xffff00
+    :teal    0x00ffff
+    :magenta 0xff00ff}))
+
+(defn to-color [color]
+  (Color. (unchecked-int (if (keyword? color) (color color-map) color)) true))
 
 (defn get-value-type [matrix]
   (let [cell (get-in matrix [0 0])]
@@ -46,18 +53,6 @@
      (bit-shift-left v 8)
      v))
 
-(defmulti to-color (fn [x value-type] value-type))
-
-(defmethod to-color :keyword [v _]
-  (color-int (map #(to-byte % :zero-to-one) (color-map v))))
-
-(defmethod to-color :default [v [color? value-range]]
-  (let [to-color* #(to-byte % value-range)]
-    (color-int
-     (if color?
-       (map to-color* v)
-       (repeat 3 (to-color* v))))))
-
 (defn grayscale-matrix
   "Creates a matrix of color values from white to black, from a matrix of values
    between -1 and 1, or 0 and 1."
@@ -79,15 +74,28 @@
             m
             (m/emap int (mapv #(m/add p (m/mul v %)) (range (inc d)))))))
 
-(defn show-image
-  "Displays an image (matrix of color values), typically not just a matrix
-   straight from the game."
-  ([m] (show-image m "show-image"))
-  ([m title]
-   (show-image m title 3))
-  ([m title zoom]
+(defn create-image [m]
    (let [[x-size y-size :as size] (math/mat-size m)
          img (apply imz/new-image size)]
      (dotimes* [x x-size y y-size]
        (imz/set-pixel img x (- (dec y-size) y) (get-in m [x y])))
-     (imz/show img :resize zoom :title title))))
+     img))
+
+(defn show-image
+  "Displays an image (matrix of color values), typically not just a matrix
+   straight from the game."
+  ([img] (show-image img "show-image"))
+  ([img title]
+   (show-image img title 3))
+  ([img title zoom]
+   (imz/show img :resize zoom :title title)
+   img))
+
+(defn draw-string [img string [x y] color]
+  (let [x (- x (int (math/ceil (* 2.5 (count string)))))
+        y (- (.getHeight img) y -5)]
+    (doto (.getGraphics img)
+      (.setColor (to-color color))
+      (.setFont (Font. "Ubuntu Mono Regular" 1 10))
+      (.drawString string x y))
+    img))
