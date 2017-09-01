@@ -336,10 +336,10 @@
 
 (defn connect-zone-pairs
   "Connect the zones (a collection of zones) in m that is a pair in pairs."
-  [m zones pairs]
+  [m zones pairs width]
   (let [zones-vec (vec zones)
         conns (m/emap zones-vec (vec pairs))]
-    (reduce (fn [m [z1 z2]] (connect-zones m z1 z2))
+    (reduce (fn [m [z1 z2]] (connect-zones m z1 z2 width))
             m
             conns)))
 
