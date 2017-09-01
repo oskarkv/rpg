@@ -6,6 +6,12 @@
    [game.math :as math]
    [game.utils :refer :all]))
 
+(defn traversable [m zone]
+  (filter (gmap/traversable-in?-fn m) zone))
+
+(defn intraversable [m zone]
+  (filter (gmap/intraversable-in?-fn m) zone))
+
 (defn make-map
   "Make an x by y map (matrix), initialized with the optional value v. If v is
    not provided, use :wall."
@@ -309,7 +315,7 @@
   ([m tile1 tile2 width]
    (->>$ (path-between tile1 tile2 width)
      (remove-illegal-tiles m)
-     (filter (gmap/intraversable-in?-fn m))
+     (intraversable m)
      (fill m $ :ground))))
 
 (defn connect-zones
@@ -340,7 +346,7 @@
          (let [room2 (first others)
                [a b] (closest-pair room1 room2)
                path (path-between a b)
-               to-remove (filter (gmap/intraversable-in?-fn m) path)]
+               to-remove (intraversable m path)]
            (recur (math/union room1 room2 to-remove) (rest others)
                   (fill m to-remove :ground)))
          m)))))
