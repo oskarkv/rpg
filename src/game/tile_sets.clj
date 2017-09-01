@@ -125,8 +125,8 @@
    that returns true for tiles that have the same value in m as start-tile."
   ([m start-tile]
    (flood-fill-map m start-tile (same-val-as-start m start-tile)))
-   ([m start-tile test-fn]
-    (flood-fill start-tile #(filter test-fn (legal-cross-neighbors m %)))))
+  ([m start-tile test-fn]
+   (flood-fill start-tile #(filter test-fn (legal-cross-neighbors m %)))))
 
 (defn flood-fill-zone
   ([m zone start-tile]
