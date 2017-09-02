@@ -51,7 +51,7 @@
         inactive))))
 
 (defn tiles-in-rect
-  "Returns a seq of tiles in the rectangle from (0, 0) to (x, y)."
+  "Returns a seq of tiles in the rectangle from (0, 0) to (width, height)."
   [[width height]]
   (for [x (range width) y (range height)]
     [x y]))
