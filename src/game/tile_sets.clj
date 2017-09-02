@@ -313,7 +313,8 @@
 (defn find-connections
   "Given a collection of zones (sets of tiles) and an integer tile-limit,
    calculates the connections between the zones. Zone a is connected to zone b
-   if tile-limit tiles of a are adjacent to tiles in b. Returns a set of pairs."
+   if tile-limit tiles of a are adjacent to tiles in b. Returns a set of pairs
+   of indicies."
   ([zones] (find-connections zones 1))
   ([zones tile-limit]
    (let [n (count zones)
