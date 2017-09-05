@@ -4,7 +4,8 @@
    [clojure.pprint :as pp]
    [clojure.reflect :as r]
    [clojure.string :as str]
-   [clojure.walk :as walk])
+   [clojure.walk :as walk]
+   [clojure.set :as set])
   (:import
    (java.util Random)))
 
@@ -414,3 +415,34 @@
   "Returns the map with the vals mapped to the keys."
   [m]
   (reduce (fn [m [k v]] (assoc m v k)) {} m))
+
+(defn bfs-waves
+  "Returns a lazy sequence of the waves of successors in a breadth-first search
+   from start using the given successors fn to generate the successors of a
+   node."
+  [start successors]
+  (lazy-seq
+   (letfn [(bfs* [prevs visited]
+             (lazy-seq
+              (let [ss (set/difference (set (mapcat successors prevs)) visited)]
+                (if (seq ss)
+                  (cons ss (bfs* ss (set/union visited ss)))))))]
+     (cons #{start} (bfs* [start] #{start})))))
+
+(defn bfs
+  "Returns a lazy sequence of nodes in a breadth-first search from start using
+   the given successors fn to generate the successors of a node."
+  [start successors]
+  (apply concat (bfs-waves start successors)))
+
+(defn dfs
+  "Returns a lazy sequence of nodes in a depth-first search from start using the
+   given successors fn to generate the successors of a node."
+  [start successors]
+  (let [visited (volatile! #{})
+        dfs* (fn dfs* [curr]
+               (lazy-seq
+                (when-not (@visited curr)
+                  (vswap! visited conj curr)
+                  (cons curr (mapcat dfs* (successors curr))))))]
+    (dfs* start)))
