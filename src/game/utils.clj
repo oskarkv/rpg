@@ -361,11 +361,11 @@
 (defn *some [& args]
   (apply * (remove nil? args)))
 
-(defn every-pred? [& preds]
+(defn every-pred [& preds]
   (fn [v]
     (every? identity (map #(% v) preds))))
 
-(defn some-pred? [& preds]
+(defn some-pred [& preds]
   (fn [v]
     (some identity (map #(% v) preds))))
 

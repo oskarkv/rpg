@@ -143,7 +143,7 @@
         (let [g (loom/graph graph)]
           (first (sort-by #(distance g start %) possibilities)))
         (->> (graph current)
-          (remove (some-pred? #(nil? (levels %)) #(>= (levels %) clvl)))
+          (remove (some-pred #(nil? (levels %)) #(>= (levels %) clvl)))
           (sort-by levels >)
           first
           (find-next-zone levels graph start))))))

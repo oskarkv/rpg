@@ -137,8 +137,8 @@
   [m tile dist]
   (flood-fill tile
               (fn [pre]
-                (filter (every-pred? (gmap/traversable-in?-fn m)
-                                     #(<= (math/distance % tile) dist))
+                (filter (every-pred (gmap/traversable-in?-fn m)
+                                    #(<= (math/distance % tile) dist))
                         (legal-cross-neighbors m pre)))))
 
 (defn flood-fill-map
@@ -154,7 +154,7 @@
   ([m zone start-tile]
    (flood-fill-zone m zone start-tile (same-val-as-start m start-tile)))
   ([m zone start-tile test-fn]
-   (flood-fill-map m start-tile (every-pred? test-fn (set zone)))))
+   (flood-fill-map m start-tile (every-pred test-fn (set zone)))))
 
 (defn walls-and-rooms
   "Returns a map of :walls and :rooms, where walls is the set of all wall tiles
