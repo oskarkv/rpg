@@ -311,21 +311,19 @@
        (widen-path path width)))))
 
 (defn find-connections
-  "Given a collection of zones (sets of tiles) and an integer tile-limit,
-   calculates the connections between the zones. Zone a is connected to zone b
-   if tile-limit tiles of a are adjacent to tiles in b. Returns a set of pairs
-   of indicies."
+  "Given a collection (sequence or map) of zones (sets of tiles) and an integer
+   tile-limit, calculates the connections between the zones. Zone a is connected
+   to zone b if tile-limit tiles of a are adjacent to tiles in b, and vice
+   versa. Returns a set of pairs of indicies/keys."
   ([zones] (find-connections zones 1))
   ([zones tile-limit]
-   (let [n (count zones)
-         zone-map (zipmap (range) zones)
-         border-map (zipmap (range) (map unsafe-outer-border zones))
+   (let [zone-map (if (map? zones) zones (zipmap (range) zones))
+         border-map (fmap unsafe-outer-border zone-map)
          enough? (fn [z1 z2] (>= (count (math/intersection (border-map z1)
                                                            (zone-map z2)))
                                  tile-limit))]
-     (set (for [z1 (range n) z2 (range (inc z1) n)
-                :when (and (enough? z1 z2) (enough? z2 z1))]
-            [z1 z2])))))
+     (filter (fn [[z1 z2]] (and (enough? z1 z2) (enough? z2 z1)))
+             (all-pairs (keys zone-map))))))
 
 (defn connect-tiles
   ([m tile1 tile2] (connect-tiles m tile1 tile2 1))
@@ -342,10 +340,11 @@
      (connect-tiles m a b width))))
 
 (defn connect-zone-pairs
-  "Connect the zones (a collection of zones) in m that is a pair in pairs."
+  "Connect in m the pairs of zones (a map or sequence) whose indicies are a pair
+   in pairs."
   [m zones pairs width]
-  (let [zones-vec (vec zones)
-        conns (m/emap zones-vec (vec pairs))]
+  (let [zones-map (if (map? zones) zones (vec zones))
+        conns (m/emap zones-map (vec pairs))]
     (reduce (fn [m [z1 z2]] (connect-zones m z1 z2 width))
             m
             conns)))
