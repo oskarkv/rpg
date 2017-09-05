@@ -406,3 +406,11 @@
     "Returns a set of all possible pairs (sets) of items in coll."
     [coll]
     ((all-pairs* hash-set) coll)))
+
+(defn indexed [coll]
+  (map-indexed vector coll))
+
+(defn invert-map
+  "Returns the map with the vals mapped to the keys."
+  [m]
+  (reduce (fn [m [k v]] (assoc m v k)) {} m))
