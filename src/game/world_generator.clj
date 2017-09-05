@@ -65,3 +65,113 @@
                              (keys graph)
                              (map sol (keys graph))))]
         (lio/view g)))))
+
+(defn invert-and-group
+  "Inverts a map. The vals in the returned map are vectors of keys in the input
+   map."
+  [m]
+  (group-by m (keys m)))
+
+(defn distance-map [graph pairs]
+  (into {} (map #(vector % (apply distance graph %))) pairs))
+
+(defn path-score [levels graph]
+  (let [inv-levels (invert-and-group levels)
+        [a b] (inv-levels 1)
+        path
+        (fn [successors]
+          (fn path [start]
+            (let [lvl (levels start)
+                  conts (filter #(some-> (levels %) (== (inc lvl)))
+                                (set (successors graph start)))
+                  c (count conts)]
+              (cons start
+                    (condp == c
+                      0 nil
+                      1 (path (first conts))
+                      (apply max-key count (map path conts)))))))
+        with-jump (path (fn [g s]
+                          (->> (fn [s]
+                                 (let [lvl (levels s)]
+                                   (filter #(<= (levels %) lvl) (g s))))
+                            (bfs s)
+                            (mapcat g))))
+        no-jump (path (fn [g s] (g s)))]
+    (transduce (map count) +
+               [(with-jump a) (no-jump a) (with-jump b) (no-jump b)])))
+
+(defn fairness-score
+  "Compares the distance from the level 1 zones to the level 2 zones, to the
+   level 3 zones and so on, and gives a higher score to configurations that are
+   more fair."
+  [levels graph]
+  (let [inv-levels (invert-and-group levels)
+        [a b] (inv-levels 1)
+        pairs (all-set-pairs (keys levels))
+        dist-map (distance-map (loom/graph graph) pairs)
+        max-dist (apply max (vals dist-map))]
+    (reduce (fn [score level]
+              (let [places (inv-levels level)
+                    dists (map (fn [s]
+                                 (sort (map #(dist-map #{% s}) places)))
+                               [a b])]
+                (apply + score
+                       (apply map (comp #(- max-dist %) math/abs -) dists))))
+            0
+            (set (remove #{1} (keys inv-levels))))))
+
+(defn separation-score [levels graph]
+  (let [inv-levels (invert-and-group levels)
+        [a b] (inv-levels 1)]
+    (distance (loom/graph graph) a b)))
+
+(defn levels-along-path
+  "Assign levels in levels-map from 1 to n to the n first nodes in the path
+   from a to b. g must be a loom graph."
+  [levels-map g [a b] n]
+  (let [path (take n (lalg/bf-path g a b))]
+    (reduce (fn [levels [idx z]]
+              (assoc levels z (inc idx)))
+            levels-map
+            (indexed path))))
+
+(defn find-next-zone [levels graph start current]
+  (when-not (nil? current)
+    (let [clvl (levels current)
+          possibilities (remove #(some? (levels %)) (graph current))]
+      (if-not (zero? (count possibilities))
+        (let [g (loom/graph graph)]
+          (first (sort-by #(distance g start %) possibilities)))
+        (->> (graph current)
+          (remove (some-pred? #(nil? (levels %)) #(>= (levels %) clvl)))
+          (sort-by levels >)
+          first
+          (find-next-zone levels graph start))))))
+
+(defn fill-levels [levels graph [a-start b-start]]
+  (let [inv-levels (invert-and-group levels)
+        max-level (apply max (keys inv-levels))
+        [a b] (inv-levels max-level)]
+    (loop [levels levels curr-a a curr-b b next-level (inc max-level)]
+      (if-lets [na (find-next-zone levels graph a-start curr-a)
+                levels (assoc levels na next-level)
+                nb (find-next-zone levels graph b-start curr-b)
+                levels (assoc levels nb next-level)]
+        (recur levels na nb (inc next-level))
+        levels))))
+
+;; This fn can fail to assign a level to all zones, because find-next-zone's
+;; backstracking only ever goes down in levels, even when going up would result
+;; in reaching a zone with a level that is lower than the original.
+(defn decide-levels [graph edge-zones tries]
+  (letfn [(decide [_]
+            (let [g (loom/graph graph)
+                  pairs (all-set-pairs edge-zones)
+                  dist-map (distance-map g pairs)
+                  inv-dist (invert-and-group dist-map)
+                  max-dist (apply max (keys inv-dist))
+                  start-pair (vec (rand-nth (inv-dist (min max-dist 5))))
+                  levels (levels-along-path {} g start-pair 2)
+                  levels (levels-along-path levels g (reverse start-pair) 2)]
+              (fill-levels levels graph start-pair)))]
+    (apply max-key #(fairness-score % graph) (map decide (range tries)))))
