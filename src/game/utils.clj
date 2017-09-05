@@ -333,9 +333,12 @@
   ([a b & more]
    (apply map vector a b more)))
 
-(defn reject-indices [v indices]
+(defn reject-indices [coll indices]
   (let [iset (set indices)]
-    (vec (keep-indexed (fn [i x] (if-not (iset i) x)) v))))
+    (vec (keep-indexed (fn [i x] (if-not (iset i) x)) coll))))
+
+(defn reject-keys [m keyseq]
+  (select-keys m (remove (set keyseq) (keys m))))
 
 (defn derive-many [hierarchy coll parent]
   (reduce (fn [h elem] (derive h elem parent))
