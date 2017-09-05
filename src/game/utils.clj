@@ -232,6 +232,11 @@
         item2 (get-in m path2)]
     (-> m (assoc-in path1 item2) (assoc-in path2 item1))))
 
+(defn swap [m k1 k2]
+  (let [item1 (m k1)
+        item2 (m k2)]
+    (-> m (assoc k1 item2) (assoc k2 item1))))
+
 (defn remove-map-nils [m]
   (into {} (filter (comp some? val) m)))
 
