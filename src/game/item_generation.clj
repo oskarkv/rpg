@@ -72,8 +72,9 @@
       (fmap math/round))))
 
 (defn make-item [name slot type stats-dist level quality]
-  (let [stats-dist* (create-stats-dist-with-armor stats-dist type)]
-    (if (> (:armor stats-dist*) (* 3 stats/armor-ratio))
+  (let [stats-dist* (create-stats-dist-with-armor stats-dist type)
+        {:keys [armor]} stats-dist*]
+    (if (and armor (> armor (* 3 stats/armor-ratio)))
       (throw-ex "Too high armor on item " name)
       (assoc
        (final-item-stats slot type stats-dist* level quality)
