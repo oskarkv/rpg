@@ -361,14 +361,6 @@
 (defn *some [& args]
   (apply * (remove nil? args)))
 
-(defn every-pred [& preds]
-  (fn [v]
-    (every? identity (map #(% v) preds))))
-
-(defn some-pred [& preds]
-  (fn [v]
-    (some identity (map #(% v) preds))))
-
 (defn interleave-runs
   "Given tho integers a and b, such that a >= b, compute the lengths of runs for
    interleaving a seq of length a and a seq of length b."
