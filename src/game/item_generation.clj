@@ -79,7 +79,6 @@
        (final-item-stats slot type stats-dist* level quality)
        :quality quality
        :level level
-       :item-level (math/round (* quality level))
        :slot slot
        :type type
        :name name))))
