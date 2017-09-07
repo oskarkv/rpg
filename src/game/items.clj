@@ -90,7 +90,9 @@
                      [slot]))
                  abstract-slots))))
 
-(defn item [name icon & info]
+(defn item
+  "Makes an item from a short description."
+  [name icon & info]
   (-> (apply merge-with set/union
              {:name name :icon icon}
              (for [e info]
