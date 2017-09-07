@@ -16,8 +16,7 @@
 (def all-stats (set/union base-stats other-stats))
 
 (def zero-stats
-  (zipmap base-stats
-          (repeat 0)))
+  (zipmap base-stats (repeat 0)))
 
 (def armor-class-improvement
   "How much better each class of armor, from cloth to leather, for example, is
@@ -77,16 +76,13 @@
   (/ total-stats-per-level total-stats-value))
 
 (defn exp-per-mob [level]
-  (let [level (dec level)]
-    (+ 10 (* 5 level))))
+  (+ 5 (* 5 level)))
 
 (defn mobs-per-level [level]
-  (let [level (dec level)]
-    (+ 10 (* 5 level) (math/round (math/expt level 1.5)))))
+  (+ 5 (* 5 level) (math/round (math/expt level 1.5))))
 
 (defn exp-to-level [level]
-  (let [level (dec level)]
-    (* (exp-per-mob level) (mobs-per-level level))))
+  (* (exp-per-mob level) (mobs-per-level level)))
 
 (defn exp-modifier [mob-level player-level]
   (let [diff (- mob-level player-level)]
