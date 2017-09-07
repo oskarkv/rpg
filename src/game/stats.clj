@@ -86,9 +86,7 @@
 
 (defn exp-modifier [mob-level player-level]
   (let [diff (- mob-level player-level)]
-    (if (< diff -10)
-      0
-      (+ 1 (* 0.1 diff)))))
+    (max 0 (+ 1 (* 0.1 diff)))))
 
 (defn exp-gained [mob-level player-level]
   (* (exp-modifier mob-level player-level) (exp-per-mob mob-level)))
