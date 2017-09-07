@@ -7,8 +7,7 @@
    [game.utils :refer :all]))
 
 (def base-stats
-  #{:strength :agility :stamina :intelligence :wisdom :spirit
-    :armor :magic-resistance})
+  #{:str :agi :int :vit :wis :sta :spi :armor :mr})
 
 (def other-stats
   #{:attack-power :spell-power :haste :hp :mana :cooldown-reduction
@@ -143,11 +142,11 @@
 (defn hit? [attacker target]
   (< (rand-uniform 1) (hit-chance (:level attacker) (:level target))))
 
-(defn hitpoints [stamina level]
-  (+ (* level 100) (* stamina 5)))
+(defn hitpoints [sta level]
+  (+ (* level 100) (* sta 5)))
 
-(defn mana [wisdom level]
-  (+ (* level 10) (* wisdom 5)))
+(defn mana [wis level]
+  (+ (* level 10) (* wis 5)))
 
 (defn hp-regen [level]
   (/ level 3.0))
@@ -155,5 +154,5 @@
 (defn base-mana-regen [level]
   level)
 
-(defn bonus-mana-regen [spirit level]
-  (/ spirit stats-per-level))
+(defn bonus-mana-regen [spi level]
+  (/ spi stats-per-level))

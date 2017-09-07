@@ -8,24 +8,24 @@
    [game.utils :refer :all]))
 
 (def base-wants
-  {:spirit 1
+  {:spi 1
    :armor 1
-   :vitality 1
-   :magic-resistance 1})
+   :vit 1
+   :mr 1})
 
 (def caster-wants
-   {:intelligence 1
-    :wisdom 1})
+   {:int 1
+    :wis 1})
 
 (def wants-maps
   (fmap #(merge % base-wants)
-        {:warrior {:strength 1 :stamina 1}
+        {:warrior {:str 1 :sta 1}
          :wizard caster-wants
          :druid caster-wants
          :necromancer caster-wants
-         :paladin {:strength 1 :wisdom 1}
-         :ranger {:agility 1 :wisdom 1}
-         :rogue {:agility 1 :stamina 1}}))
+         :paladin {:str 1 :wis 1}
+         :ranger {:agi 1 :wis 1}
+         :rogue {:agi 1 :sta 1}}))
 
 (defn select-random-keys [m num]
   (select-keys m (take num (shuffle (keys m)))))
