@@ -16,7 +16,7 @@
 (def all-stats (set/union base-stats other-stats))
 
 (def zero-stats
-  (zipmap [:strength :agility :stamina :intelligence :wisdom :spirit :armor]
+  (zipmap base-stats
           (repeat 0)))
 
 (def armor-class-improvement
