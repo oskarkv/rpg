@@ -24,4 +24,5 @@
   :jvm-opts ["-XX:-OmitStackTraceInFastThrow"
              "-Djavafx.animation.fullspeed=true"
              "-Dclojure.compiler.direct-linking=false"]
+  :repl-options {:init (set! *print-length* 50)}
   :global-vars {*warn-on-reflection* false})
