@@ -20,6 +20,8 @@
    round
    lcm))
 
+(def lg #(Math/log %))
+
 (def pi Math/PI)
 
 (def tau (* 2 pi))
