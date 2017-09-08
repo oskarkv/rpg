@@ -37,6 +37,7 @@
   "How much of each base stat a player is expected to have per level."
   10)
 
+;; E.g. str, vit, sta, spi, mr, armor
 (def num-stats-maxed 6)
 
 ;; Armor should be worth as much as other stats, that's what the item generator
@@ -50,7 +51,7 @@
 ;; armor will be lower. In that case, it would not feel like getting armor is a
 ;; choice. Keep in mind that it is not possible to get base armor on all pieces
 ;; of gear.
-(def armor-ratio 0.125)
+(def armor-ratio (/ 1.0 6))
 
 (def total-stats-per-level (* stats-per-level num-stats-maxed))
 
@@ -105,7 +106,7 @@
   (* (through-armor (or (:armor target) 0) (:level char))
      (random-damage damage)))
 
-(defn expected-weapon-damage [level]
+(defn weapon-damage [level]
   (* 5 level))
 
 (defn attack-power [stats]
