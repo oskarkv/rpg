@@ -93,8 +93,7 @@
 
 (defn update-stats [{:keys [gear level] :as char}]
   (let [stats (sum-stats gear)
-        {:keys [str agi sta wis int spi armor]} stats
-        attack-power (+ str agi)]
+        {:keys [str agi sta wis int spi armor]} stats]
     (merge char
            {:max-hp (stats/hitpoints sta level)
             :hp-regen (stats/hp-regen level)
