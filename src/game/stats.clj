@@ -97,8 +97,8 @@
 (defn base-that-gives-reduction [reduction at-armor]
   (math/expt (- 1 reduction) (/ at-armor)))
 
-(defn random-damage [weapon-damage]
-  (let [modify-damage #(* (% 1 consts/damage-random-portion) weapon-damage)]
+(defn random-damage [damage]
+  (let [modify-damage #(* (% 1 consts/damage-random-portion) damage)]
     (math/round (rand-uniform (modify-damage -) (modify-damage +)))))
 
 (defn actual-damage [char target damage]
@@ -106,38 +106,21 @@
      (random-damage damage)))
 
 (defn expected-weapon-damage [level]
-  level)
+  (* 5 level))
 
-(defn bonus-damage-simple [power level]
-  (let [scaled 0.5
-        max-stats (* 50 stats-per-level)]
-    (* 200 (+ 1
-              (/ power max-stats (/ (- 1 scaled)))
-              (/ power level stats-per-level (/ scaled))))))
-
-(defn bonus-damage [power level]
-  (let [flat-fraction 0.5
-        scaled 0.5
-        wd (expected-weapon-damage level)
-        max-stats (* 50 stats-per-level)
-        factor (+ (/ power max-stats (/ (- 1 scaled)))
-                  (/ power level stats-per-level (/ scaled)))
-        flat (* factor wd flat-fraction)
-        factor (+ 1 (* factor (- 1 flat-fraction)))]
-    {:factor factor :flat flat}))
+(defn attack-power [stats]
+  (+ (* 10 (:damage stats))
+     (:str stats)))
 
 (defn hit-chance [level target-level]
-  (let [chance (+ 0.75 (* (- level target-level) 0.05))]
-    (cond
-      (> chance 1) 1
-      (< chance 0.2) 0.2
-      :else chance)))
+  (let [diff (- level target-level)]
+    (min 1 (max 0.2 (+ 0.75 (* 0.05 diff))))))
 
 (defn hit? [attacker target]
   (< (rand-uniform 1) (hit-chance (:level attacker) (:level target))))
 
-(defn hitpoints [sta level]
-  (+ (* level 100) (* sta 5)))
+(defn hitpoints [vit level]
+  (+ 25 (* 0.1 vit (+ level 10))))
 
 (defn mana [wis level]
   (+ (* level 10) (* wis 5)))
