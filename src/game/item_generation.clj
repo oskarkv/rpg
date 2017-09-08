@@ -27,9 +27,6 @@
          :ranger {:agi 1 :wis 1}
          :rogue {:agi 1 :sta 1}}))
 
-(defn select-random-keys [m num]
-  (select-keys m (take num (shuffle (keys m)))))
-
 (defn normalize-map [m]
   (let [total (apply + (vals m))]
     (fmap #(/ % total) m)))

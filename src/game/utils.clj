@@ -341,6 +341,9 @@
 (defn reject-keys [m keyseq]
   (select-keys m (remove (set keyseq) (keys m))))
 
+(defn select-random-keys [m num]
+  (select-keys m (take num (shuffle (keys m)))))
+
 (defn derive-many [hierarchy coll parent]
   (reduce (fn [h elem] (derive h elem parent))
           hierarchy coll))
