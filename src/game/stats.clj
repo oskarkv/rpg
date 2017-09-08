@@ -134,3 +134,24 @@
 
 (defn bonus-mana-regen [spi level]
   (/ spi stats-per-level))
+
+(def chance-denom
+  "How many times more unlikely it is per 1 quality to get a drop."
+  100)
+
+(def base-drop-chance
+  "What is the chance to get a quality 1 item."
+  0.1)
+
+(defn drop-chance
+  "Returns the chance for an item of the given quality to drop from a normal
+   mob. This is the inverse of drop-quality."
+  [quality]
+  (/ base-drop-chance (math/expt chance-denom (dec quality))))
+
+(defn drop-quality
+  "Returns the item quality that the given roll from 0 to 1 represents. A lower
+   roll means better quality. This is the inverse of drop-chance."
+  [roll-result]
+  (inc (/ (math/lg (/ base-drop-chance roll-result))
+          (math/lg chance-denom))))
