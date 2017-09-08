@@ -101,9 +101,9 @@
   (let [modify-damage #(* (% 1 consts/damage-random-portion) weapon-damage)]
     (math/round (rand-uniform (modify-damage -) (modify-damage +)))))
 
-(defn actual-damage [char target]
+(defn actual-damage [char target damage]
   (* (through-armor (or (:armor target) 0) (:level char))
-     (random-damage (:damage char))))
+     (random-damage damage)))
 
 (defn expected-weapon-damage [level]
   level)

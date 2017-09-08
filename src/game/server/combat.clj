@@ -162,7 +162,8 @@
                                                const/attack-distance))
               (conj event (if (stats/hit? char target-char)
                             {:hit true
-                             :damage (stats/actual-damage char target-char)}
+                             :damage (stats/actual-damage
+                                      char target-char (:damage char))}
                             {:hit false})))))]
     (apply b/enqueue-events (map generate-attack-event (:chars game-state)))))
 
