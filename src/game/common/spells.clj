@@ -5,7 +5,7 @@
              [(keyword sym) sym])))
 
 (defmacro spell-helper [& args]
-  `(defn spell ~(vec args)
+  `(defn ~'spell ~(vec args)
      (make-map ~@args)))
 
 (spell-helper mana-cost cast-time cast-range cooldown target-type description)
