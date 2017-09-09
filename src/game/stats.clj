@@ -63,8 +63,8 @@
            :arms 1.2
            :head 1.1)))
 
-(def relative-2hander-value
-  "How much stats value a 2-hander has compared to a main hand."
+(def relative-two-hander-value
+  "How much stats value a two-hander has compared to a main hand."
   1.75)
 
 (def total-stats-value
@@ -106,7 +106,7 @@
   (* (through-armor (or (:armor target) 0) (:level char))
      (random-damage damage)))
 
-(defn weapon-damage [level]
+(defn weapon-dps [level]
   (* 5 level))
 
 (defn attack-power [stats]

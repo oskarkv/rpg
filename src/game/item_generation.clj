@@ -5,7 +5,8 @@
    [game.item-names :as names]
    [game.math :as math]
    [game.stats :as stats]
-   [game.utils :refer :all]))
+   [game.utils :refer :all]
+   [clojure.string :as str]))
 
 (def base-wants
   {:spi 1
@@ -31,52 +32,79 @@
   (let [total (apply + (vals m))]
     (fmap #(/ % total) m)))
 
+(defn scale-map [m scale]
+  (fmap #(* scale %) m))
+
 (defn armor? [type]
   (#{:cloth :leather :mail :plate} type))
 
-(defn add-base-armor
-  "Adds a base armor component in a normalized stats-dist map."
-  [stats-dist]
-  (-> (fmap #(* % (- 1 stats/armor-ratio)) stats-dist)
-    (update :armor +some stats/armor-ratio)))
-
-(defn create-stats-dist-with-armor
-  "Given a stats-dist map (not necessarily normalized) and a type, create a
-   normalized stats-dist map with a base armor component added if the type is an
-   armor type."
-  [stats-dist type]
-   (cond-> (normalize-map stats-dist)
-     (armor? type) add-base-armor))
-
-(defn create-random-stats-dist
-  "Create a random stats-dist map based on the class's wants, including base
-   armor."
-  [class type]
-  (let [wants (wants-maps class)
-        num-stats (rand-uniform-int 2 (count wants))]
-    (create-stats-dist-with-armor (select-random-keys wants num-stats) type)))
+(defn armor-factor-to-part
+  "Takes a stats distribution map with a special armor factor. Normalizes the
+   stats distribution map including an armor part based on the armor factor."
+  [stats]
+  (let [armor-factor (or (:armor stats) 0)
+        armor-part (* stats/armor-ratio armor-factor)]
+    (-> (dissoc stats :armor)
+      normalize-map
+      (scale-map (- 1 armor-part))
+      (assoc :armor armor-part))))
 
 (defn final-item-stats
   "Creates the final stats of an item by taking into consideration all the
-   arguments. stats-dist should be the final, normalized, stats-dist map after
-   armor has been added."
-  [slot type stats-dist level quality]
-  (let [stats-factor (* (slot stats/relative-gear-slot-value) quality)
-        stats-amount (* stats/stats-per-slot-per-level level stats-factor)]
-    (->>$ stats-dist
-      (fmap #(* stats-amount %))
+   arguments. stats should be a distribution map with an armor factor."
+  [slot type stats level quality]
+  (let [stats* (armor-factor-to-part stats)
+        stats-factor (* quality level
+                        stats/stats-per-slot-per-level
+                        (stats/relative-gear-slot-value slot))]
+    (->>$ stats*
+      (fmap #(* stats-factor %))
       (update $ :armor *some (stats/armor-factor type))
       (fmap math/round))))
 
-(defn make-item [name slot type stats-dist level quality]
-  (let [stats-dist* (create-stats-dist-with-armor stats-dist type)
-        {:keys [armor]} stats-dist*]
-    (if (and armor (> armor (* 3 stats/armor-ratio)))
-      (throw-ex "Too high armor on item " name)
-      (assoc
-       (final-item-stats slot type stats-dist* level quality)
-       :quality quality
-       :level level
-       :slot slot
-       :type type
-       :name name))))
+(defn make-item
+  "Make an item by taking an item-map, which is almost an item, and calculates
+   the actual stats, adds damage for weapons, and adjusts quality using
+   extra-rarity."
+  [item-map]
+  (let [{:keys [slot type stats level quality extra-rarity delay two-hand
+                name set-name]} item-map
+        stats-quality (* (if two-hand stats/relative-two-hander-value 1)
+                         quality)]
+    (cond-> item-map
+      true (assoc :quality (+some quality extra-rarity)
+                  :stats (final-item-stats slot type stats level stats-quality))
+      true (dissoc :extra-rarity)
+      delay (assoc :damage (* stats-quality delay (stats/weapon-dps level))))))
+
+(defn make-name [prefix name suffix]
+  (str/trim (str prefix " " name " " suffix)))
+
+(defn handle-name [item-map]
+  (let [{:keys [name-prefix name name-suffix]} item-map]
+    (-> item-map
+      (assoc :name (make-name name-prefix name name-suffix))
+      (dissoc :name-prefix :name-suffix))))
+
+(defn make-item-set [set-name defaults item-maps]
+  (let [{:keys [name-prefix name-suffix]} defaults]
+    (map
+     (fn [item-map]
+       (-> (merge defaults item-map)
+         (assoc :set-name set-name)
+         handle-name
+         make-item)
+       item-maps))))
+
+(def items
+  (flatten
+   [(make-item-set
+     :bronze
+     {:name-prefix "Bronze"
+      :quality 1.2
+      :type :plate
+      :level 5
+      :stats {:str 1 :vit 1 :mr 0.5 :armor 1.3}}
+     [{:slot :arms :name "Vambraces"}
+      {:slot :chest :name "Breastplate"}
+      {:slot :feet :name "Boots"}])]))
