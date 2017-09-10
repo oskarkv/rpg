@@ -1,12 +1,12 @@
 (ns game.item-generation
   (:require
-   [clojure.math.combinatorics :as comb]
-   [game.constants :as consts]
-   [game.item-names :as names]
+   [clojure.spec.alpha :as s]
+   [clojure.string :as str]
+   [clojure.walk :as walk]
+   [game.hierarchies :as hier]
    [game.math :as math]
    [game.stats :as stats]
-   [game.utils :refer :all]
-   [clojure.string :as str]))
+   [game.utils :refer :all]))
 
 (def base-wants
   {:spi 1
@@ -96,15 +96,49 @@
          make-item))
      item-maps)))
 
+(defn ns-qualify [k]
+  (keyword (name (.name *ns*)) (name k)))
+
+(defmacro def-many [ks spec]
+  (let [ks @(ns-resolve *ns* ks)]
+    `(do ~@(map
+            #(list `s/def (ns-qualify %) spec)
+            ks))))
+
+(def-many stats/base-stats int?)
+
+(s/def ::slot (set (map ns-qualify hier/gear-slots)))
+(s/def ::type keyword?)
+(s/def ::stats map?)
+(s/def ::level int?)
+(s/def ::quality number?)
+(s/def ::name string?)
+(s/def ::delay number?)
+(s/def ::damage int?)
+(s/def ::two-hand (s/or :nil nil? :bool boolean?))
+(s/def ::item (s/keys :req [::level ::name ::slot ::type ::stats ::quality]
+                      :opt [::damage ::delay ::two-hand]))
+
+(defn check-items [items]
+  (let [qitems (walk/postwalk #(if (keyword? %) (ns-qualify %) %) items)]
+    (if (every? #(s/valid? ::item %) qitems)
+      items
+      (do (doall (map #(s/explain ::item %) qitems))
+          (throw-error "Items are not valid")))))
+
+(def bronze
+  (make-item-set
+   :bronze
+   {:name-prefix "Bronze"
+    :quality 1.2
+    :type :plate
+    :level 5
+    :stats {:str 1 :vit 1 :mr 0.5 :armor 1.3}}
+   [{:slot :arms :name "Vambraces"}
+    {:slot :chest :name "Breastplate"}
+    {:slot :feet :name "Boots"}]))
+
 (def items
-  (flatten
-   [(make-item-set
-     :bronze
-     {:name-prefix "Bronze"
-      :quality 1.2
-      :type :plate
-      :level 5
-      :stats {:str 1 :vit 1 :mr 0.5 :armor 1.3}}
-     [{:slot :arms :name "Vambraces"}
-      {:slot :chest :name "Breastplate"}
-      {:slot :feet :name "Boots"}])]))
+  (check-items
+   (flatten
+    [bronze])))
