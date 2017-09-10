@@ -1,6 +1,6 @@
 (defproject game "0.1.0-SNAPSHOT"
   :description "An MMORPG."
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha20"]
                  [org.clojure/data.priority-map "0.0.7"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [robert/hooke "1.3.0"]
