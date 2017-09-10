@@ -93,8 +93,8 @@
        (-> (merge defaults item-map)
          (assoc :set-name set-name)
          handle-name
-         make-item)
-       item-maps))))
+         make-item))
+     item-maps)))
 
 (def items
   (flatten
