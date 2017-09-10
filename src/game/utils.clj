@@ -364,6 +364,15 @@
 (defn *some [& args]
   (apply * (remove nil? args)))
 
+(defn infinite-shuffle [coll]
+  (lazy-cat (shuffle coll) (infinite-shuffle coll)))
+
+(defn takes [[n & ns] coll]
+  (if n
+    (cons (take n coll)
+          (takes ns (drop n coll)))
+    nil))
+
 (defn interleave-runs
   "Given tho integers a and b, such that a >= b, compute the lengths of runs for
    interleaving a seq of length a and a seq of length b."
