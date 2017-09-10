@@ -374,8 +374,10 @@
     nil))
 
 (defn interleave-runs
-  "Given tho integers a and b, such that a >= b, compute the lengths of runs for
-   interleaving a seq of length a and a seq of length b."
+  "Returns the lengths of runs of elements from seq-a if one were to interleave
+   seq-a with seq-b as evenly as possible, given that seq-a has length a and
+   seq-b has length b, a >= b. The imagined interleaving starts with a run of
+   elements from seq-a."
   [a b]
   (let [ib (inc b)
         n (int (/ a ib))
