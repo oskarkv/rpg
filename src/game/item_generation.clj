@@ -38,6 +38,20 @@
 (defn armor? [type]
   (#{:cloth :leather :mail :plate} type))
 
+;; Can be made to work with different-valued items by just picking more parts.
+(defn spread-stats-randomly [stats-map num-items]
+  (let [parts-per-item 10
+        stats-sum (apply + (vals stats-map))
+        parts (mapcat (fn [[stat n]]
+                        (repeat (* n num-items parts-per-item) stat))
+                      stats-map)
+        items (partition (int (* parts-per-item stats-sum)) (shuffle parts))]
+    (map normalize-map
+         (map (fn [parts]
+                (fmap #(/ (float (count %)) parts-per-item)
+                      (group-by identity parts)))
+              items))))
+
 (defn armor-factor-to-part
   "Takes a stats distribution map with a special armor factor. Normalizes the
    stats distribution map including an armor part based on the armor factor."
