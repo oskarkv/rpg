@@ -10,39 +10,6 @@
 
 (declare items)
 
-(defn random-variables-with-mean
-  "Returns num-vars random variables between 0 and 1, with average value avg."
-  [avg num-vars]
-  (when (pos? num-vars)
-    (let [vars (repeatedly num-vars rand)
-          vars-avg (/ (apply + vars) num-vars)
-          adjusting-fn (fn [avg target]
-                         (if (> avg target)
-                           #(* (/ target avg) %)
-                           #(+ % (* (- 1 %) (/ (- target avg) (- 1 avg))))))]
-      (map (adjusting-fn vars-avg avg) vars))))
-
-(defn rolls->stats
-  "Takes a map of stats (from stat name to magnitude) and a set of rolls
-   (numbers between 0 and 1) and modifies the stats of the map depending on the
-   rolls and consts/stats-random-part."
-  [base-stats rolls]
-  (letfn [(rolls->stats-factors [vars]
-            (map #(+ 1 (* consts/stats-random-part (- (* % 2) 1))) vars))]
-    (into {} (map (fn [[stat magnitude] factor]
-                    [stat (math/round (* factor magnitude))])
-                  base-stats
-                  (rolls->stats-factors rolls)))))
-
-(defn roll-for-stats
-  "Returns a new item with the stats randomly modified up or down a bit."
-  [{id :id :as item}]
-  (if-let [stats (get-in items [id :stats])]
-    (let [rolls (random-variables-with-mean (rand) (count stats))
-          actual-stats (rolls->stats stats rolls)]
-      (assoc item :stats actual-stats))
-    item))
-
 (defn stack
   "Returns a vector of stack sizes that would result when trying to stack n
    items with a max stack size of max-stack-size."

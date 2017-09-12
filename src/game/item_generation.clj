@@ -3,6 +3,7 @@
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [clojure.walk :as walk]
+   [game.constants :as consts]
    [game.hierarchies :as hier]
    [game.math :as math]
    [game.stats :as stats]
@@ -82,8 +83,8 @@
                       (group-by identity parts)))
               items))))
 
-(defn final-item-stats
-  "Creates the final stats of an item by taking into consideration all the
+(defn real-item-stats
+  "Creates a map of stats for an item by taking into consideration all the
    relevant information from item-map. The given quality is used, and not the
    quality in the item-map."
   [item-map quality]
@@ -97,8 +98,35 @@
       (zipmap (repeat 1))
       (armor-factor-to-part (value-from-range armor))
       (fmap #(* stats-factor %) $)
-      (update :armor *some (stats/armor-factor type))
-      (fmap math/round $))))
+      (update :armor *some (stats/armor-factor type)))))
+
+(defn random-variables-with-mean
+  "Returns num-vars random variables between 0 and 1, with mean value avg."
+  [avg num-vars]
+  (when (pos? num-vars)
+    (let [vars (repeatedly num-vars rand)
+          vars-avg (/ (apply + vars) num-vars)
+          adjusting-fn (fn [avg target]
+                         (if (> avg target)
+                           #(* (/ target avg) %)
+                           #(+ % (* (- 1 %) (/ (- target avg) (- 1 avg))))))]
+      (map (adjusting-fn vars-avg avg) vars))))
+
+(defn rolls->stats
+  "Takes a map of stats (from stat name to magnitude) and a set of rolls
+   (numbers between 0 and 1) and modifies the stats of the map depending on the
+   rolls and consts/stats-random-part."
+  [base-stats rolls]
+  (->> rolls
+    (map #(inc (* consts/stats-random-part (dec (* % 2)))))
+    (map (fn [[stat magnitude] factor] [stat (* factor magnitude)])
+         base-stats)
+    (into {})))
+
+(defn roll-for-stats
+  "Returns a new stats map with the stats randomly modified up or down a bit."
+  [stats]
+  (rolls->stats stats (random-variables-with-mean (rand) (count stats))))
 
 (defn create-actual-item
   "Make an item by taking an item-map, which is almost an item, and calculates
@@ -110,7 +138,9 @@
                          quality)]
     (cond-> item-map
       true (assoc :quality (+some quality extra-rarity)
-                  :stats (final-item-stats item-map stats-quality))
+                  :stats (roll-for-stats
+                          (real-item-stats item-map stats-quality)))
+      true (update :stats #(fmap math/round %))
       true (dissoc :extra-rarity :armor :num-stats)
       delay (assoc :damage (* stats-quality delay (stats/weapon-dps level))))))
 

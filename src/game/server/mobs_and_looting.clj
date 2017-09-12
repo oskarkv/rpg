@@ -23,7 +23,8 @@
         [min max] (:levels mob)
         level (+ min (rand-int (- (inc max) min)))
         drops (roll-for-drops (:drops mob))
-        drops-with-stats (map items/roll-for-stats drops)
+        ;; This is wrong, but in the middle of reworking drops
+        drops-with-stats drops
         unstacked (vec (mapcat items/unstack drops-with-stats))]
     (assoc mob-type
            :type :mob
