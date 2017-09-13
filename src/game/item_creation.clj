@@ -68,7 +68,7 @@
    relevant information from item-map. The given quality is used, and not the
    quality in the item-map."
   [item-map quality]
-  (let [{:keys [armor stats num-stats level slot]} item-map
+  (let [{:keys [armor stats num-stats level slot type]} item-map
         n (value-from-range num-stats)
         stats-factor (* quality level
                         stats/stats-per-slot-per-level
