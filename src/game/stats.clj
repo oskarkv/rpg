@@ -143,6 +143,8 @@
   "What is the chance to get a quality 1 item."
   0.1)
 
+(def max-quality 3.5)
+
 (defn drop-chance
   "Returns the chance for an item of the given quality to drop from a normal
    mob. This is the inverse of drop-quality."
@@ -153,5 +155,7 @@
   "Returns the item quality that the given roll from 0 to 1 represents. A lower
    roll means better quality. This is the inverse of drop-chance."
   [roll-result]
-  (inc (/ (math/lg (/ base-drop-chance roll-result))
-          (math/lg chance-denom))))
+  (if (zero? roll-result)
+    max-quality
+    (min max-quality (inc (/ (math/lg (/ base-drop-chance roll-result))
+                             (math/lg chance-denom))))))
