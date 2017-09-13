@@ -115,6 +115,8 @@
       (polymorphic-dissoc m k))))
 
 (defn fmap
+  "Apply f to the vals in m and return a map. If colls are provided, apply f to
+   the vals in m and the items from colls, as with clojure.core/map."
   ([f m] (into {} (map (fn [[k v]] [k (f v)])) m))
   ([f m & colls] (zipmap (keys m) (apply map f (vals m) colls))))
 
