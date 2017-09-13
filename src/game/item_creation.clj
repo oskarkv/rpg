@@ -81,16 +81,21 @@
       (update :armor *some (stats/armor-factor type)))))
 
 (defn random-numbers-with-mean
-  "Returns n random numbers between 0 and 1, with the given mean."
-  [mean n]
-  (when (pos? n)
-    (let [vars (repeatedly n rand)
-          vars-mean (/ (apply + vars) n)
-          adjusting-fn (fn [mean target]
-                         (if (> mean target)
-                           #(* (/ target mean) %)
-                           #(+ % (* (- 1 %) (/ (- target mean) (- 1 mean))))))]
-      (map (adjusting-fn vars-mean mean) vars))))
+  "Returns n random numbers between min-v and max-v, with the given mean.
+   If min-v and max-v are not provided, default to 0 and 1."
+  ([mean n] (random-numbers-with-mean mean n 0 1))
+  ([mean n min-v max-v]
+   (when (pos? n)
+     (let [temp-max (- max-v min-v)
+           temp-mean (- mean min-v)
+           vars (repeatedly n #(rand temp-max))
+           vars-mean (/ (apply + vars) n)
+           adjusting-fn (fn [mean target]
+                          (if (> mean target)
+                            #(* (/ target mean) %)
+                            #(+ % (* (- temp-max %)
+                                     (/ (- target mean) (- temp-max mean))))))]
+       (map (comp #(+ min-v %) (adjusting-fn vars-mean temp-mean)) vars)))))
 
 (defn rolls->stats
   "Takes a map of stats (from stat name to magnitude) and a set of rolls
