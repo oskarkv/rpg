@@ -80,17 +80,17 @@
       (fmap #(* stats-factor %) $)
       (update :armor *some (stats/armor-factor type)))))
 
-(defn random-variables-with-mean
-  "Returns num-vars random variables between 0 and 1, with mean value avg."
-  [avg num-vars]
-  (when (pos? num-vars)
-    (let [vars (repeatedly num-vars rand)
-          vars-avg (/ (apply + vars) num-vars)
-          adjusting-fn (fn [avg target]
-                         (if (> avg target)
-                           #(* (/ target avg) %)
-                           #(+ % (* (- 1 %) (/ (- target avg) (- 1 avg))))))]
-      (map (adjusting-fn vars-avg avg) vars))))
+(defn random-numbers-with-mean
+  "Returns n random numbers between 0 and 1, with the given mean."
+  [mean n]
+  (when (pos? n)
+    (let [vars (repeatedly n rand)
+          vars-mean (/ (apply + vars) n)
+          adjusting-fn (fn [mean target]
+                         (if (> mean target)
+                           #(* (/ target mean) %)
+                           #(+ % (* (- 1 %) (/ (- target mean) (- 1 mean))))))]
+      (map (adjusting-fn vars-mean mean) vars))))
 
 (defn rolls->stats
   "Takes a map of stats (from stat name to magnitude) and a set of rolls
@@ -105,8 +105,8 @@
 
 (defn roll-for-stats
   "Returns a new stats map with the stats randomly modified up or down a bit."
-  [stats]
-  (rolls->stats stats (random-variables-with-mean (rand) (count stats))))
+  [stats mean]
+  (rolls->stats stats (random-numbers-with-mean (rand) (count stats))))
 
 (defn create-actual-item
   "Make an item by taking an item-map, which is almost an item, and calculates
