@@ -114,8 +114,9 @@
       (assoc m k (dissoc-in inner ks))
       (polymorphic-dissoc m k))))
 
-(defn fmap [f m]
-  (into {} (map (fn [[k v]] [k (f v)])) m))
+(defn fmap
+  ([f m] (into {} (map (fn [[k v]] [k (f v)])) m))
+  ([f m & colls] (zipmap (keys m) (apply map f (vals m) colls))))
 
 (defn call-times
   "Call f on args, then again on the result, and so on, n times."
