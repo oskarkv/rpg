@@ -97,21 +97,10 @@
                                      (/ (- target mean) (- temp-max mean))))))]
        (map (comp #(+ min-v %) (adjusting-fn vars-mean temp-mean)) vars)))))
 
-(defn rolls->stats
-  "Takes a map of stats (from stat name to magnitude) and a set of rolls
-   (numbers between 0 and 1) and modifies the stats of the map depending on the
-   rolls and consts/stats-random-part."
-  [base-stats rolls]
-  (->> rolls
-    (map #(inc (* consts/stats-random-part (dec (* % 2)))))
-    (map (fn [[stat magnitude] factor] [stat (* factor magnitude)])
-         base-stats)
-    (into {})))
-
-(defn roll-for-stats
-  "Returns a new stats map with the stats randomly modified up or down a bit."
-  [stats mean]
-  (rolls->stats stats (random-numbers-with-mean (rand) (count stats))))
+(defn randomly-adjust-stats [stats]
+  (let [srp consts/stats-random-part]
+    (fmap * stats (random-numbers-with-mean
+                   1 (count stats) (- 1 srp) (inc srp)))))
 
 (defn create-actual-item
   "Make an item by taking an item-map, which is almost an item, and calculates
@@ -123,7 +112,7 @@
                          quality)]
     (cond-> item-map
       true (assoc :quality (+some quality extra-rarity)
-                  :stats (roll-for-stats
+                  :stats (randomly-adjust-stats
                           (real-item-stats item-map stats-quality)))
       true (update :stats #(fmap math/round %))
       true (dissoc :extra-rarity :armor :num-stats)
