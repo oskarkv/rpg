@@ -209,7 +209,11 @@
                                (partition 2 (second let-expr))))]
     `(let* ~(vec new-let-bindings))))
 
-(defmacro condf [obj & pairs]
+(defmacro condf
+  "Takes an object and a set of test-fn/expr pairs. It evaluates
+   (test-fn object) for each pair in order, and returns the expr of the pair if
+   the test-fn returns logical true. If no pair matches, returns nil."
+  [obj & pairs]
   (assert-args
    (even? (count pairs)) "an odd number of arguments")
   (when pairs
