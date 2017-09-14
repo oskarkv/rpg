@@ -293,7 +293,7 @@
   (set (mapcat #(widen-tile % width) path)))
 
 (defn path-between
-  "Returns sequence of tiles that constitute a minimal path from t1 to t2.
+  "Returns a sequence of tiles that constitute a minimal path from t1 to t2.
    If width is provided, make the path that wide."
   ([t1 t2]
    (let [[x y] (map - t2 t1)
