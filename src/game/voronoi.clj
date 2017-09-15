@@ -78,7 +78,7 @@
    (tiles-in-rect shape)))
 
 (defn to-color-map [zones size]
-  (let [m (ts/make-map size size)]
+  (let [m (ts/make-mat size size)]
     (reduce (fn [m points]
               (let [color (+ 0xff000000 (rand-int 0xffffff))]
                 (reduce (fn [m [x y]]

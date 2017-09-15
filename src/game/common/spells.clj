@@ -1,8 +1,6 @@
-(ns game.common.spells)
-
-(defmacro make-map [& syms]
-  (into {} (for [sym syms]
-             [(keyword sym) sym])))
+(ns game.common.spells
+  (:require
+   [game.utils :refer :all]))
 
 (defmacro spell-helper [& args]
   `(defn ~'spell ~(vec args)

@@ -149,7 +149,7 @@
         [bottom top] (ts/find-bounds centers)
         ;; + 1 because if a point is at n, it's really betwen n and n + 1
         [x y] (map #(+ % r+1 1) top)
-        m (ts/make-map x y :wall)
+        m (ts/make-mat x y :wall)
         m (reduce (fn [m* c] (ts/fill m* (ts/tiles-in-circle c radius)
                                       :ground))
                   m
@@ -171,7 +171,7 @@
               (if ps
                 (assoc-in (add m ps) p :wall)
                 (assoc-in m p :wall)))]
-    (loop [m (assoc-in (apply ts/make-map size) p :wall)
+    (loop [m (assoc-in (apply ts/make-mat size) p :wall)
            ps #{p}
            border (set (ts/cross-neighbors m p))
            i n]

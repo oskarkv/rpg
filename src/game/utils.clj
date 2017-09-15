@@ -105,6 +105,12 @@
      (do (println (with-out-str (println '~x "=") (clojure.pprint/pprint x#)))
          x#)))
 
+(defmacro make-map
+  "Returns a map mapping keywords with the names of the provided symbols to
+   their values in the current context."
+  [& syms]
+  (zipmap (map keyword syms) syms))
+
 (defn dissoc-in [m [k & ks]]
   (letfn [(polymorphic-dissoc [m k]
             (if (instance? clojure.lang.IPersistentMap m)
