@@ -386,6 +386,13 @@
           (takes ns (drop n coll)))
     nil))
 
+(defn flatten-more
+  "Like flatten, but also flattens sets."
+  [x]
+  (let [pred (some-fn sequential? set?)]
+    (filter (complement pred)
+            (rest (tree-seq pred seq x)))))
+
 (defn interleave-runs
   "Returns the lengths of runs of elements from seq-a if one were to interleave
    seq-a with seq-b as evenly as possible, given that seq-a has length a and
