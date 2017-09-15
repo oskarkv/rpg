@@ -16,9 +16,6 @@
 (defn scale-map [m scale]
   (fmap #(* scale %) m))
 
-(defn armor? [type]
-  (#{:cloth :leather :mail :plate} type))
-
 (defn armor-factor-to-part
   "Takes a stats distribution map and an armor factor, and adds an armor part to
    the stats map based on the armor factor. The armor factor is how much of the
