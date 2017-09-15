@@ -97,6 +97,8 @@
                                      (/ (- target mean) (- temp-max mean))))))]
        (map (comp #(+ min-v %) (adjusting-fn vars-mean temp-mean)) vars)))))
 
+;; Can cause the quality of an item to change, if the numbers in stats are not
+;; all the same.
 (defn randomly-adjust-stats [stats]
   (let [srp consts/stats-random-part]
     (fmap * stats (random-numbers-with-mean
