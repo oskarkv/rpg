@@ -25,7 +25,7 @@
         msgs (conj-some msgs msg)
         events (conj-some events event)
         new-game-state (or new-game-state game-state)]
-    {:new-game-state new-game-state :events events :msgs msgs}))
+    (make-map new-game-state events msgs)))
 
 (defn process-events [process-fn game-state input-events]
   (let [events-q (reduce conj clojure.lang.PersistentQueue/EMPTY input-events)]
@@ -37,8 +37,7 @@
           (recur new-game-state (reduce conj (pop events-q) events)
                  (reduce conj new-events events)
                  (reduce conj new-msgs msgs)))
-        {:new-game-state game-state :new-events new-events
-         :new-msgs new-msgs}))))
+        (make-map game-state new-events new-msgs)))))
 
 (defmacro call-update-fns [game-state events hook-fn & calls]
   (with-gensyms [new-game-state new-events all-events]
@@ -52,7 +51,7 @@
                                         (~hook-fn ~new-game-state ~new-events))
                    ~all-events (concat ~all-events ~new-events)])]
          (call-update-fns ~new-game-state ~all-events ~hook-fn ~@(rest calls)))
-      {:new-game-state game-state :events events})))
+      (make-map game-state events))))
 
 (defmacro call-update-fns* [game-state hook-fn & calls]
   (let [calls (map (fn [c] `((fn [gs#] (or (-> gs# ~c) gs#)))) calls)

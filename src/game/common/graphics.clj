@@ -85,7 +85,7 @@
         name-text (create-character-name-text
                    (:name character) 1 (:font assets))
         node (new-group-node (:name character) geom name-text)]
-    {:node node :geom geom}))
+    (make-map node geom)))
 
 (defn create-spawn-node [assets spawn]
   (let [geom (create-geom assets :spawn)]
@@ -356,8 +356,7 @@
         textures (create-texture-map asset-manager)
         materials (create-material-map base-materials textures)
         font (.loadFont asset-manager "Interface/Fonts/Default.fnt")
-        assets {:meshes meshes :textures textures
-                :materials materials :font font}
+        assets (make-map meshes textures materials font)
         gfx-state-atom (atom {:nodes nodes :ids->objects {} :geoms->ids {}
                               :game-map game-map :assets assets :effects []})]
     (defn pick-target [type]

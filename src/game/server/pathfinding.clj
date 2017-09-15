@@ -136,7 +136,7 @@
                          (assoc tile->node pos node)
                          more)
                   (recur open tile->node more))
-                {:open open :tile->node tile->node}))]
+                (make-map open tile->node)))]
       (let [start-node (make-node nil start)]
         (loop [closed #{}
                open (pm/priority-map start (:f start-node))
