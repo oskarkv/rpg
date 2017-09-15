@@ -112,8 +112,7 @@
                          quality)]
     (cond-> item-map
       true (assoc :quality (+some quality extra-rarity)
-                  :stats (randomly-adjust-stats
-                          (real-item-stats item-map stats-quality)))
+                  :stats (real-item-stats item-map stats-quality))
       true (update :stats #(fmap math/round %))
       true (dissoc :extra-rarity :armor :num-stats)
       delay (assoc :damage (* stats-quality delay (stats/weapon-dps level))))))
