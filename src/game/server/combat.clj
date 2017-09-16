@@ -116,8 +116,8 @@
         ngs (cond-> game-state
               true (assoc-in [:chars id :last-attack] last-attack)
               hit (process-hit event))]
-    (b/enqueue-events
-     (when (<= (get-in ngs [:chars target :hp]) 0)
+    (when (<= (get-in ngs [:chars target :hp]) 0)
+      (b/enqueue-events
        {:type :death :id target :by id :corpse-id (b/new-game-id)}))
     (b/enqueue-msgs [(:player-ids game-state)
                      {:type :s-attack :target target :damage damage :hit hit}])
