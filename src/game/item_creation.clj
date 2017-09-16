@@ -84,6 +84,7 @@
     (->$ stats
       (pick-stats-randomly n)
       (zipmap (repeat 1))
+      randomly-adjust-stats
       (armor-factor-to-part (value-from-range armor))
       (fmap #(* stats-factor %) $)
       (update :armor *some (stats/armor-factor type)))))
