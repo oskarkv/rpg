@@ -90,7 +90,7 @@
   (merge stats/zero-stats
          (apply merge-with + (map :stats (vals gear)))))
 
-(defn update-stats [{:keys [gear level] :as char}]
+(defn update-stats [{:keys [gear level class] :as char}]
   (let [stats (sum-stats gear)
         {:keys [str agi sta wis int spi armor]} stats]
     (merge char
@@ -99,7 +99,7 @@
             :max-mana (* level 50)
             :mana-regen (* level 2)
             :armor armor
-            :damage (int (stats/attack-power stats))})))
+            :damage (int (stats/power stats class))})))
 
 (defn move-toward-pos [{:keys [pos speed] :as char} time-delta target-pos]
   (let [dir (math/norm-diff target-pos pos)

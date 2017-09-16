@@ -10,8 +10,7 @@
   #{:str :agi :int :vit :wis :sta :spi :armor :mr})
 
 (def other-stats
-  #{:attack-power :spell-power :haste :hp :mana :cooldown-reduction
-    :resource-cost-reduction :spell-penetration})
+  #{:power :hp :mana :regen :hp-regen})
 
 (def all-stats (set/union base-stats other-stats))
 
@@ -76,6 +75,14 @@
 (def stats-per-slot-per-level
   (/ total-stats-per-level total-stats-value))
 
+(def power-stat
+  {:warrior :str
+   :wizard :int
+   :druid :int})
+
+(defn weapon-dps [level]
+  (* 5 level))
+
 (defn exp-per-mob [level]
   (+ 5 (* 5 level)))
 
@@ -92,48 +99,45 @@
 (defn exp-gained [mob-level player-level]
   (* (exp-modifier mob-level player-level) (exp-per-mob mob-level)))
 
-(defn through-armor [ac attackers-level]
-  (math/expt 0.9502 (/ ac attackers-level)))
+(defn through-armor [armor attackers-level]
+  (math/expt 0.9502 (/ armor attackers-level)))
 
 (defn base-that-gives-reduction [reduction at-armor]
   (math/expt (- 1 reduction) (/ at-armor)))
 
-(defn random-damage [damage]
-  (let [modify-damage #(* (% 1 consts/damage-random-portion) damage)]
-    (math/round (rand-uniform (modify-damage -) (modify-damage +)))))
+(defn randomize-damage [damage]
+  (let [adjust #(% 1 consts/damage-random-portion)]
+    (math/round (* damage (rand-uniform (adjust -) (adjust +))))))
 
-(defn actual-damage [char target damage]
-  (* (through-armor (or (:armor target) 0) (:level char))
-     (random-damage damage)))
+(defn actual-damage [attacker target damage]
+  (* (through-armor (or (:armor target) 0) (:level attacker))
+     (randomize-damage damage)))
 
-(defn weapon-dps [level]
-  (* 5 level))
-
-(defn attack-power [stats]
+(defn power [stats class]
   (+ (* 10 (:damage stats))
-     (:str stats)))
+     ((power-stat class) stats)))
 
-(defn hit-chance [level target-level]
-  (let [diff (- level target-level)]
-    (min 1 (max 0.2 (+ 0.75 (* 0.05 diff))))))
+(defn hit-chance [attacker-level target-level]
+  (let [diff (- attacker-level target-level)]
+    (min 1 (max 0.3 (+ 0.75 (* 0.025 diff))))))
 
 (defn hit? [attacker target]
   (< (rand-uniform 1) (hit-chance (:level attacker) (:level target))))
 
 (defn hitpoints [vit level]
-  (+ 25 (* 0.1 vit (+ level 10))))
+  (* vit (+ 5 level)))
 
-(defn mana [wis level]
-  (+ (* level 10) (* wis 5)))
+(defn mana [wis]
+  wis)
+
+(defn energy [sta]
+  sta)
 
 (defn hp-regen [level]
-  (/ level 3.0))
+  (inc (/ level 5.0)))
 
-(defn base-mana-regen [level]
-  level)
-
-(defn bonus-mana-regen [spi level]
-  (/ spi stats-per-level))
+(defn regen [spi]
+  (/ spi 100.0))
 
 (def chance-denom
   "How many times more unlikely it is per 1 quality to get a drop."
