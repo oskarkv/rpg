@@ -60,6 +60,17 @@
                       (group-by identity parts)))
               items))))
 
+(defn randomly-adjust-stats
+  "Takes 25% of every stat and places it in a pool, then randomly redistributes
+   the pool among the stats."
+  [stats]
+  (let [to-take 0.25
+        taken (* to-take (apply + (vals stats)))
+        n (count stats)]
+    (->>$ (repeatedly (dec n) rand)
+      (cons 0) (sort >) (map - (cons 1 $) $) (map #(* taken %))
+      (fmap + (fmap #(* (- 1 to-take) %) stats)))))
+
 (defn real-item-stats
   "Creates a map of stats for an item by taking into consideration all the
    relevant information from item-map. The given quality is used, and not the
@@ -93,13 +104,6 @@
                             #(+ % (* (- temp-max %)
                                      (/ (- target mean) (- temp-max mean))))))]
        (map (comp #(+ min-v %) (adjusting-fn vars-mean temp-mean)) vars)))))
-
-;; Can cause the quality of an item to change, if the numbers in stats are not
-;; all the same.
-(defn randomly-adjust-stats [stats]
-  (let [srp consts/stats-random-part]
-    (fmap * stats (random-numbers-with-mean
-                   1 (count stats) (- 1 srp) (inc srp)))))
 
 (defn create-actual-item
   "Make an item by taking an item-map, which is almost an item, and calculates
