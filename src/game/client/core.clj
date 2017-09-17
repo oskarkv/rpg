@@ -3,10 +3,9 @@
    [clojure.set :as set]
    [game.client.graphics :as gfx]
    [game.client.hud :as hud]
-   [game.client.input :as ci]
+   [game.client.input :as input]
    [game.common.core :as cc]
    [game.common.core-functions :as ccfns]
-   [game.common.input :as cmi]
    [game.common.spells :as csp]
    [game.constants :as consts]
    [game.game-map :as gmap]
@@ -432,8 +431,8 @@
             (reset! hud-system
                     (hud/init-hud-system app))
             (reset! input-system
-                    (cmi/init-input-system
-                     input-manager (ci/load-key-bindings)))
+                    (input/init-input-system
+                     input-manager (input/load-key-bindings)))
             (dorun (map cc/start (remove #{@networking-system}
                                          (get-subsystems))))
             (gfx/set-up-camera @graphics-system @game-state-atom)))
@@ -443,7 +442,7 @@
           (let [hook (make-process-and-send-fn @networking-system)
                 new-game-state
                 (ccfns/call-update-fns @game-state-atom hook
-                  (get-subsystem-events (get-subsystems))
+                    (get-subsystem-events (get-subsystems))
                   (ccfns/calculate-move-time-delta)
                   (update-looking-direction)
                   (calculate-movement-direction)
