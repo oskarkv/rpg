@@ -4,7 +4,7 @@
    [game.inventory :as inv]
    [game.items :as items]
    [game.constants :as consts]
-   [game.mobs :as mobs]
+   [game.mob-types :as mt]
    [game.server.base :as b]
    [game.utils :refer :all]))
 
@@ -20,7 +20,7 @@
 
 (defn spawn-mob [spawn-id spawns]
   (let [mob (-> spawn-id spawns :mobs roll-for-mob :mob)
-        mob-type (-> mob :type mobs/mobs)
+        mob-type (-> mob :type mt/mobs)
         [min max] (:levels mob)
         level (+ min (rand-int (- (inc max) min)))
         drops (roll-for-drops (:drops mob))

@@ -1,4 +1,4 @@
-(ns game.mobs)
+(ns game.mob-types)
 
 (def mobs-table
   ;; The first row are the defaults
