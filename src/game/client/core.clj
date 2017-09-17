@@ -113,12 +113,13 @@
   (println "DING!"))
 
 (defn calculate-base-movement-direction [key-state]
-  (letfn [(adder [dx dy] (fn [[x y]] [(+ dx x) (+ dy y)]))]
+  (let [adder (fn [dx dy] (fn [[x y]] [(+ dx x) (+ dy y)]))
+        {:keys [forward back left right]} key-state]
     (cond-> [0 0]
-      (:forward key-state) ((adder 0 1))
-      (:back key-state) ((adder 0 -1))
-      (:left key-state) ((adder -1 0))
-      (:right key-state) ((adder 1 0))
+      forward ((adder 0 1))
+      back ((adder 0 -1))
+      left ((adder -1 0))
+      right ((adder 1 0))
       true (math/normalize))))
 
 (defmethod process-event :new-key-state [game-state {:keys [key-state]}]
