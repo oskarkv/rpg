@@ -20,60 +20,11 @@
     (assoc (zipmap (type cc/type->keys) (rest msg))
            :type type)))
 
-(defn complete-return-map [game-state result]
-  (let [{:keys [new-game-state events event msgs msg]} result
-        msgs (conj-some msgs msg)
-        events (conj-some events event)
-        new-game-state (or new-game-state game-state)]
-    (make-map new-game-state events msgs)))
-
-(defn process-events [process-fn game-state input-events]
-  (let [events-q (reduce conj clojure.lang.PersistentQueue/EMPTY input-events)]
-    (loop [game-state game-state events-q events-q new-events [] new-msgs []]
-      (if-let [e (first events-q)]
-        (let [{:keys [new-game-state events msgs]}
-              (complete-return-map
-               game-state (process-fn game-state e))]
-          (recur new-game-state (reduce conj (pop events-q) events)
-                 (reduce conj new-events events)
-                 (reduce conj new-msgs msgs)))
-        (make-map game-state new-events new-msgs)))))
-
-(defmacro call-update-fns [game-state events hook-fn & calls]
-  (with-gensyms [new-game-state new-events all-events]
-    (if (seq calls)
-      `(let [{~new-game-state :new-game-state ~new-events :events}
-             (complete-return-map ~game-state (-> ~game-state ~(first calls)))
-             ~all-events (concat ~events ~new-events)
-             ~@(when hook-fn
-                 `[{~new-game-state :new-game-state ~new-events :events}
-                   (complete-return-map ~new-game-state
-                                        (~hook-fn ~new-game-state ~new-events))
-                   ~all-events (concat ~all-events ~new-events)])]
-         (call-update-fns ~new-game-state ~all-events ~hook-fn ~@(rest calls)))
-      (make-map game-state events))))
-
-(defmacro call-update-fns* [game-state hook-fn & calls]
+(defmacro call-update-fns [game-state hook-fn & calls]
   (let [calls (map (fn [c] `((fn [gs#] (or (-> gs# ~c) gs#)))) calls)
         calls (interleave calls (repeat (list hook-fn)))]
     `(-> ~game-state
        ~@calls)))
-
-(defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
-  (let [app
-        (init-app-settings-fn
-         (proxy [SimpleApplication] []
-           (simpleInitApp []
-             (init-fn this))
-           (simpleUpdate [tpf]
-             (update-fn))))]
-    (extend-type (type app)
-      cc/Lifecycle
-      (start [this]
-        (start-fn this))
-      (stop [this]
-        (stop-fn this)))
-    app))
 
 (defn calculate-move-time-delta [{:keys [last-move] :as game-state}]
   (let [curr-time (current-time-ms)

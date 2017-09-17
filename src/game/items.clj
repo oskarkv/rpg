@@ -31,77 +31,10 @@
                    (dissoc item :quantity)))
          stacks)))
 
-(defn what-kind [thing]
-  (condf thing
-    hier/classes :classes
-    hier/gear-slots :slots))
-
-(defn make-stats-map [m]
-  (let [{:keys [damage delay]} m
-        stats (dissoc m :damage :delay)]
-    (cond-> {:stats stats}
-      damage (assoc :damage damage)
-      delay (assoc :delay delay)
-      (zero? (count stats)) (dissoc :stats))))
-
 (defn all-info
   "Merges the full info of an item into a light version of it."
   [light-item]
   (merge (items (:id light-item)) light-item))
-
-(defn concrete-slots [abstract-slots]
-  (when abstract-slots
-    (set (mapcat (fn [slot]
-                   (if (hier/left-right-slots slot)
-                     (hier/left-right slot)
-                     [slot]))
-                 abstract-slots))))
-
-(defn item
-  "Makes an item from a short description."
-  [name icon & info]
-  (-> (apply merge-with set/union
-             {:name name :icon icon}
-             (for [e info]
-               (condf e
-                 map? (if (some #{:stackable :price} (keys e))
-                        e
-                        (make-stats-map e))
-                 vector? {(what-kind (first e)) (set e)}
-                 number? {:weight e}
-                 hier/types {:type e}
-                 keyword? {e true})))
-    (update :slots concrete-slots)
-    remove-map-nils))
-
-(defn check-item [item]
-  (let [{:keys [name slots type weight race class two-hand stackable]
-         item-stats :stats}
-        item]
-    (every? identity
-            [(string? name)
-             (every? hier/classes class)
-             (contains? (conj hier/types nil) type)
-             (every? hier/gear-slots slots)
-             (number? weight)
-             (every? stats/all-stats (keys item-stats))
-             (contains? #{true nil false} two-hand)
-             (or (not stackable) (number? stackable))])))
-
-(defn report-item [item]
-  (if (check-item item)
-    true
-    (do (throw-error item " is not legal") false)))
-
-(defn check-items [items]
-  (when (and (every? report-item items)
-             (reduce (fn [name-set name]
-                       (if (name-set name)
-                         (do (throw-error "Item " name " already exists")
-                             (reduced false))
-                         (conj name-set name)))
-                     #{} (map :name items)))
-    items))
 
 (defn correct-slot? [item path]
   (if (nil? item)
@@ -126,9 +59,4 @@
       (into (keep list-fn [:classes :slots :races]))
       (str/join "\n" $))))
 
-(def items
-  (check-items
-   [(item "Leather Vest" "leather_armor.png" 5 [:chest] :leather {:armor 20})
-    (item "Snake Skin" "snakeskin.png" 0.1 {:stackable 20})
-    (item "Rusty Sword" "longsword.png" 5 {:damage 3 :delay 20}
-          [:main-hand :off-hand] [:paladin :warrior])]))
+(def items [])

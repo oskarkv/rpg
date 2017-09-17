@@ -9,7 +9,8 @@
 (def type->keys
   ;; c-msgs can't have an :id key, because the
   ;; server adds one when it receives the msg
-  {:connect nil :disconnect nil
+  {:connect nil
+   :disconnect nil
    :c-login [:username :password]
    :c-move [:pos :move-dir]
    :c-target [:target]

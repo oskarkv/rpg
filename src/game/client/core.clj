@@ -7,15 +7,15 @@
    [game.common.core-functions :as ccfns]
    [game.common.graphics :as gfx]
    [game.common.input :as cmi]
-   [game.items :as items]
    [game.common.spells :as csp]
    [game.constants :as consts]
    [game.game-map :as gmap]
+   [game.items :as items]
    [game.math :as math]
    [game.networking.core :as net]
    [game.utils :refer :all])
   (:import
-   (com.jme3.app FlyCamAppState)
+   (com.jme3.app FlyCamAppState SimpleApplication)
    (com.jme3.app.state AbstractAppState)
    (com.jme3.system AppSettings)))
 
@@ -388,6 +388,22 @@
     (cc/stop app)
     this))
 
+(defn create-jme3-app [start-fn stop-fn init-fn update-fn init-app-settings-fn]
+  (let [app
+        (init-app-settings-fn
+         (proxy [SimpleApplication] []
+           (simpleInitApp []
+             (init-fn this))
+           (simpleUpdate [tpf]
+             (update-fn))))]
+    (extend-type (type app)
+      cc/Lifecycle
+      (start [this]
+        (start-fn this))
+      (stop [this]
+        (stop-fn this)))
+    app))
+
 (defn create-client-jme3-app [networking-system game-state-atom]
   (let [stop? (atom false)
         graphics-system (atom nil)
@@ -425,7 +441,7 @@
           (Thread/sleep 1)
           (let [hook (make-process-and-send-fn @networking-system)
                 new-game-state
-                (ccfns/call-update-fns* @game-state-atom hook
+                (ccfns/call-update-fns @game-state-atom hook
                   (get-subsystem-events (get-subsystems))
                   (ccfns/calculate-move-time-delta)
                   (update-looking-direction)
@@ -453,32 +469,13 @@
           (reset! stop? true)
           (runmap cc/stop (get-subsystems))
           (.stop this))]
-    [stop? (ccfns/create-jme3-app start-fn stop-fn
-                                  simple-init-fn simple-update-fn
-                                  init-app-settings-fn)]))
-
-(defn create-non-jme3-app [networking-system game-state-atom]
-  (let [stop? (atom false)]
-    (reify cc/Lifecycle
-      (start [this]
-        (error-printing-future
-          (reset! game-state-atom
-                  (login-and-recv-state
-                   @game-state-atom networking-system "leif" "star"
-                   stop?))
-          ((fn []
-             (reset! game-state-atom
-                     (ccfns/process-events process-event @game-state-atom
-                                           networking-system))
-             (if @stop? nil (recur))))))
-      (stop [this]
-        (reset! stop? true)))))
+    [stop? (create-jme3-app start-fn stop-fn
+                            simple-init-fn simple-update-fn
+                            init-app-settings-fn)]))
 
 (defn init-client [address port headless]
   (let [game-state-atom (atom (initial-game-state))
         networking-system (atom (net/init-client-net-sys address port))
         [stop? app]
-        (if headless
-          (create-non-jme3-app networking-system game-state-atom)
-          (create-client-jme3-app networking-system game-state-atom))]
+        (create-client-jme3-app networking-system game-state-atom)]
     [stop? (->Client app)]))

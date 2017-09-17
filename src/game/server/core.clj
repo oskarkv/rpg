@@ -73,7 +73,7 @@
 
 (defn main-update [game-state net-sys]
   (let [hook (make-process-and-send-fn net-sys)]
-    (ccfns/call-update-fns* game-state hook
+    (ccfns/call-update-fns game-state hook
       (get-network-events net-sys)
       (ccfns/calculate-move-time-delta)
       (mv/move-players)
