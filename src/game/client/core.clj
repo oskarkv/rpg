@@ -1,11 +1,11 @@
 (ns game.client.core
   (:require
    [clojure.set :as set]
+   [game.client.graphics :as gfx]
    [game.client.hud :as hud]
    [game.client.input :as ci]
    [game.common.core :as cc]
    [game.common.core-functions :as ccfns]
-   [game.common.graphics :as gfx]
    [game.common.input :as cmi]
    [game.common.spells :as csp]
    [game.constants :as consts]

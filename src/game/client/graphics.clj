@@ -1,4 +1,4 @@
-(ns game.common.graphics
+(ns game.client.graphics
   (:require
    [game.common.core :as cc]
    [game.common.jme-utils :as ju]

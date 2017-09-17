@@ -2,9 +2,9 @@
   (:require
    [clojure.pprint :as pp]
    [game.client.core :as cl]
+   [game.client.graphics :as gfx]
    [game.client.hud :as hud]
    [game.common.core-functions :as ccfns]
-   [game.common.graphics :as gfx]
    [game.math :as math]
    [game.server.ai :as ai]
    [game.server.core :as sv]
