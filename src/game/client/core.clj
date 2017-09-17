@@ -10,6 +10,7 @@
    [game.common.spells :as csp]
    [game.constants :as consts]
    [game.game-map :as gmap]
+   [game.inventory :as inv]
    [game.items :as items]
    [game.math :as math]
    [game.networking.core :as net]
@@ -75,7 +76,7 @@
     (update :looting conj corpse-id)))
 
 (defmethod process-event :s-loot-item-ok [game-state {:keys [from-path]}]
-  (ccfns/loot-item game-state from-path [:inv]))
+  (inv/loot-item game-state from-path [:inv]))
 
 (defmethod process-event :s-item-looted [game-state {:keys [from-path by left]}]
   (if left
@@ -160,7 +161,7 @@
   (let [{:keys [on-mouse on-mouse-quantity]} game-state]
     (enqueue-events {:type :c-destroy-item :path on-mouse
                      :quantity on-mouse-quantity})
-    (-> (ccfns/destroy-item game-state on-mouse on-mouse-quantity)
+    (-> (inv/destroy-item game-state on-mouse on-mouse-quantity)
       (dissoc :on-mouse :on-mouse-quantity))))
 
 (defmethod process-event :destroy-item [game-state {:keys [destroy]}]
@@ -281,13 +282,13 @@
 (defmethod process-event :inv-swap [game-state {paths :paths :as event}]
   (when (every? my-stuff? paths)
     (enqueue-events {:type :c-rearrange-inv :paths paths})
-    (ccfns/inv-swap game-state paths enqueue-events nil)))
+    (inv/inv-swap game-state paths enqueue-events nil)))
 
 (defmethod process-event :move-quantity
   [game-state {:keys [from-path to-path quantity] :as event}]
   (when (every? my-stuff? [from-path to-path])
     (enqueue-events (assoc event :type :c-move-quantity))
-    (ccfns/move-quantity game-state from-path to-path quantity)))
+    (inv/move-quantity game-state from-path to-path quantity)))
 
 (defn legal-pos? [{:keys [terrain] :as game-state} pos]
   (let [r consts/player-radius

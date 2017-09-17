@@ -1,6 +1,7 @@
 (ns game.server.mobs-and-looting
   (:require
    [game.common.core-functions :as ccfns]
+   [game.inventory :as inv]
    [game.items :as items]
    [game.constants :as consts]
    [game.mobs :as mobs]
@@ -76,7 +77,7 @@
     set))
 
 (defn loot-item [game-state id from-path]
-  (let [ngs (ccfns/loot-item game-state from-path [:chars id :inv])
+  (let [ngs (inv/loot-item game-state from-path [:chars id :inv])
         looting (get-in ngs [:corpses (from-path 1) :looting])]
     (b/enqueue-msgs [[id] {:type :s-loot-item-ok :from-path from-path}]
                     [(disj looting id)
