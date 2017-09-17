@@ -1,7 +1,7 @@
 (ns game.client.graphics
   (:require
+   [game.client.jme-utils :as ju]
    [game.common.core :as cc]
-   [game.common.jme-utils :as ju]
    [game.constants :as consts]
    [game.game-map :as gmap]
    [game.math :as math]

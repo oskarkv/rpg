@@ -5,9 +5,9 @@
 (ns game.client.hud
   (:require
    [clojure.set :as set]
+   [game.client.jme-utils :as ju]
    [game.common.core :as cc]
    [game.common.core-functions :as ccfns]
-   [game.common.jme-utils :as ju]
    [game.common.spells :as csp]
    [game.constants :as const]
    [game.hierarchies :as hier]

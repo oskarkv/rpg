@@ -1,4 +1,4 @@
-(ns game.common.jme-utils
+(ns game.client.jme-utils
   (:refer-clojure :exclude [vec])
   (:require
    [game.common.core-functions :as ccfns]
