@@ -31,12 +31,6 @@
         time-delta (/ (- curr-time last-move) 1000.0)]
     (assoc game-state :last-move curr-time :move-time-delta time-delta)))
 
-(defn player? [char]
-  (= :player (:type char)))
-
-(defn mob? [char]
-  (= :mob (:type char)))
-
 (defn sum-stats [gear]
   (merge stats/zero-stats
          (apply merge-with + (map :stats (vals gear)))))

@@ -62,6 +62,12 @@
     (assoc :decay-time (+ (current-time-ms) const/corpse-decay-time))
     (update :name #(str % "'s corpse"))))
 
+(defn player? [char]
+  (= :player (:type char)))
+
+(defn mob? [char]
+  (= :mob (:type char)))
+
 (defn death-msgs [game-state {:keys [id corpse-id]}]
   (let [all-players (:player-ids game-state)
         char (get-in game-state [:chars id])
@@ -70,7 +76,7 @@
         msgs-vec [[all-players {:type :s-char-death :id id}]
                   [all-players {:type :s-spawn-corpse
                                 :id corpse-id :corpse corpse}]]]
-    (if (ccfns/player? char)
+    (if (player? char)
       (conj msgs-vec
             [all-players {:type :s-spawn-player :id id
                           :player (b/prepare-char-for-sending char)}])
@@ -78,12 +84,12 @@
 
 (defn leveled-up? [old-gs new-gs {:keys [tagged-by] :as killed-char}]
   (let [get-level (fn [gs] (get-in gs [:chars tagged-by :level]))]
-    (and (ccfns/mob? killed-char) (> (get-level new-gs) (get-level old-gs)))))
+    (and (mob? killed-char) (> (get-level new-gs) (get-level old-gs)))))
 
 (defmethod b/process-event :death [game-state {:keys [id corpse-id] :as event}]
   (let [char (get-in game-state [:chars id])
         corpse (make-corpse char)
-        ngs (-> (if (ccfns/mob? char)
+        ngs (-> (if (mob? char)
                   (mob-death game-state event)
                   (player-death game-state event))
               (update :corpses assoc corpse-id corpse))]
@@ -104,7 +110,7 @@
 
 (defn process-hit [game-state event]
   (let [{:keys [id target damage]} event
-        register-damage* #(if (ccfns/mob? %)
+        register-damage* #(if (mob? %)
                             (register-damage % id damage)
                             %)]
     (-> game-state
