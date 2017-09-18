@@ -1,6 +1,7 @@
 (ns game.item-names
   (:require
    [clojure.math.combinatorics :as comb]
+   [clojure.set :as set]
    [clojure.string :as str]
    [game.hierarchies :as h]
    [game.utils :refer :all]))
@@ -10,11 +11,11 @@
   ;; Melee
   {:any nil
    #_(mapv
-    #(str % "")
-    ["Secret, s" "Madness" "Symbol, s" "Focus" "Insanity" "Might" "Power"
-     "Touch" "Sacrifice" "Promise, s" "Burden" "Will" "Tear, s" "Honor"
-     "Fear, s" "Darkness" "Anger" "Courage" "Scream, s" "Torture"
-     "Revelation, s" "Malice" "Malevolance" "Justice" "Embrace" "Legacy"])
+      #(str % "")
+      ["Secret, s" "Madness" "Symbol, s" "Focus" "Insanity" "Might" "Power"
+       "Touch" "Sacrifice" "Promise, s" "Burden" "Will" "Tear, s" "Honor"
+       "Fear, s" "Darkness" "Anger" "Courage" "Scream, s" "Torture"
+       "Revelation, s" "Malice" "Malevolance" "Justice" "Embrace" "Legacy"])
    :weapon ["Persuader" "Destroyer" "Mutilator" "Doombringer" "Slayer"
             "Ravager"]
    :mace ["Mace" "Maul" "Smasher" "Pummeler" "Bonecracker" "Skullcracker"
@@ -567,6 +568,50 @@
    ;; Shield
    :shield nil})
 
+(defs ;;; Types that has to do with names
+  sharp-weapons #{:sword :dagger :spear :axe :polearm}
+  blunt-weapons #{:club :mace :staff}
+  metal-weapons (set/union sharp-weapons #{:mace})
+  weapon-types (set/union h/melee-weapons h/ranged-weapons)
+  weapons #{:ranged :melee}
+  types (set/union h/melee-weapons h/ranged-weapons h/armor-types
+                   #{:caster-offhand}))
+
+(def type-tags
+  {;;; Blunt weapons
+   :mace #{:metal :blunt :heavy}
+   :staff #{:wood :blunt}
+   :club #{:wood :blunt}
+   ;;; Sharp weapons
+   :sword #{:metal :sharp :blade}
+   :axe #{:metal :sharp :blade}
+   :dagger #{:metal :sharp :blade}
+   :spear #{:metal :sharp}
+   ;;; Ranged weapons
+   :crossbor #{:ranged}
+   :bow #{:ranged}
+   :wand #{:magical}
+   :mail #{:metal}
+   :plate #{:metal}})
+
+(def classes
+  {;;; Tanks
+   :warrior #{:tank :plate :melee}
+   :paladin #{:tank :healer :plate :melee}
+   :shadow-knight #{:tank :plate :melee}
+   ;;; Casters
+   :wizard #{:caster :cloth}
+   :necromancer #{:caster :cloth}
+   :enchanter #{:caster :cloth}
+   ;;; Healers
+   :druid #{:caster :healer :leather}
+   :shaman #{:caster :healer :mail}
+   :cleric #{:caster :healer :mail}
+   ;;; Melee
+   :rogue #{:leather :melee :agile}
+   ;;; Ranged
+   :ranger #{:leather :ranged :agile}})
+
 (defn prepend-of [thing]
   (str "of " thing))
 
@@ -581,19 +626,19 @@
 
 (def grammar
   (let [kind-part (mapv #(list `maybe %) [:material-2 :material :kind])]
-  `{:base
-    ([(maybe [:owner "'s"])
-      (maybe :adjective)
-      (~kind-part (maybe :type))
-      :name
-      (maybe :non-owner-suffix)]
-     [(maybe :adjective)
-      (~kind-part (maybe :type))
-      :name
-      (maybe :suffix)])
-    :suffix (:owner-suffix :non-owner-suffix)
-    :owner-suffix ["of the" :owner]
-    :non-owner-suffix ["of" :noun]}))
+    `{:base
+      ([(maybe [:owner "'s"])
+        (maybe :adjective)
+        (~kind-part (maybe :type))
+        :name
+        (maybe :non-owner-suffix)]
+       [(maybe :adjective)
+        (~kind-part (maybe :type))
+        :name
+        (maybe :suffix)])
+      :suffix (:owner-suffix :non-owner-suffix)
+      :owner-suffix ["of the" :owner]
+      :non-owner-suffix ["of" :noun]}))
 
 (defn safe-rand-nth [s]
   (if (empty? s) nil (rand-nth s)))
@@ -620,7 +665,7 @@
 
 (defn make-name [type slot class level rarity]
   (let [object-names (get-object-names slot type)
-        tags (conj (h/type-tags type) type :any)
+        tags (conj (type-tags type) type :any)
         parts-map (assoc (apply merge-with into (map affixes tags))
                          :name object-names
                          :noun abstract-suffixes)]
