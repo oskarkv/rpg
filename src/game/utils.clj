@@ -122,7 +122,8 @@
 
 (defn fmap
   "Apply f to the vals in m and return a map. If colls are provided, apply f to
-   the vals in m and the items from colls, as with clojure.core/map."
+   the vals in m and the items from colls, as with clojure.core/map, but keep in
+   mind that the order of the keys is unreliable."
   ([f m] (into {} (map (fn [[k v]] [k (f v)])) m))
   ([f m & colls] (zipmap (keys m) (apply map f (vals m) colls))))
 
