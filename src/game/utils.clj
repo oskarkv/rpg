@@ -326,22 +326,53 @@
 
 (letfn [(contains-$? [form]
           (some #{'$} (tree-seq coll? seq form)))
-        (insert-$-if-missing [arrow forms]
-          (map (fn [form]
-                 (cond (symbol? form) (list form '$)
-                       (contains-$? form) form
-                       :else (list arrow '$ form)))
-               forms))]
+        (insert-$-in-one [arrow form]
+          (cond (symbol? form) (list form '$)
+                (contains-$? form) form
+                :else (list arrow '$ form)))
+        (insert-$-in-many [arrow forms]
+          (map #(insert-$-in-one arrow %) forms))
+        (simple-body [x arrow forms]
+          `(as-> ~x ~'$
+                 ~@(insert-$-in-many arrow forms)))
+        (cond-body [x arrow pairs]
+          `(cond-> ~x
+             ~@(apply concat
+                      (map (fn [[tst form]]
+                             [tst `(as-> ~'$ ~(insert-$-in-one arrow form))])
+                           (partition 2 pairs)))))
+        (some-body [x arrow forms]
+          `(some-> ~x
+             ~@(map (fn [form] `(as-> ~'$ ~(insert-$-in-one arrow form)))
+                    forms)))]
   (defmacro ->$
     "Acts like (as-> x $ form) if a form contains $, otherwise acts like ->."
     [x & forms]
-    `(as-> ~x ~'$
-           ~@(insert-$-if-missing '-> forms)))
+    (simple-body x '-> forms))
   (defmacro ->>$
     "Acts like (as-> x $ form) if a form contains $, otherwise acts like ->>."
     [x & forms]
-    `(as-> ~x ~'$
-           ~@(insert-$-if-missing '->> forms))))
+    (simple-body x '->> forms))
+  (defmacro cond->$
+    "Acts like (cond-> test (as-> $ form) ...) if a form contains $, otherwise
+     acts like cond->."
+    [x & pairs]
+    (cond-body x '-> pairs))
+  (defmacro cond->>$
+    "Acts like (cond-> test (as-> $ form) ...) if a form contains $, otherwise
+     acts like cond->>."
+    [x & pairs]
+    (cond-body x '->> pairs))
+  (defmacro some->$
+    "Acts like (some-> x (as-> $ form) ...) if a form contains $, otherwise
+     acts like some->."
+    [x & forms]
+    (some-body x '-> forms))
+  (defmacro some->>$
+    "Acts like (some-> x (as-> $ form) ...) if a form contains $, otherwise
+     acts like some->>."
+    [x & forms]
+    (some-body x '->> forms)))
 
 (defn zip
   ([a b] (map vector a b))
