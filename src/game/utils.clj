@@ -67,6 +67,19 @@
                            [sym `(gensym ~(str sym))]))]
      ~@body))
 
+(let [const #(with-meta % {:const true})]
+  (defmacro defconst
+    ([sym value]
+     (list `def (const sym) value))
+    ([sym docstring value]
+     (list `def (const sym) docstring value))))
+
+(defmacro defconsts [& pairs]
+  (assert-args (even? (count pairs)) "an even number of arguments")
+  (let [pairs (partition 2 pairs)]
+    `(do ~@(map (fn [[sym val]] `(defconst ~sym ~val))
+                pairs))))
+
 (defn current-thread-id [msg]
   (.getId (Thread/currentThread)))
 

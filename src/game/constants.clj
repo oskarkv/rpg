@@ -4,13 +4,7 @@
   (:import
    (com.jme3.input MouseInput)))
 
-(defmacro defconstants [& pairs]
-  (assert-args (even? (count pairs)) "an even number of arguments")
-  (when (seq pairs)
-    `(do (def ~(with-meta (first pairs) {:const true}) ~(second pairs))
-         (defconstants ~@(drop 2 pairs)))))
-
-(defconstants
+(defconsts
   ;;; GAME
   attack-distance 1
   loot-distance 1
