@@ -7,10 +7,9 @@
    [game.utils :refer :all]))
 
 (defmethod b/process-event :c-move [game-state {:keys [id pos move-dir]}]
-  (-> game-state
-    (update-in [:chars id] merge
-               {:recv-pos pos :move-dir (math/normalize move-dir)
-                :recv-time (current-time-ms)})))
+  (update-in game-state [:chars id] merge
+             {:recv-pos pos :move-dir (math/normalize move-dir)
+              :recv-time (current-time-ms)}))
 
 (defmethod b/process-event :chars-moved [game-state {ids :moved-ids}]
   (b/enqueue-msgs
