@@ -20,13 +20,13 @@
    round
    lcm))
 
+(defconst pi Math/PI)
+
+(defconst tau (* 2 pi))
+
+(defconst e Math/E)
+
 (def lg #(Math/log %))
-
-(def pi Math/PI)
-
-(def tau (* 2 pi))
-
-(def e Math/E)
 
 (def sin #(Math/sin %))
 
