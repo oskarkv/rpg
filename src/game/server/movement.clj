@@ -20,7 +20,11 @@
                     :when pos]
                 [id (map float pos)]))}]))
 
-(defn move-player* [char time-delta last-move]
+(defn move-player*
+  "Moves a player along his move-dir. If the player has a recv-pos, move him an
+   extra amount depending on the time the recv-pos was received (because it
+   could have been almost a full frame earlier)."
+  [char time-delta last-move]
   (let [{:keys [pos move-dir recv-pos recv-time speed]} char]
     (if recv-pos
       (recur (-> char (dissoc :recv-pos) (assoc :pos recv-pos))
