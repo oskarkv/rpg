@@ -177,12 +177,11 @@
    n/take-denom tiles of each room to each other."
   ([set1 set2] (closest-pair set1 set2 3))
   ([set1 set2 take-denom]
-   (let [take-some #(take (/ (count %) take-denom) (shuffle %))
-         [a b] (apply min-key
-                      #(% 2)
-                      (for [a (take-some set1) b (take-some set2)]
-                        [a b (math/squared-distance a b)]))]
-     [a b])))
+   (let [take-some #(take (/ (count %) take-denom) (shuffle %))]
+     (apply min-key
+            #(apply math/squared-distance %)
+            (for [a (take-some set1) b (take-some set2)]
+              [a b])))))
 
 (defn rectangle-between-points
   "Returns a rectangle (defined by 4 points) around p1 and p2, as if by first
