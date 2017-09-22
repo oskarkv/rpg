@@ -39,11 +39,10 @@
 (defmethod process-event :s-game-state [game-state {new-game-state :game-state}]
   (merge game-state (process-received-game-state new-game-state)))
 
-(defmethod process-event :s-move [game-state {:keys [positions]}]
-  (let [positions (dissoc positions (:own-id game-state))]
-    (reduce (fn [gs [id pos]] (assoc-in gs [:chars id :new-pos] pos))
-            game-state
-            positions)))
+(defmethod process-event :s-move-chars [game-state {:keys [positions]}]
+  (reduce (fn [gs [id pos]] (assoc-in gs [:chars id :new-pos] pos))
+          game-state
+          (dissoc positions (:own-id game-state))))
 
 (defmethod process-event :s-char-death [game-state {:keys [id]}]
   (if (= (:own-id game-state) id)

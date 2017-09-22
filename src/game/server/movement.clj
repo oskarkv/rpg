@@ -14,7 +14,7 @@
 (defmethod b/process-event :chars-moved [game-state {ids :moved-ids}]
   (b/enqueue-msgs
    [(:player-ids game-state)
-    {:type :s-move :positions
+    {:type :s-move-chars :positions
      (into {} (for [id ids
                     :let [pos (get-in game-state [:chars id :pos])]
                     :when pos]

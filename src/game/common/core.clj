@@ -26,7 +26,7 @@
    :s-spell-response [:response :number]
    :s-spell-cast [:by :spell :mana-cost :target]
    :s-game-state [:game-state]
-   :s-move [:positions]
+   :s-move-chars [:positions]
    :s-own-id [:id]
    :s-spawn-mobs [:mobs]
    :s-char-death [:id]
