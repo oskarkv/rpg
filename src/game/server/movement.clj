@@ -32,7 +32,10 @@
              last-move)
       (assoc char :pos (math/extrapolate-pos pos move-dir time-delta speed)))))
 
-(defn move-mob* [{:keys [pos speed path target] :as mob} time-delta chars]
+(defn move-mob*
+  "Move a mob along its path toward its target. If the mob comes within attack
+   distance, it stops."
+  [{:keys [pos speed path target] :as mob} time-delta chars]
   (let [target-pos (get-in chars [target :pos])]
     (if (and path (> (math/distance pos target-pos) consts/attack-distance))
       (let [[next-point & path-left] path
@@ -43,7 +46,9 @@
           (ccfns/move-toward-pos mob time-delta next-point)))
       mob)))
 
-(defn moved-wrapper [move-fn]
+(defn moved-wrapper
+  "Returns a fn that calls move-fn and sets the value of :moved-this-frame."
+  [move-fn]
   (fn [char & args]
     (let [pos (:pos char)
           new-char (apply move-fn char args)
