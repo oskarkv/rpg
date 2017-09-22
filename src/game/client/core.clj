@@ -354,16 +354,14 @@
 (defn get-subsystem-events [_ systems]
   (apply enqueue-events (mapcat cc/get-events systems)))
 
-(defn process-events [game-state events]
-  (reduce (fn [gs e] (or (process-event gs e) gs))
-          game-state events))
+(def process-events (ccfns/make-process-events process-event))
 
 (defn make-process-and-send-fn [networking-system]
-  (ccfns/make-process-and-send-fn
+  (ccfns/make-process-event-queue
    (fn [game-state events]
      (cc/update networking-system events)
      (process-events game-state events))
-   nil event-queue))
+   event-queue))
 
 (defn login-and-recv-state [game-state net-sys name password stop?]
   (letfn [(move-out [gs k]

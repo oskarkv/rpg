@@ -64,12 +64,12 @@
   (apply b/enqueue-events (cc/get-events net-sys)))
 
 (defn make-process-and-send-fn [networking-system]
-  (ccfns/make-process-and-send-fn
-   (fn [game-state events]
-     (reduce (fn [gs e] (or (b/process-event gs e) gs))
-             game-state events))
-   #(cc/update networking-system (ccfns/reset-queue b/msg-queue))
-   b/event-queue))
+  (let [f (ccfns/make-process-event-queue
+           (ccfns/make-process-events b/process-event) b/event-queue)]
+    (fn [game-state]
+      (let [ngs (f game-state)]
+        (cc/update networking-system (ccfns/reset-queue b/msg-queue))
+        ngs))))
 
 (defn main-update [game-state net-sys]
   (let [hook (make-process-and-send-fn net-sys)]

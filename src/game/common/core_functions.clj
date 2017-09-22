@@ -76,13 +76,23 @@
     (doseq [e es q queues]
       (some->> e (queue-conj q)))))
 
-(defn make-process-and-send-fn [process after event-queue]
+(defn make-process-events
+  "Given a function that process one event, returns a function can process many
+   events."
+  [process-event]
+  (fn [game-state events]
+    (reduce (fn [gs e] (or (process-event gs e) gs))
+            game-state events)))
+
+(defn make-process-event-queue
+  "Returns a function that accepts a game-state, and takes all events out of
+   event-queue and calls (process game-state events) on them. Repeats until the
+   event-queue has no events."
+  [process event-queue]
   (fn [game-state]
-    (let [get-events #(seq (reset-queue event-queue))
-          ngs (loop [events (get-events) game-state game-state]
-                (if (seq events)
-                  (recur (get-events)
-                         (process game-state events))
-                  game-state))]
-      (when after (after))
-      ngs)))
+    (let [get-events #(seq (reset-queue event-queue))]
+      (loop [events (get-events) game-state game-state]
+        (if (seq events)
+          (recur (get-events)
+                 (process game-state events))
+          game-state)))))
