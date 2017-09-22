@@ -19,9 +19,14 @@
    (com.jme3.app.state AbstractAppState)
    (com.jme3.system AppSettings)))
 
-(def event-queue (ref []))
+(def event-queue
+  "Emptied and processed after each step in the game loop."
+  (ref []))
 
-(def all-events-queue (ref []))
+(def all-events-queue
+  "Collects all events in an interation of the game loop. The events are used
+   for calling update on the subsystems."
+  (ref []))
 
 (def enqueue-events (ccfns/enqueue-fn event-queue all-events-queue))
 
