@@ -1,8 +1,8 @@
 (ns game.server.inventory
   (:require
    [game.common.core-functions :as ccfns]
+   [game.common.inventory :as inv]
    [game.constants :as consts]
-   [game.inventory :as inv]
    [game.server.base :as b]))
 
 (defmethod b/process-event :changed-gear [game-state {:keys [id]}]

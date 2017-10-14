@@ -1,9 +1,8 @@
 (ns game.server.mobs-and-looting
   (:require
    [game.common.core-functions :as ccfns]
-   [game.inventory :as inv]
-   [game.items :as items]
    [game.constants :as consts]
+   [game.items :as items]
    [game.mob-types :as mt]
    [game.server.base :as b]
    [game.utils :refer :all]))

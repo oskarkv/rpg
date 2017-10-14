@@ -1,4 +1,4 @@
-(ns game.inventory
+(ns game.common.inventory
   (:require
    [game.items :as items]
    [game.utils :refer :all]))
