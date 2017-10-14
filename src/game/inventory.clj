@@ -7,7 +7,10 @@
   (let [item (get-in game-state from)]
     (items/correct-slot? item to)))
 
-(defn inv-swap [game-state [from to :as paths] enqueue id]
+(defn inv-swap
+  "If possible, swap the item in from with to. If either of from or to were
+   in a gear map (and not just inv), enqueue a :changed-gear event."
+  [game-state [from to :as paths] enqueue id]
   (when (and (possible-slot? game-state from to)
              (possible-slot? game-state to from))
     (let [path-len (count (first paths))
