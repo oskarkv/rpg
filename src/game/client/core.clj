@@ -1,17 +1,16 @@
 (ns game.client.core
   (:require
    [clojure.set :as set]
+   [game.client.base :as b]
    [game.client.graphics :as gfx]
    [game.client.hud :as hud]
    [game.client.input :as input]
-   [game.client.base :as b]
+   [game.client.inventory :as inv]
    [game.common.core :as cc]
    [game.common.core-functions :as ccfns]
    [game.common.spells :as csp]
    [game.constants :as consts]
    [game.game-map :as gmap]
-   [game.client.inventory :as inv]
-   [game.items :as items]
    [game.math :as math]
    [game.networking.core :as net]
    [game.utils :refer :all])
@@ -27,8 +26,8 @@
   (let [curr-time (current-time-ms)]
     (assoc game-state :last-move curr-time)))
 
-(defmethod b/process-event :s-game-state [game-state {new-game-state :game-state}]
-  (merge game-state (process-received-game-state new-game-state)))
+(defmethod b/process-event :s-game-state [game-state {new-gs :game-state}]
+  (merge game-state (process-received-game-state new-gs)))
 
 (defmethod b/process-event :s-move-chars [game-state {:keys [positions]}]
   (reduce (fn [gs [id pos]] (assoc-in gs [:chars id :new-pos] pos))
@@ -151,7 +150,8 @@
                 :out-of-mana (do (println "Out of mana!") 0)
                 :ok (current-time-ms)))))
 
-(defmethod b/process-event :s-spell-cast [game-state {:keys [by spell mana-cost]}]
+(defmethod b/process-event :s-spell-cast
+  [game-state {:keys [by spell mana-cost]}]
   (update-in game-state [:chars by :mana] - mana-cost))
 
 (defn legal-pos? [{:keys [terrain] :as game-state} pos]
