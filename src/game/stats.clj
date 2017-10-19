@@ -50,6 +50,9 @@
 ;; armor will be lower. In that case, it would not feel like getting armor is a
 ;; choice. Keep in mind that it is not possible to get base armor on all pieces
 ;; of gear.
+;;   EDIT: My current thinking is that this should be set to an amount that is
+;; close to what people want, and then, when generating items, we can randomize
+;; the armor, say from 80% to 120% of this value.
 (def armor-ratio (/ 1.0 6))
 
 (def total-stats-per-level (* stats-per-level num-stats-maxed))

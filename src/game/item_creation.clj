@@ -17,9 +17,9 @@
   (fmap #(* scale %) m))
 
 (defn armor-factor-to-part
-  "Takes a stats distribution map and an armor factor, and adds an armor part to
-   the stats map based on the armor factor. The armor factor is how much of the
-   standard amount of armor the item should have."
+  "Takes a stats distribution map and an armor factor, and adds an armor part
+   to the stats map based on the armor factor. The armor factor is how much
+   of the standard amount of armor the item should have."
   [stats armor-factor]
   (let [armor-part (* stats/armor-ratio armor-factor)]
     (-> stats
@@ -45,8 +45,8 @@
 ;; Can be made to work with different-valued items by just picking more parts.
 ;; Not currently used.
 (defn spread-stats-randomly
-  "Spread the stats in stats-map out over num-items items so that the sum of the
-   stats for the items have the same distribution as stats-map."
+  "Spread the stats in stats-map out over num-items items so that the sum of
+   the stats for the items have the same distribution as stats-map."
   [stats-map num-items]
   (let [parts-per-item 10
         stats-sum (apply + (vals stats-map))
