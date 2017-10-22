@@ -71,6 +71,7 @@
    :druid #{:sword :staff :2h-staff :mace :dagger :charm :caster-shield}})
 
 (def slot->types
+  "A map from slots to sets of possible types in the slot."
   (fmap
    (comp set flatten-more)
    (merge-with
