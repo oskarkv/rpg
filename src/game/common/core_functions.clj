@@ -41,7 +41,7 @@
             :max-mana (* level 50)
             :mana-regen (* level 2)
             :armor armor
-            :damage (int (stats/power stats class))})))
+            :damage (long (stats/power stats class))})))
 
 (defn move-toward-pos [{:keys [pos speed] :as char} time-delta target-pos]
   (let [dir (math/norm-diff target-pos pos)

@@ -117,8 +117,7 @@
      (randomize-damage damage)))
 
 (defn power [stats class]
-  (+ (* 10 (:damage stats))
-     ((power-stat class) stats)))
+  ((power-stat class) stats))
 
 (defn hit-chance [attacker-level target-level]
   (let [diff (- attacker-level target-level)]
@@ -128,7 +127,7 @@
   (< (rand-uniform 1) (hit-chance (:level attacker) (:level target))))
 
 (defn hitpoints [vit level]
-  (* vit (+ 5 level)))
+  (+ 100 (* vit (+ 5 level))))
 
 (defn mana [wis]
   wis)

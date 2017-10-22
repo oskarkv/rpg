@@ -31,6 +31,7 @@
        :last-attack 0
        :level 1
        :exp 0
+       :class :warrior
        :inv (-> (vec (repeat 10 nil))
               (assoc-in [0] {:stats {:armor 20}, :id 0}))
        :gear (zipmap hier/gear-slots (repeat nil))

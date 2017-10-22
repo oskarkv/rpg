@@ -103,7 +103,7 @@
           (let [hook (make-process-and-send-fn @networking-system)
                 new-game-state
                 (ccfns/call-update-fns @game-state-atom hook
-                    (get-subsystem-events (get-subsystems))
+                  (get-subsystem-events (get-subsystems))
                   (ccfns/calculate-move-time-delta)
                   (gp/update-looking-direction)
                   (gp/calculate-movement-direction)
