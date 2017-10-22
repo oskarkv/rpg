@@ -1,7 +1,6 @@
 (ns game.item-generation
   (:require
    [clojure.set :as set]
-   [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [clojure.walk :as walk]
    [game.constants :as consts]
@@ -170,86 +169,3 @@
       true (update :stats #(fmap math/round %))
       true (dissoc :extra-rarity :armor :num-stats)
       delay (assoc :damage (* stats-quality delay (stats/weapon-dps level))))))
-
-(defn join-strs [& strs]
-  (str/join " " (remove nil? strs)))
-
-(defn handle-name [item-map]
-  (let [{:keys [name-prefix name name-suffix]} item-map]
-    (-> item-map
-      (assoc :name (join-strs name-prefix name name-suffix))
-      (dissoc :name-prefix :name-suffix))))
-
-(defn expand-item-set
-  "Takes a map that represents an item set, and creates the individual items in
-   the set. If m is an individual item already, returns m as is."
-  [m]
-  (if-not (:instances m)
-    m
-    (map
-     (fn [item-map]
-       (-> (merge m item-map)
-         (dissoc :instances)
-         handle-name))
-     (:instances m))))
-
-(defn ns-qualify [k]
-  (keyword (name (.name *ns*)) (name k)))
-
-(defmacro def-many [ks spec]
-  (let [ks @(ns-resolve *ns* ks)]
-    `(do ~@(map
-            #(list `s/def (ns-qualify %) spec)
-            ks))))
-
-(def-many stats/base-stats int?)
-
-(s/def ::slot (set (map ns-qualify hier/gear-slots)))
-(s/def ::type keyword?)
-(s/def ::stats map?)
-(s/def ::level int?)
-(s/def ::quality number?)
-(s/def ::name string?)
-(s/def ::delay number?)
-(s/def ::damage int?)
-(s/def ::two-hand (s/or :nil nil? :bool boolean?))
-(s/def ::item (s/keys :req [::level ::name ::slot ::type ::stats ::quality]
-                      :opt [::damage ::delay ::two-hand]))
-
-(defn check-items [items]
-  (let [qitems (walk/postwalk #(if (keyword? %) (ns-qualify %) %) items)]
-    (if (every? #(s/valid? ::item %) qitems)
-      items
-      (do (doall (map #(s/explain ::item %) qitems))
-          (throw-error "Items are not valid")))))
-
-(def bronze
-  {:name-prefix "Bronze"
-   :set-name :bronze
-   :quality 1
-   :type :plate
-   :level 5
-   :stats {:str 2 :vit 2 :sta 1 :spi 1 :mr 1}
-   :armor [0.9 1.2]
-   :num-stats [2 3]
-   :instances [{:slot :arms :name "Vambraces"}
-               {:slot :chest :name "Breastplate"}
-               {:slot :feet :name "Boots"}]})
-
-(def exe-axe
-  {:name "Executioner's Axe"
-   :quality 1.3
-   :level 10
-   :stats {:str 1 :vit 1 :sta 1}
-   :num-stats [1 2]
-   :delay 3
-   :slot :main-hand
-   :two-hand true
-   :type :axe})
-
-(def items
-  (flatten
-   (map
-    expand-item-set
-    [bronze
-     exe-axe])))
