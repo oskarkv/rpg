@@ -18,6 +18,8 @@
 (defn distance [g k k2]
   (dec (count (lalg/bf-path g k k2))))
 
+;;; These 3 fns have to do with loco (constraint programming) and loom
+
 (defn make-model [graph loom-graph]
   (let [gks (keys graph)
         n (count graph)
@@ -65,6 +67,8 @@
                              (keys graph)
                              (map sol (keys graph))))]
         (lio/view g)))))
+
+;;; These fns are about deciding levels without loco
 
 (defn invert-and-group
   "Inverts a map. The vals in the returned map are vectors of keys in the input
@@ -161,7 +165,7 @@
         levels))))
 
 ;; This fn can fail to assign a level to all zones, because find-next-zone's
-;; backstracking only ever goes down in levels, even when going up would result
+;; backtracking only ever goes down in levels, even when going up would result
 ;; in reaching a zone with a level that is lower than the original.
 (defn decide-levels [graph edge-zones tries]
   (letfn [(decide [_]
