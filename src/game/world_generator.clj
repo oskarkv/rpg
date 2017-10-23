@@ -76,7 +76,9 @@
   [m]
   (group-by m (keys m)))
 
-(defn distance-map [graph pairs]
+(defn distance-map
+  "Returns a map from pairs to distances between the nodes."
+  [graph pairs]
   (into {} (map #(vector % (apply distance graph %))) pairs))
 
 (defn path-score [levels graph]
@@ -124,7 +126,9 @@
             0
             (set (remove #{1} (keys inv-levels))))))
 
-(defn separation-score [levels graph]
+(defn separation-score
+  "Returns the distance between the level 1 zones."
+  [levels graph]
   (let [inv-levels (invert-and-group levels)
         [a b] (inv-levels 1)]
     (distance (loom/graph graph) a b)))
@@ -139,6 +143,12 @@
             levels-map
             (indexed path))))
 
+;; This fn has two problems. First, its backtracking only ever goes down in
+;; levels, even thought it should be allowed to go up, when the resulting zone
+;; has a lower level than the start zone. Second, the backtracking can go to the
+;; second start positions zones, not really backtracking at all.
+;;   I should probably try to make a simpler version, maybe with the help of
+;; bfs.
 (defn find-next-zone [levels graph start current]
   (when-not (nil? current)
     (let [clvl (levels current)
@@ -152,7 +162,10 @@
           first
           (find-next-zone levels graph start))))))
 
-(defn fill-levels [levels graph [a-start b-start]]
+(defn fill-levels
+  "Fills levels with levels, one level at a time (a pair of zones at a time),
+   using find-next-zone. Returns the filled levels map."
+  [levels graph [a-start b-start]]
   (let [inv-levels (invert-and-group levels)
         max-level (apply max (keys inv-levels))
         [a b] (inv-levels max-level)]
