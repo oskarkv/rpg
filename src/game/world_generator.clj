@@ -181,7 +181,7 @@
 ;; backtracking only ever goes down in levels, even when going up would result
 ;; in reaching a zone with a level that is lower than the original.
 (defn decide-levels [graph edge-zones tries]
-  (letfn [(decide [_]
+  (letfn [(decide []
             (let [g (loom/graph graph)
                   pairs (all-set-pairs edge-zones)
                   dist-map (distance-map g pairs)
@@ -191,4 +191,4 @@
                   levels (levels-along-path {} g start-pair 2)
                   levels (levels-along-path levels g (reverse start-pair) 2)]
               (fill-levels levels graph start-pair)))]
-    (apply max-key #(fairness-score % graph) (map decide (range tries)))))
+    (apply max-key #(fairness-score % graph) (repeatedly tries decide))))
