@@ -6,10 +6,14 @@
    [game.math :as math]
    [game.utils :refer :all]))
 
-(defn traversable [m zone]
+(defn traversable
+  "Return the tiles of zone that are traversable in m."
+  [m zone]
   (filter (gmap/traversable-in?-fn m) zone))
 
-(defn intraversable [m zone]
+(defn intraversable
+  "Return the tiles of zone that are intraversable in m."
+  [m zone]
   (filter (gmap/intraversable-in?-fn m) zone))
 
 (defn filter-tiles [m zone type-or-pred]
