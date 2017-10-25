@@ -18,24 +18,17 @@
     {:id (:id item) :quantity actual}))
 
 (defn spawn-mob [spawn-id spawns]
-  (let [mob (-> spawn-id spawns :mobs roll-for-mob :mob)
-        mob-type (-> mob :type mt/mobs)
-        [min max] (:levels mob)
-        level (+ min (rand-int (- (inc max) min)))
-        drops (roll-for-drops (:drops mob))
-        ;; This is wrong, but in the middle of reworking drops
-        drops-with-stats drops
-        unstacked (vec (mapcat items/unstack drops-with-stats))]
+  (let [{:keys [pos level]} (spawns spawn-id)
+        mob-type (rand-nth (vals mt/mobs))]
     (assoc mob-type
            :type :mob
            :spawn spawn-id
-           :pos (-> spawn-id spawns :pos)
+           :pos pos
+           :level level
            :move-dir [0 0]
            :last-attack 0
            :max-hp (:hp mob-type)
-           :delay 1
-           :level 1
-           :drops unstacked)))
+           :delay 1)))
 
 (defmethod b/process-event :spawn-ids
   [{:keys [to-spawn spawns player-ids] :as game-state} {ids :ids}]

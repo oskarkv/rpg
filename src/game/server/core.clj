@@ -4,7 +4,6 @@
    [game.common.core :as cc]
    [game.common.core-functions :as ccfns]
    [game.constants :as const]
-   [game.terrain-generator :as tg]
    [game.game-map :as gmap]
    [game.hierarchies :as hier]
    [game.key-value-store.core :as kvs.core]
@@ -16,7 +15,9 @@
    [game.server.mobs-and-looting :as ml]
    [game.server.movement :as mv]
    [game.server.spells :as sp]
-   [game.utils :refer :all]))
+   [game.terrain-generator :as tg]
+   [game.utils :refer :all]
+   [game.world-generator :as wg]))
 
 (defn new-player [username spawn-pos]
   (-> {:name username
@@ -114,7 +115,7 @@
   (->$ {:chars {} :player-ids #{} :corpses (pm/priority-map-keyfn :decay-time)
         :last-move (current-time-ms) :last-regen (current-time-ms)
         :effects (pm/priority-map-keyfn :decay-time)}
-    (merge $ (gmap/load-game-map (tg/make-round-rooms 2 10 10 0.45)))
+    (merge $ (gmap/load-game-map (wg/create-map 10 50 10 50)))
     (assoc $ :to-spawn (create-to-spawn-queue (:spawns $)))))
 
 (defn init-server [port]

@@ -17,20 +17,11 @@
   (map #(+ 0.5 %) pos))
 
 (defn load-game-map [game-map]
-  (let [{:keys [terrain spawns start end]} game-map]
+  (let [{:keys [terrain spawns player-spawn]} game-map]
     {:terrain terrain
-     :player-spawn (adjust-pos start)
+     :player-spawn (adjust-pos player-spawn)
      :spawns
      (zipmap
       (range)
-      (map
-       (fn [pos] {:pos (adjust-pos pos) :respawn-time 3
-                  :mobs [{:mob {:type 0 :levels [1 2]
-                                :drops [{:id 0 :chance 1}
-                                        {:id 1 :chance 1 :quantity 3}]}
-                          :rel-chance 2}
-                         {:mob {:type 1 :levels [1 2]
-                                :drops [{:id 2 :chance 1}
-                                        {:id 1 :chance 1 :quantity 3}]}
-                          :rel-chance 1}]})
-       spawns))}))
+      (map (fn [pos] {:pos (adjust-pos pos) :level 1})
+           spawns))}))

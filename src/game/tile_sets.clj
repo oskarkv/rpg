@@ -6,16 +6,6 @@
    [game.math :as math]
    [game.utils :refer :all]))
 
-(defn traversable
-  "Return the tiles of zone that are traversable in m."
-  [m zone]
-  (filter (gmap/traversable-in?-fn m) zone))
-
-(defn intraversable
-  "Return the tiles of zone that are intraversable in m."
-  [m zone]
-  (filter (gmap/intraversable-in?-fn m) zone))
-
 (defn filter-tiles [m zone type-or-pred]
   (filter (if (keyword? type-or-pred)
             #(= type-or-pred (get-in m %))
@@ -67,6 +57,18 @@
   (let [bottom (map #(+ % indent) bottom)
         top (map #(- % indent) top)]
     (area-between bottom top)))
+
+(defn traversable
+  "Return the tiles of zone that are traversable in m."
+  ([m] (traversable m (all-tiles m)))
+  ([m zone]
+   (filter (gmap/traversable-in?-fn m) zone)))
+
+(defn intraversable
+  "Return the tiles of zone that are intraversable in m."
+  ([m] (intraversable m (all-tiles m)))
+  ([m zone]
+   (filter (gmap/intraversable-in?-fn m) zone)))
 
 (defn fill
   ([m tiles] (fill m tiles :wall))

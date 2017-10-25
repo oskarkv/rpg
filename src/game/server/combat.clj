@@ -40,7 +40,7 @@
 (defn mob-death [game-state {:keys [id]}]
   (let [mob (get-in game-state [:chars id])
         spawn-id (:spawn mob)
-        respawn-time (get-in game-state [:spawns spawn-id :respawn-time])]
+        respawn-time 5]
     (-> game-state
       (dissoc-in [:chars id])
       (update :to-spawn conj

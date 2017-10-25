@@ -7,6 +7,7 @@
    [game.tile-sets :as ts]
    [game.utils :refer :all]
    [game.voronoi :as vor]
+   [game.terrain-generator :as tg]
    [loco.constraints :refer :all]
    [loco.core :as loco]
    [loom.alg :as lalg]
@@ -192,3 +193,43 @@
                   levels (levels-along-path levels g (reverse start-pair) 2)]
               (fill-levels levels graph start-pair)))]
     (apply max-key #(fairness-score % graph) (repeatedly tries decide))))
+
+(defn create-map
+  "Creates a map (matrix) of :wall, :ground, :tree, and :stone
+   tiles. zones is the approximate number of zones, size is the length
+   of the sides of the map, warp-disp is the maximum displacement, and
+   warp-period is the noise period."
+  [zones size warp-disp warp-period]
+  (let [shape [size size]
+        sites (vor/random-points zones shape)
+        zones (-> (vor/warped-voronoi sites shape warp-disp warp-period)
+                vals ts/heal-zone-map vec)
+        zone-map (zipmap (range) zones)
+        edge-indices (ts/edge-zones zones shape)
+        on-island (reject-keys zone-map edge-indices)
+        small-on-island (fmap #(ts/shrink-and-discard % 2) on-island)
+        conns (ts/find-connections on-island 5)
+        graph (ts/pairs-to-graph conns)
+        all-conns (ts/find-connections zones 5)
+        all-graph (ts/pairs-to-graph all-conns)
+        island-edge (math/difference (mapcat all-graph edge-indices)
+                                     edge-indices)
+        terrain (->$ (ts/make-mat shape)
+                  (reduce (fn [m z]
+                            (-> m
+                              (ts/fill z :ground)
+                              (tg/create-random-terrain z)))
+                          $ (vals small-on-island))
+                  (reduce (fn [m z]
+                            (ts/connect-close-areas m z 3 6))
+                          $ (vals small-on-island))
+                  (ts/connect-zone-pairs small-on-island conns 1))
+        traversable (ts/traversable terrain)]
+    {:terrain terrain
+     :spawns (take (* 0.05 (count traversable))
+                   (ts/random-tiles-without-clumps traversable 1.5))
+     :player-spawn (first (shuffle traversable))
+     ;;:levels (decide-levels graph island-edge 5)
+     :zones on-island
+     :edge-zones island-edge
+     :graph graph}))
