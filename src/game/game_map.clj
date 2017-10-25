@@ -1,7 +1,7 @@
 (ns game.game-map)
 
 (def tile-types
-  [:ground :wall :water :tree])
+  [:ground :wall :water :tree :stone])
 
 (def traversable? #{:ground})
 
