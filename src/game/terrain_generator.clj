@@ -51,27 +51,6 @@
     (ts/fill-randomly ratio :value thing :area zone)
     (ts/connect-all-rooms zone)))
 
-(defn random-without-clumps
-  "Randomly places things in zone until the traversable space is ratio things.
-   Does not place more than limit things in next to another thing within
-   radius."
-  [m zone ratio limit radius thing]
-  (let [ground (ts/traversable m zone)]
-    (first
-     (reduce
-      (fn [[m thing-count] tile]
-        (cond-pairs
-          [(< ratio (/ thing-count (count ground)))
-           (reduced [m])]
-          [(<= (->$ (ts/tiles-in-circle tile radius)
-                 (ts/filter-tiles m $ thing)
-                 count)
-               limit)
-           [(assoc-in m tile thing) (inc thing-count)]]
-          [:else [m thing-count]]))
-      [m 0.0]
-      (shuffle ground)))))
-
 (defn create-random-terrain [m zone]
   (let [f rand-uniform
         i rand-uniform-int

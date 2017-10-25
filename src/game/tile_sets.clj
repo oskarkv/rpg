@@ -205,6 +205,16 @@
     (remove #(> (math/distance % center) radius)
             (area-between bottom top))))
 
+(defn random-tiles-without-clumps
+  "Returns a lazy sequence of randomly selected tiles from tiles, such that
+   any two tiles are at least radius apart."
+  [tiles radius]
+  (let [invalid (volatile! #{})]
+    (filter (fn [t]
+              (when-not (@invalid t)
+                (vswap! invalid math/union (tiles-in-circle t radius))))
+            (shuffle tiles))))
+
 (defn unsafe-outer-border [tiles]
   (math/difference (apply cross-neighbors tiles) tiles))
 
