@@ -63,7 +63,7 @@
     (.addListener base-object listener)
     system))
 
-(let [buffer-size 50000]
+(let [buffer-size 500000]
   (defn construct-server [port conn-fn recv-fn disc-fn]
     (let [server (Server. buffer-size buffer-size)]
       {:net-sys (construct-system server ->KryonetServer
