@@ -1,6 +1,7 @@
 (ns game.server.base
   (:require
    [game.common.core-functions :as ccfns]
+   [game.stats :as stats]
    [game.utils :refer :all]))
 
 (def event-queue (ref []))
@@ -69,7 +70,7 @@
       (assoc-in [:chars id] player))))
 
 (defn update-player [game-state id]
-  (let [ngs (update-in game-state [:chars id] ccfns/update-stats)]
+  (let [ngs (update-in game-state [:chars id] stats/update-stats)]
     (enqueue-msgs [(:player-ids game-state)
                    {:id id
                     :type :s-char-update

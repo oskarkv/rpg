@@ -15,6 +15,7 @@
    [game.server.mobs-and-looting :as ml]
    [game.server.movement :as mv]
    [game.server.spells :as sp]
+   [game.stats :as stats]
    [game.terrain-generator :as tg]
    [game.utils :refer :all]
    [game.world-generator :as wg]))
@@ -39,7 +40,7 @@
        :spells (-> (vec (repeat const/spell-slots nil))
                  (assoc-in [0] {:spell :regrowth :last-cast 0}))
        :effects []}
-    ccfns/update-stats
+    stats/update-stats
     (as-> c
       (assoc c :hp (:max-hp c))
       (assoc c :mana (:max-mana c)))))

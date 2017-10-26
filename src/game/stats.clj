@@ -9,6 +9,10 @@
 (def base-stats
   #{:str :agi :int :vit :wis :sta :spi :armor :mr})
 
+(def char-base-stats
+  (-> (zipmap base-stats (repeat 10))
+    (assoc :armor 0 :mr 0)))
+
 (def other-stats
   #{:power :hp :mana :regen :hp-regen})
 
@@ -140,6 +144,21 @@
 
 (defn regen [spi]
   (/ spi 100.0))
+
+(defn sum-stats [gear]
+  (merge char-base-stats
+         (apply merge-with + (map :stats (vals gear)))))
+
+(defn update-stats [{:keys [gear level class] :as char}]
+  (let [stats (sum-stats gear)
+        {:keys [str agi sta wis vit int spi armor damage]} stats]
+    (merge (assoc char :stats (dissoc stats :damage))
+           {:max-hp (hitpoints vit level)
+            :hp-regen (hp-regen level)
+            :max-mana (mana wis)
+            :mana-regen (regen spi)
+            :armor armor
+            :damage (+some damage (long (power stats class)))})))
 
 (def chance-denom
   "How many times more unlikely it is per 1 quality to get a drop."

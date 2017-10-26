@@ -1,10 +1,10 @@
 (ns game.client.inventory
   (:require
    [game.client.base :as b]
-   [game.common.core-functions :as ccfns]
    [game.common.inventory :as inv]
    [game.constants :as consts]
    [game.items :as items]
+   [game.stats :as stats]
    [game.utils :refer :all]))
 
 (defmethod b/process-event :s-loot-item-ok [game-state {:keys [from-path]}]
@@ -19,8 +19,7 @@
   (update-in game-state [:chars own-id]
              #(-> %
                 (assoc :gear gear)
-                ccfns/update-stats
-                (merge (ccfns/sum-stats gear))
+                stats/update-stats
                 (dissoc :gear))))
 
 (defmethod b/process-event :changed-gear [game-state event]

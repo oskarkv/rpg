@@ -28,21 +28,6 @@
         time-delta (/ (- curr-time last-move) 1000.0)]
     (assoc game-state :last-move curr-time :move-time-delta time-delta)))
 
-(defn sum-stats [gear]
-  (merge stats/zero-stats
-         (apply merge-with + (map :stats (vals gear)))))
-
-(defn update-stats [{:keys [gear level class] :as char}]
-  (let [stats (sum-stats gear)
-        {:keys [str agi sta wis int spi armor]} stats]
-    (merge char
-           {:max-hp (stats/hitpoints sta level)
-            :hp-regen (stats/hp-regen level)
-            :max-mana (* level 50)
-            :mana-regen (* level 2)
-            :armor armor
-            :damage (long (stats/power stats class))})))
-
 (defn move-toward-pos [{:keys [pos speed] :as char} time-delta target-pos]
   (let [dir (math/norm-diff target-pos pos)
         updated-pos (math/extrapolate-pos pos dir time-delta speed)
