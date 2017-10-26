@@ -194,3 +194,8 @@
     max-quality
     (min max-quality (inc (/ (math/lg (/ base-drop-chance roll-result))
                              (math/lg chance-denom))))))
+
+(defn generate-item [level]
+  (let [quality (drop-quality (rand))]
+    (when (>= quality 1)
+      (create-real-item (create-abstract-item level quality)))))

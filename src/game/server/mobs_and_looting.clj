@@ -2,9 +2,11 @@
   (:require
    [game.common.core-functions :as ccfns]
    [game.constants :as consts]
+   [game.item-generation :as ig]
    [game.items :as items]
    [game.mob-types :as mt]
    [game.server.base :as b]
+   [game.stats :as stats]
    [game.utils :refer :all]))
 
 (defn roll-for-mob [mobs]
@@ -28,7 +30,8 @@
            :move-dir [0 0]
            :last-attack 0
            :max-hp (:hp mob-type)
-           :delay 1)))
+           :delay 1
+           :drops (some-> (ig/generate-item level) vector))))
 
 (defmethod b/process-event :spawn-ids
   [{:keys [to-spawn spawns player-ids] :as game-state} {ids :ids}]
