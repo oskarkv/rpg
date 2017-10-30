@@ -146,8 +146,7 @@
   (/ spi 100.0))
 
 (defn sum-stats [gear]
-  (merge char-base-stats
-         (apply merge-with + (map :stats (vals gear)))))
+  (apply merge-with + char-base-stats (map :stats (vals gear))))
 
 (defn update-stats [{:keys [gear level class] :as char}]
   (let [stats (sum-stats gear)
