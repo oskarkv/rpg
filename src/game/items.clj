@@ -48,13 +48,15 @@
         true))))
 
 (defn get-tooltip [item]
-  (let [{:keys [type damage delay stats slot]} item]
-    (->$ [(:name item)
-          (when slot (str "Slot: " (name slot)))
-          (when type (str "Type: " (name type)))
-          (when damage (str "Damage / Delay: " damage " / " delay))]
-      (into (for [[s v] stats]
-              (str (name s) ": " v)))
-      (str/join "\n" $))))
+  (let [{:keys [type damage delay stats slot quality]} item]
+    (->>$ [(:name item)
+           (when slot (str "Slot: " (name slot)))
+           (when type (str "Type: " (name type)))
+           (str "Quality: " (format "%.3f" quality))
+           (when damage (str "Damage / Delay: " damage " / " delay))]
+      (into $ (for [[s v] stats]
+                (str (name s) ": " v)))
+      (remove nil?)
+      (str/join "\n"))))
 
 (def items [])
