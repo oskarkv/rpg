@@ -9,7 +9,7 @@
 (defn left-right
   "Create left-slot and right-slot keywords."
   [slot]
-  (map #(keyword (str % "-" (name slot))) ["left" "right"]))
+  (mapv #(keyword (str % "-" (name slot))) ["left" "right"]))
 
 (defn check-gear-slots
   "Check if gear-set and gear-vector have the same elements."
@@ -37,6 +37,7 @@
   held-slots #{:main-hand :off-hand :ranged}
   gear-slots (set/union body-slots
                         held-slots)
+  actual-gear-slots (to-actual-slots gear-slots)
   ;; Used to decide the order in the gear panel
   gear-slots-vector (check-gear-slots
                      (to-actual-slots gear-slots)

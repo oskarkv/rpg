@@ -3,6 +3,7 @@
    [game.client.base :as b]
    [game.common.inventory :as inv]
    [game.constants :as consts]
+   [game.hierarchies :as hier]
    [game.items :as items]
    [game.stats :as stats]
    [game.utils :refer :all]))
@@ -94,8 +95,10 @@
 (defn loot-item [game-state path]
   (b/enqueue-events {:type :c-loot-item :from-path path}))
 
-(defn get-prioritized-slot [{:keys [gear] :as game-state} item]
-  (let [slots (:slots (items/all-info item))
+(defn get-prioritized-slot
+  "Finds a slot the gear map for item. Prioritizes empty slots."
+  [{:keys [gear] :as game-state} item]
+  (let [slots (items/expand-slot (:slot item))
         empty-slots (remove #(% gear) slots)]
     (first (concat empty-slots slots))))
 

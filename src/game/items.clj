@@ -31,32 +31,30 @@
                    (dissoc item :quantity)))
          stacks)))
 
-(defn all-info
-  "Merges the full info of an item into a light version of it."
-  [light-item]
-  (merge (items (:id light-item)) light-item))
+(defn expand-slot
+  "Creates a sequence of left and right version of the slot if possible,
+   else just wraps the slot in a vector."
+  [slot]
+  (if (hier/left-right-slots slot)
+    (hier/left-right slot)
+    [slot]))
 
 (defn correct-slot? [item path]
   (if (nil? item)
     true
-    (let [slot (peek path)
-          item-type (items (:id item))]
-      (if (contains? hier/gear-slots slot)
-        (contains? (:slots item-type) slot)
+    (let [slot (peek path)]
+      (if (contains? hier/actual-gear-slots slot)
+        (contains? (expand-slot (:slot item)) slot)
         true))))
 
 (defn get-tooltip [item]
-  (let [{:keys [type damage delay stats] :as item}
-        (all-info item)
-        list-fn (fn [k] (when (k item)
-                          (str (name k) ": "
-                               (str/join ", " (map name (k item))))))]
+  (let [{:keys [type damage delay stats slot]} item]
     (->$ [(:name item)
-          (when type (name type))
-          (when damage (str "damage / delay: " damage " / " delay))]
+          (when slot (str "Slot: " (name slot)))
+          (when type (str "Type: " (name type)))
+          (when damage (str "Damage / Delay: " damage " / " delay))]
       (into (for [[s v] stats]
               (str (name s) ": " v)))
-      (into (keep list-fn [:classes :slots :races]))
       (str/join "\n" $))))
 
 (def items [])

@@ -183,8 +183,13 @@
 
 (tree->jfx-method Button [(str (:text tree))] :button)
 
+(def icon-table
+  {:regrowth "spells/heal.png"
+   :empty "spells/empty.png"
+   :unknown "spells/unknown.png"})
+
 (defn get-texture-name [item]
-  (:icon (items/all-info item)))
+  (:unknown icon-table))
 
 (defn create-slot [item path]
   (let [children
@@ -388,7 +393,7 @@
   (let [{:keys [on-mouse on-mouse-quantity]} game-state
         omq on-mouse-quantity
         item (get-in game-state on-mouse)
-        name (:name (items/all-info item))
+        name (:name item)
         text (str "Destroy " name (when omq (str " (" omq ")")) "?")
         make-event (fn [a] {:type :destroy-item :trigger :action :destroy a})
         make-button (fn [t a] {:type :button :size [60 25] :text t
@@ -422,11 +427,6 @@
       (and (not destroying) dialog)
       (remove-destroy-item-dialog hud-state)
       :else hud-state)))
-
-(def icon-table
-  {:regrowth "spells/heal.png"
-   :empty "spells/empty.png"
-   :unknown "spells/unknown.png"})
 
 (defn create-spellbar-trees [spells]
   {:bar

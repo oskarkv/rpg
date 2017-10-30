@@ -34,8 +34,7 @@
        :level 1
        :exp 0
        :class :warrior
-       :inv (-> (vec (repeat 10 nil))
-              (assoc-in [0] {:stats {:armor 20}, :id 0}))
+       :inv (vec (repeat 10 nil))
        :gear (zipmap hier/gear-slots (repeat nil))
        :spells (-> (vec (repeat const/spell-slots nil))
                  (assoc-in [0] {:spell :regrowth :last-cast 0}))

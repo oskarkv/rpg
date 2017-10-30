@@ -198,4 +198,7 @@
 (defn generate-item [level]
   (let [quality (drop-quality (rand))]
     (when (>= quality 1)
-      (create-real-item (create-abstract-item level quality)))))
+      (-> level
+        (create-abstract-item quality)
+        create-real-item
+        (assoc :name "Random item")))))

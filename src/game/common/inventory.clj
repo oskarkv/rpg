@@ -33,7 +33,7 @@
      (conj acc total))))
 
 (defn stack-loot-dest [inv {:keys [quantity id] :as item}]
-  (let [size (:stackable (items/all-info item))
+  (let [size (:stackable item)
         idx-place (->> (map-indexed vector inv)
                     (filter (fn [[idx item]]
                               (and item
@@ -86,7 +86,7 @@
   (let [game-state (ensure-to-stack game-state from-path to-path)
         [from-q-path to-q-path] (map #(conj % :quantity) [from-path to-path])
         [from-q to-q] (map #(get-in game-state %) [from-q-path to-q-path])
-        max-stack (:stackable (items/all-info (get-in game-state to-path)))
+        max-stack (:stackable (get-in game-state to-path))
         moved-q (min quantity from-q (- max-stack to-q))
         ngs (update-in game-state to-q-path + moved-q)]
     (if (<= from-q moved-q)
