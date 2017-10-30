@@ -43,7 +43,7 @@
 (def char-update-keys [:max-hp :max-mana :level])
 
 (def keys-about-others
-  (concat char-update-keys [:name :speed :pos :type :hp :mana :level]))
+  (concat char-update-keys [:name :speed :pos :type :hp :mana :level :class]))
 
 (def prepare-char-update (make-preparation-fn char-update-keys))
 
