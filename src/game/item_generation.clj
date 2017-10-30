@@ -120,6 +120,9 @@
       (cons 0) (sort >) (map - (cons 1 $) $) (map #(* taken %))
       (fmap + (fmap #(* (- 1 to-take) %) stats)))))
 
+(defn remove-zero-stats [stats]
+  (select-keys stats (for [[k v] stats :when (not (zero? v))] k)))
+
 (defn real-item-stats
   "Creates a map of stats for an item by taking into consideration all the
    relevant information from item-map. The given quality is used, and not the
@@ -136,7 +139,9 @@
       randomly-adjust-stats
       (armor-factor-to-part (value-from-range armor))
       (fmap #(* stats-factor %) $)
-      (update :armor *some (stats/armor-factor type)))))
+      (update :armor *some (stats/armor-factor type))
+      (fmap math/round $)
+      remove-zero-stats)))
 
 (defn random-numbers-with-mean
   "Returns n random numbers between min-v and max-v, with the given mean.
@@ -166,9 +171,9 @@
     (cond-> item-map
       true (assoc :quality (+some quality extra-rarity)
                   :stats (real-item-stats item-map stats-quality))
-      true (update :stats #(fmap math/round %))
       true (dissoc :extra-rarity :armor :num-stats)
-      delay (assoc :damage (* stats-quality delay (stats/weapon-dps level))))))
+      delay (assoc :damage (math/round (* stats-quality delay
+                                          (stats/weapon-dps level)))))))
 
 (def chance-denom
   "How many times more unlikely it is per 1 quality to get a drop."
