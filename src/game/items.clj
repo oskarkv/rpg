@@ -44,7 +44,7 @@
     true
     (let [slot (peek path)]
       (if (contains? hier/actual-gear-slots slot)
-        (contains? (expand-slot (:slot item)) slot)
+        (contains? (set (expand-slot (:slot item))) slot)
         true))))
 
 (defn get-tooltip [item]
