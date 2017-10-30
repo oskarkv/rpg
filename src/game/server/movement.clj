@@ -37,7 +37,8 @@
    distance, it stops."
   [{:keys [pos speed path target] :as mob} time-delta chars]
   (let [target-pos (get-in chars [target :pos])]
-    (if (and path (> (math/distance pos target-pos) consts/attack-distance))
+    (if (and target-pos path
+             (> (math/distance pos target-pos) consts/attack-distance))
       (let [[next-point & path-left] path
             time-cost (/ (math/distance pos next-point) speed)]
         (if (< time-cost time-delta)

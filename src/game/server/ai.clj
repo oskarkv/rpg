@@ -17,7 +17,7 @@
                 players)]
     (if (< dist consts/attack-nearest-threshold)
       (assoc mob :target nearest :attacking true)
-      (assoc mob :target nil))))
+      (dissoc mob :target))))
 
 (defn decide-mob-path [game-state mob]
   (if (:target mob)
