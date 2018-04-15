@@ -340,8 +340,7 @@
 (letfn [(contains-$? [form]
           (some #{'$} (tree-seq coll? seq form)))
         (insert-$-in-one [arrow form]
-          (cond (symbol? form) (list form '$)
-                (contains-$? form) form
+          (cond (contains-$? form) form
                 :else (list arrow '$ form)))
         (insert-$-in-many [arrow forms]
           (map #(insert-$-in-one arrow %) forms))
@@ -349,11 +348,11 @@
           `(as-> ~x ~'$
                  ~@(insert-$-in-many arrow forms)))
         (cond-body [x arrow pairs]
-          `(cond-> ~x
-             ~@(apply concat
-                      (map (fn [[tst form]]
-                             [tst `(as-> ~'$ ~(insert-$-in-one arrow form))])
-                           (partition 2 pairs)))))
+          `(-> ~x
+             ~@(map (fn [[tst form]]
+                      `(as-> ~'$
+                         (if ~tst ~(insert-$-in-one arrow form) ~'$)))
+                    (partition 2 pairs))))
         (some-body [x arrow forms]
           `(some-> ~x
              ~@(map (fn [form] `(as-> ~'$ ~(insert-$-in-one arrow form)))
@@ -367,13 +366,15 @@
     [x & forms]
     (simple-body x '->> forms))
   (defmacro cond->$
-    "Acts like (cond-> test (as-> $ form) ...) if a form contains $, otherwise
-     acts like cond->."
+    "Acts like cond-> except that if the symbol $ exists in a test or an
+     expression, it will be replaced by the current value being threaded,
+     and the normal -> rules will not apply to the expression."
     [x & pairs]
     (cond-body x '-> pairs))
   (defmacro cond->>$
-    "Acts like (cond-> test (as-> $ form) ...) if a form contains $, otherwise
-     acts like cond->>."
+    "Acts like cond->> except that if the symbol $ exists in a test or an
+     expression, it will be replaced by the current value being threaded,
+     and the normal ->> rules will not apply to the expression."
     [x & pairs]
     (cond-body x '->> pairs))
   (defmacro some->$
