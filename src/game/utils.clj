@@ -51,8 +51,9 @@
 
 (defmacro defmacro! [name args & body]
   "Like defmacro-g!, but symbols starting with o! in the arguments vector of the
-   defined macro will be evaluated and a corresponding g!-symbol will be
-   let-bound to the result, making it easy to evaluate the argument only once."
+   defined macro will be evaluated and the corresponding g!-symbols will be
+   let-bound to the results, making it easy to evaluate the arguments only
+   once."
   (let [os (filter o!-sym? (flatten-all args))
         gs (map o!-sym-to-g!-sym os)]
     `(defmacro-g! ~name ~args
