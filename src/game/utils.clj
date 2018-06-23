@@ -14,6 +14,51 @@
 
 (def empty-queue clojure.lang.PersistentQueue/EMPTY)
 
+(defn flatten-more
+  "Like flatten, but also flattens sets."
+  [x]
+  (let [pred (some-fn sequential? set?)]
+    (remove pred (tree-seq pred seq x))))
+
+(defn flatten-all
+  "Like flatten, but also flattens sets and maps."
+  [x]
+  (remove coll? (tree-seq coll? seq x)))
+
+(defn x!-sym? [sym x]
+  (and (symbol? sym)
+       (> (count (str sym)) 2)
+       (str/starts-with? (str sym) (str x "!"))))
+
+(defn g!-sym? [sym]
+  (x!-sym? sym "g"))
+
+(defn o!-sym? [sym]
+  (x!-sym? sym "o"))
+
+(defn o!-sym-to-g!-sym [sym]
+  (symbol (str "g!" (subs (str sym) 2))))
+
+(defmacro defmacro-g!
+  "Like defmacro, but symbols starting with g! in the body will be let-bound
+   to gensyms."
+  [name args & body]
+  (let [syms (distinct (filter g!-sym? (flatten-all body)))]
+    `(defmacro ~name ~args
+       (let [~@(apply concat (for [s syms]
+                               [s `(gensym ~(subs (str s) 2))]))]
+         ~@body))))
+
+(defmacro defmacro! [name args & body]
+  "Like defmacro-g!, but symbols starting with o! in the arguments vector of the
+   defined macro will be evaluated and a corresponding g!-symbol will be
+   let-bound to the result, making it easy to evaluate the argument only once."
+  (let [os (filter o!-sym? (flatten-all args))
+        gs (map o!-sym-to-g!-sym os)]
+    `(defmacro-g! ~name ~args
+       `(let [~~@(interleave gs os)]
+          ~~@body))))
+
 (defmacro assert-args [& pairs]
   `(do (when-not ~(first pairs)
          (throw (IllegalArgumentException.
@@ -431,13 +476,6 @@
     (cons (take n coll)
           (takes ns (drop n coll)))
     nil))
-
-(defn flatten-more
-  "Like flatten, but also flattens sets."
-  [x]
-  (let [pred (some-fn sequential? set?)]
-    (filter (complement pred)
-            (rest (tree-seq pred seq x)))))
 
 (defn interleave-runs
   "Returns the lengths of runs of elements from seq-a if one were to interleave
