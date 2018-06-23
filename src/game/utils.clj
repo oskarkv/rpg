@@ -473,10 +473,9 @@
   (lazy-cat (shuffle coll) (infinite-shuffle coll)))
 
 (defn takes [[n & ns] coll]
-  (if n
+  (when n
     (cons (take n coll)
-          (takes ns (drop n coll)))
-    nil))
+          (takes ns (drop n coll)))))
 
 (defn interleave-runs
   "Returns the lengths of runs of elements from seq-a if one were to interleave
