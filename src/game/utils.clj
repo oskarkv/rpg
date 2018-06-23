@@ -454,7 +454,7 @@
 
 (defn fdefault
   "Takes a function f and a default value, and returns a function that is like f
-   but returns defualt when f returns nil."
+   but returns default when f returns nil."
   [f default]
   (fn [& args]
     (let [r (apply f args)]
