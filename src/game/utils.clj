@@ -594,6 +594,17 @@
   [m]
   (reduce (fn [m [k v]] (assoc m v k)) {} m))
 
+(defn pred-union [& ps]
+  (fn [& args]
+    (some #(apply % args) ps)))
+
+(defn pred-intersection [& ps]
+  (fn [& args]
+    (every? #(apply % args) ps)))
+
+(defn repeat-str [n x]
+  (apply str (repeat n x)))
+
 (defn bfs-waves
   "Returns a lazy sequence of the waves of successors in a breadth-first search
    from start using the given successors fn to generate the successors of a
@@ -624,3 +635,6 @@
                   (vswap! visited conj curr)
                   (cons curr (mapcat dfs* (successors curr))))))]
     (dfs* start)))
+
+(defn lazy-seq? [x]
+  (instance? clojure.lang.LazySeq x))
