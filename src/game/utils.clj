@@ -14,6 +14,17 @@
 
 (def empty-queue clojure.lang.PersistentQueue/EMPTY)
 
+(defn unqualify-syms* [syms code]
+  (walk/postwalk
+   #(if (and (symbol? %)
+             (some #{(name %)} (set (map name syms))))
+      (symbol (name %))
+      %)
+   code))
+
+(defmacro unqualify-syms [syms code]
+  (unqualify-syms* syms code))
+
 (defn flatten-more
   "Like flatten, but also flattens sets."
   [x]
@@ -179,12 +190,47 @@
       (assoc m k (dissoc-in inner ks))
       (polymorphic-dissoc m k))))
 
+(defn lastv
+  "Returns the last element of a vector."
+  [v]
+  (v (dec (count v))))
+
+(def repeatv "Like repeat, but returns a vector." (comp vec repeat))
+
+(defn reductions*
+  "Like reductions, but returns the nil if coll is empty, instead of a seq
+   of length 1."
+  ([f coll] (if (empty? coll) nil (reductions f coll)))
+  ([f init coll] (reductions f init coll)))
+
+(defmacro reversed-reductions [base-fn]
+  (unqualify-syms [f init coll]
+    `(fn
+       ([f coll] (reverse (~base-fn f (reverse coll))))
+       ([f init coll] (reverse (~base-fn f init (reverse coll)))))))
+
+(def reductionsr
+  "Like reductions, but reduces from right to left. In the returned seq,
+   the first element is the last reduction."
+  (reversed-reductions reductions))
+
+(def reductionsr*
+  "Like reductions*, but reduces from right to left. In the returned seq,
+   the first element is the last reduction."
+  (reversed-reductions reductions*))
+
 (defn fmap
-  "Apply f to the vals in m and return a map. If colls are provided, apply f to
-   the vals in m and the items from colls, as with clojure.core/map, but keep in
-   mind that the order of the keys is unreliable."
+  "Apply f to the vals in m and return a map. If colls are provided, apply
+   f to the vals in m and the items from colls in parallel, as with
+   clojure.core/map, but keep in mind that the order of the map elements
+   is unreliable."
   ([f m] (into {} (map (fn [[k v]] [k (f v)])) m))
   ([f m & colls] (zipmap (keys m) (apply map f (vals m) colls))))
+
+(defn keeps
+  ([f] (keep f))
+  ([f coll] (keep f coll))
+  ([f coll & colls]  (remove nil? (apply map f coll colls))))
 
 (defn call-times
   "Call f on args, then again on the result, and so on, n times."
@@ -198,6 +244,8 @@
           (recur (dec i) (f result)))))))
 
 (defn rec==
+  "Return true if the elements of two or more nested data structures are
+   equal, and use == if the elements are numbers."
   ([x] true)
   ([x y]
    (cond (and (number? x) (number? y)) (== x y)
@@ -211,13 +259,28 @@
 
 (def not== (complement ==))
 
-(defn flip [f]
+(defn flip
+  "Return a new function that like f but has the order of the first and
+   second argument flipped."
+  [f]
+  (fn
+    ([x y] (f y x))
+    ([x y & more] (apply f y x more))))
+
+(defn flips
+  "Return a new function that like f but has the order the arguments
+   reversed."
+  [f]
   (comp (partial apply f) reverse list))
 
-(defn partial* [f & args]
+(defn partial*
+  "Like partial, but flip f first."
+  [f & args]
   (apply partial (flip f) args))
 
-(defn conj-some [coll x]
+(defn conj-some
+  "Conj x to coll if x is not nil."
+  [coll x]
   (if (some? x) (conj coll x) coll))
 
 (defmacro take-at-least-ms [ms & body]
@@ -287,7 +350,10 @@
        ~(second pairs)
        (condf ~obj ~@(next (next pairs))))))
 
-(defmacro cond-pairs [& vs]
+(defmacro cond-pairs
+  "Like cond, but expects each test-expr pair to be wrapped in a
+   vector. Useful for readability sometimes."
+  [& vs]
   `(cond ~@(apply concat vs)))
 
 (defn throw-error [& msg]
@@ -302,17 +368,15 @@
     (dissoc-in from-path)))
 
 (defn swap-in [m path1 path2]
-  (let [item1 (get-in m path1)
-        item2 (get-in m path2)]
-    (-> m (assoc-in path1 item2) (assoc-in path2 item1))))
+  (-> m
+    (assoc-in path1 (get-in m path2))
+    (assoc-in path2 (get-in m path1))))
 
 (defn swap [m k1 k2]
-  (let [item1 (m k1)
-        item2 (m k2)]
-    (-> m (assoc k1 item2) (assoc k2 item1))))
+  (-> m (assoc k1 (m k2)) (assoc k2 (m k1))))
 
 (defn remove-map-nils [m]
-  (into {} (filter (comp some? val) m)))
+  (into {} (filter (comp some? val)) m))
 
 (defn domap [& args]
   (doall (apply map args)))
@@ -320,9 +384,9 @@
 (defn runmap [& args]
   (dorun (apply map args)))
 
-(defmacro defmemoized [& body]
-  `(do (defn ~@body)
-       (alter-var-root (var ~(first body)) memoize)))
+(defmacro defmemoized [& args]
+  `(do (defn ~@args)
+       (alter-var-root (var ~(first args)) memoize)))
 
 (defmacro assert-even-vector [v]
   `(assert-args
@@ -349,8 +413,10 @@
        ~else)
     then))
 
-(defn iterate-some [f x]
-  (take-while (complement nil?) (iterate #(when % (f %)) x)))
+(defn iterate-some
+  "Like iterate, but stops when f returns nil."
+  [f x]
+  (take-while some? (iterate #(when % (f %)) x)))
 
 (defn ensure-vec [v]
   (if (vector? v) v [v v]))
@@ -361,7 +427,9 @@
 (defn repeat-str [n s]
   (apply str (repeat n s)))
 
-(defn pair-cycle [coll]
+(defn pair-cycle
+  "Return ((n1 n2) (n2 n3) ... (nn n1)) for input (n1 n2 ... nn)."
+  [coll]
   (take (count coll) (partition 2 1 (cycle coll))))
 
 (defn print-methods [object]
