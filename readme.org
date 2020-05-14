@@ -1,0 +1,2 @@
+The game is not finished. And it probably doesn't run in
+it's current state, since I stopped working on it abruptly.
